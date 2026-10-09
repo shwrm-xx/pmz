@@ -22,9 +22,14 @@ cocher précochées** — jamais une liste à retaper :
   écris le plan en Markdown dans le scratchpad (`epicmaster-plan.md`) et ouvre-le dans le
   panneau latéral (pane `file`) ; la conversation ne garde que les boutons. Contenu : pour
   chaque epic son **nom** et une **description courte** (une phrase déduite des titres et « fait
-  quand » des lots, jamais inventée au-delà), puis **un bloc par vague** et **un lot par ligne**
-  `- [x] #id titre — modèle · effort` suivi de sa description (« fait quand », verify,
-  périmètre, dépendances) ; en pied, modèle maître, parallélisme, capacité. Sans panneau
+  quand » des lots, jamais inventée au-delà). En tête, un **tableau d'ordre de lancement**
+  (`| Vague | Lot | Titre | Modèle · effort | Après |`) ; puis **un bloc par vague** et, par lot,
+  un titre `#### #id — titre`, une ligne `` `modèle · effort` · ~Nk tokens · ⏳ à lancer · après
+  #id ``, le **« fait quand »** (champ `scope` du backlog) et des puces courtes verify /
+  périmètre / US. **Jamais de syntaxe de tâche `- [x]`** : le panneau la rend cochée-barrée et
+  les lots paraissent déjà faits. Le plan est **en lecture seule** : on n'y coche rien, il le dit
+  en pied (« Pour écarter un lot : bouton « Écarter certains lots » ou réponds « sans #id » »),
+  avec modèle maître, parallélisme, capacité. Sans panneau
   (session hors fenêtre, autre hôte) : le même plan en Markdown dans la conversation, ou en
   widget HTML (`show_widget`) **en lecture seule** — un widget n'est **jamais** le moyen de
   répondre : un bouton `sendPrompt` peut rester sans effet selon l'hôte (constaté : clic sur
@@ -32,7 +37,8 @@ cocher précochées** — jamais une liste à retaper :
 - **Réponse, toujours par les boutons natifs** (AskUserQuestion) : « Lancer tous les lots
   (Recommandé) » / « Écarter certains lots » / « Annuler ». Sur « Écarter » : une seconde
   question à **choix multiples** (vraies cases, une option par lot `#id titre — modèle · effort`),
-  les lots cochés sont écartés. Sans AskUserQuestion : texte « Je lance ces lots tels quels ?
+  les lots cochés sont écartés (au-delà de 4 lots, plafond de l'outil : une option par vague,
+  ou la réponse libre « Other » « sans #12, #15 »). Sans AskUserQuestion : texte « Je lance ces lots tels quels ?
   Pour en décocher : « sans #12, #15 ». » Une question **fermée sans réponse** = rien n'est
   lancé, les lots restent « à faire » ; ne jamais interpréter un silence comme un oui.
 

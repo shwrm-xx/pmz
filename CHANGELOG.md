@@ -2,6 +2,19 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-09 — Plan `/epicmaster` lisible dans le panneau (hors backlog, epic Bande epicmaster)
+
+Retour utilisateur : dans le panneau latéral, les lignes `- [x] #id …` du plan étaient rendues
+comme des tâches cochées-barrées — les lots paraissaient déjà faits — et le « fait quand »
+manquait.
+
+- **`promptimizer/commands/epicmaster.md`** : plan = tableau d'ordre de lancement en tête, puis
+  un bloc par lot (`#### #id — titre`, ligne modèle · effort · tokens · « ⏳ à lancer », « fait
+  quand », puces verify / périmètre / US) ; **interdiction de la syntaxe `- [x]`** ; plan en
+  lecture seule, qui rappelle en pied comment écarter un lot (bouton « Écarter certains lots » ou
+  « sans #id ») ; au-delà de 4 lots (plafond de l'outil), une option par vague ou réponse libre.
+- **`test/run-tests.js`** : l'assertion de `commands/epicmaster.md` vérifie aussi l'interdiction.
+
 ## 2026-10-09 — Budget maître recalé sur la mesure réelle (lot #135, epic Session maître)
 
 Première session maître réelle (epic de test « Calc test », 3 lots, 2 vagues) : chaque sous-agent
