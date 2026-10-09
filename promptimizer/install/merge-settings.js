@@ -77,6 +77,10 @@ const PMZ_HOOKS = {
   PostToolUse: [{ matcher: 'Read|Edit|Write|TodoWrite|Bash', hooks: [cmd('post-tool-use.js', T.default)] }],
   Stop: [{ hooks: [cmd('stop.js', T.default)] }],
   PreCompact: [{ matcher: 'manual|auto', hooks: [cmd('pre-compact.js', T.default)] }],
+  // Bande epicmaster (lot #136/#138) : trace live des sous-agents (.vibe-agent/epicmaster-live.json).
+  // Même script pour les deux events ; fail-open, sans verdict.
+  SubagentStart: [{ hooks: [cmd('subagent-live.js', T.default)] }],
+  SubagentStop: [{ hooks: [cmd('subagent-live.js', T.default)] }],
 };
 
 function cmd(name, timeout) {

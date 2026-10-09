@@ -8,6 +8,10 @@ Tu es la **session maître** : tu ne codes pas, tu **lances** les lots ouverts d
 tu **consolides** — commit et clôture par lot, CHANGELOG, et UN handoff final qui porte la
 dette et ce qui reste à trancher. Les lots peuvent appartenir à une seule epic ou à plusieurs.
 
+> **Bande epicmaster** : pendant cette session maître, une bande live (`EM ▶n ✔n ⚙n`, sous-agents
+> en vol / terminés / outils) s'affiche si le mod `mods/epicmaster-band` est chargé
+> (`claude --plugin-dir ~/.claude/promptimizer/mods/epicmaster-band`) ; sinon `backlog.js epicmaster --live`.
+
 ## 1. Plan et confirmation (UNE question, cases précochées)
 
 `node ~/.claude/promptimizer/scripts/backlog.js epicmaster` (ajouter `--epic "…"` pour se limiter

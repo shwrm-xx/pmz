@@ -90,7 +90,9 @@ fs.mkdirSync(PLUGIN, { recursive: true });
 // ── 2. Copie de la source (moins install/ + bruit OS) → racine du plugin ──
 fs.cpSync(PMZ_SRC, PLUGIN, {
   recursive: true,
-  filter: (src) => !EXCLUDE.has(path.basename(src)),
+  // + `<mod>/.claude-plugin/types/` : généré par le moteur de mods au chargement, jamais livré.
+  filter: (src) => !EXCLUDE.has(path.basename(src)) &&
+    !(path.basename(src) === 'types' && path.basename(path.dirname(src)) === '.claude-plugin'),
 });
 
 // ── 3. Skill : source hors miroir (skills/promptimizer/) → <plugin>/skills/promptimizer/ ──

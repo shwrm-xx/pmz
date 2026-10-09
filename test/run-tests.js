@@ -217,13 +217,13 @@ writeSettings({ permissions: { allow: ['Read'] }, statusLine: { type: 'command',
 runNode(MS, [SP], { PMZ_STATE_DIR: STATE });
 let s = readSettings();
 ok(s.permissions && s.statusLine && s.enabledPlugins, 'préserve permissions/statusLine/enabledPlugins');
-ok(hookCmds(s).filter((c) => c.includes('promptimizer/hooks/')).length === 6, 'install → 6 hooks PMZ');
+ok(hookCmds(s).filter((c) => c.includes('promptimizer/hooks/')).length === 8, 'install → 8 hooks PMZ');
 ok(hookCmds(s).every((c) => /^"[^"]+\/node" /.test(c) || /^"[^"]*node" /.test(c)), 'hooks câblés avec node en chemin absolu quoté');
 
 // D3. Idempotence
 runNode(MS, [SP], { PMZ_STATE_DIR: STATE });
 s = readSettings();
-ok(hookCmds(s).filter((c) => c.includes('promptimizer/hooks/')).length === 6, 'réinstall → toujours 6 (idempotent)');
+ok(hookCmds(s).filter((c) => c.includes('promptimizer/hooks/')).length === 8, 'réinstall → toujours 8 (idempotent)');
 
 // D3bis. Matchers PMZ à jour : clear/compact déclenchent SessionStart, TodoWrite observé.
 function pmzEntry(s2, ev) {
@@ -273,7 +273,7 @@ writeSettings({
 runNode(MS, [SP], { PMZ_STATE_DIR: STATE });
 s = readSettings();
 ok(hookCmds(s).filter((c) => c.includes('vibe-session-governor')).length === 0, 'strip legacy : 0 hook vibe-session-governor');
-ok(hookCmds(s).filter((c) => c.includes('promptimizer/hooks/')).length === 6, 'strip legacy : 6 hooks PMZ (pas de doublon)');
+ok(hookCmds(s).filter((c) => c.includes('promptimizer/hooks/')).length === 8, 'strip legacy : 8 hooks PMZ (pas de doublon)');
 
 // D5. Takeover context-guard.py → sidecar
 writeSettings({ hooks: { Stop: [{ hooks: [{ type: 'command', command: 'python3 ~/.claude/hooks/context-guard.py' }] }] } });
@@ -3541,8 +3541,8 @@ section('install.js — bout-en-bout cross-platform (bac à sable, source sans .
     const s = JSON.parse(fs.readFileSync(instSettings, 'utf8'));
     const cmds = [].concat(...Object.values(s.hooks || {}))
       .flatMap((e) => (e && e.hooks) || []).map((h) => h.command || '');
-    ok(cmds.filter((c) => c.includes('promptimizer/hooks/')).length === 6,
-      'install.js : 6 hooks PMZ fusionnés');
+    ok(cmds.filter((c) => c.includes('promptimizer/hooks/')).length === 8,
+      'install.js : 8 hooks PMZ fusionnés');
     ok(cmds.some((c) => c.includes(path.join(fakeClaude, 'promptimizer', 'hooks'))),
       'install.js : HOOK_BASE pointe sous CLAUDE_CONFIG_DIR');
   }
@@ -3561,7 +3561,7 @@ section('install.js — bout-en-bout cross-platform (bac à sable, source sans .
     const s = JSON.parse(fs.readFileSync(instSettings, 'utf8'));
     const n = [].concat(...Object.values(s.hooks || {})).flatMap((e) => (e && e.hooks) || [])
       .filter((h) => (h.command || '').includes('promptimizer/hooks/')).length;
-    ok(n === 6, 'install.js : réinstall → toujours 6 hooks (pas de doublon)');
+    ok(n === 8, 'install.js : réinstall → toujours 8 hooks (pas de doublon)');
   }
   fs.rmSync(stage, { recursive: true, force: true });
 }

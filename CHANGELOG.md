@@ -2,6 +2,41 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-09 — Packaging, install et doc de la bande epicmaster (lot #138, epic Bande epicmaster)
+
+- **`install/merge-settings.js`** : enregistre `SubagentStart`/`SubagentStop`
+  (`hooks/subagent-live.js`) pour l'install manuelle — append-only, tagué, idempotent, réversible.
+- **`install.js`** et **`build-plugin.js`** déploient `mods/epicmaster-band` sans
+  `.claude-plugin/types/` (généré par le moteur) ; `mods/` purgé à la réinstall (retrait propre).
+- **`uninstall.js`** retire `commands/epicmaster.md` ; les mods partent avec le dossier PMZ.
+- **`commands/epicmaster.md`**, **README**, **ARCHITECTURE** : la bande et son packaging documentés.
+- **`test/run-tests.js`** (écart de périmètre accepté) : 6 → 8 hooks PMZ attendus (5 assertions) ;
+  2308 OK.
+
+## 2026-10-09 — Bande epicmaster au-dessus de la saisie (lot #137, epic Bande epicmaster)
+
+- **`promptimizer/mods/epicmaster-band/`** (nouveau mod) : bande compacte dépliable au-dessus de
+  la saisie (variante C, `ui.render` AbovePrompt) — epic, vague n/N, barre segmentée par lot,
+  compteurs `✓ ⟳ ⧗`.
+- Lit `.vibe-agent/epicmaster-live.json` (lot #136), se met à jour toutes les 2 s, lecture seule.
+- Verify rouge en couleur danger avec l'id du lot ; « Détails » liste les lots en vol
+  (modèle · effort, durée, ~tokens) et en attente.
+- Récap « epicmaster terminé », effacé à la saisie suivante.
+- Fail-open : rien ne s'affiche si le fichier est absent, invalide ou périmé (> 6 h).
+- 6 tests `claude plugin test` (critères 1-6 de l'US).
+
+## 2026-10-09 — État live epicmaster (lot #136, epic Bande epicmaster)
+
+- **`promptimizer/lib/epicmaster-live.js`** (nouveau) : état live de la session maître dans
+  `.vibe-agent/epicmaster-live.json` — écriture atomique, péremption 6 h des lots « running »
+  sans mise à jour, rendus compact (1 ligne) et détaillé.
+- **`backlog.js start|done|note`** l'alimentent pour les owners `master/lot-*` ;
+  **`backlog.js epicmaster --live [--detailed|--json]`** le rend en lecture seule.
+- **`hooks/subagent-live.js`** (nouveau, SubagentStart/Stop) : suit les sous-agents, rattachés à
+  un lot seulement s'il y en a exactement un libre ; fail-open, exit 0 muet.
+- **Statusline** : segment `EM ▶n ✔n ⚙n` avant `ctx`, absent hors session maître.
+- **Tests** LV-1..LV-6 en bac à sable (2308 OK).
+
 ## 2026-10-09 — Plan `/epicmaster` lisible dans le panneau (hors backlog, epic Bande epicmaster)
 
 Retour utilisateur : dans le panneau latéral, les lignes `- [x] #id …` du plan étaient rendues
