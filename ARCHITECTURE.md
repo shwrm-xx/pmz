@@ -806,6 +806,14 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   vagues restant toujours visible. Coût par lot non imputé au maître quand plusieurs lots sont en
   vol (`costLotFor` : owners `master/lot-N` ≠ session) — trou de mesure visible, assumé, jamais une
   imputation au hasard.
+- **Packaging de la bande epicmaster** (lot #138) : `install.js` copie `promptimizer/` en entier,
+  donc `mods/epicmaster-band/` suit, via un filtre de copie qui exclut `<mod>/.claude-plugin/types/`
+  (généré par le moteur de mods au chargement, jamais livré) ; `mods/` est purgé avant recopie
+  (retrait propre d'un mod disparu). `build-plugin.js` applique le même filtre. `merge-settings.js`
+  enregistre `SubagentStart`/`SubagentStop` → `hooks/subagent-live.js` pour le canal manuel
+  (append-only, tagué `promptimizer/hooks/`, idempotent, retiré par `--remove`) ; le canal plugin
+  les câble via `hooks/hooks.json`. Retrait : `uninstall.js` (hooks + `commands/epicmaster.md`
+  + `~/.claude/promptimizer/` incl. mods).
 - **Réintégration en pipeline — `pmz:reintegrate`** (lot #80, 5ᵉ/6ᵉ brique de
   [D3](docs/decisions/D3-parallelisation-gouvernee.md), principe **P3** « jamais de big-bang ») :
   `lib/reintegrate.js` sépare trois responsabilités. `planReintegration(fleet, backlog)` (**pur**)

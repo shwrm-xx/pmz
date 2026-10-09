@@ -95,14 +95,23 @@ if (installedVersion === null || cmp === null) {
 }
 
 if (fs.existsSync(DEST_PMZ)) {
-  for (const sub of ['hooks', 'lib', 'scripts', 'install', 'templates', 'commands']) {
+  for (const sub of ['hooks', 'lib', 'scripts', 'install', 'templates', 'commands', 'mods']) {
     try { fs.rmSync(path.join(DEST_PMZ, sub), { recursive: true, force: true }); } catch (_) { /* ignore */ }
   }
 }
 
+// Filtre de copie : le moteur de mods génère `<mod>/.claude-plugin/types/` au chargement
+// (artefact local, jamais livré) ; bruit OS exclu.
+function copyFilter(src) {
+  const base = path.basename(src);
+  if (base === '.DS_Store') return false;
+  if (base === 'types' && path.basename(path.dirname(src)) === '.claude-plugin') return false;
+  return true;
+}
+
 // 4. Copie du package, de la skill et des slash commands
 try {
-  fs.cpSync(PMZ_SRC, DEST_PMZ, { recursive: true });
+  fs.cpSync(PMZ_SRC, DEST_PMZ, { recursive: true, filter: copyFilter });
 } catch (e) { fatal('copie du package (' + e.message + ').'); }
 const skillSrc = path.join(REPO, 'skills', 'promptimizer');
 if (fs.existsSync(skillSrc)) {
@@ -178,7 +187,8 @@ log('');
 log('── Installé. ──');
 log('• Hooks globaux fusionnés dans : ' + SETTINGS + ' (sauvegarde horodatée créée)');
 log('• Skill : ' + path.join(DEST, 'skills', 'promptimizer', 'SKILL.md'));
-log('• Commands : /init /budget /check-context /close-batch /fresh-session');
+log('• Commands : /init /budget /check-context /close-batch /fresh-session /epicmaster');
+log('• Mod bande epicmaster : ' + path.join(DEST_PMZ, 'mods', 'epicmaster-band') + ' (opt-in : claude --plugin-dir <ce dossier>)');
 log('• Redémarre Claude Code pour activer les hooks.');
 log('• Désinstaller : promptimizer/install/uninstall' + (IS_WIN ? '.ps1' : '.command'));
 pause();

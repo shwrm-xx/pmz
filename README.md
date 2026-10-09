@@ -300,6 +300,14 @@ un **handoff consolidé** portant la **dette** et ce qui reste **à trancher**. 
 **systématiquement** par la préparation de cette session maître (handoff maître écrit, injecté à la
 session fraîche suivante) et ne démarre plus de lot lui-même.
 
+**Bande epicmaster** (lots #136-#138) : pendant la session maître, une bande live affiche les
+sous-agents en vol / terminés (`EM ▶n ✔n ⚙n` dans la statusline ; `backlog.js epicmaster --live`
+en CLI). Le mod `promptimizer/mods/epicmaster-band/` (panneau Claude Code) est déployé par
+`install.js` vers `~/.claude/promptimizer/mods/` (le dossier `.claude-plugin/types/` généré par le
+moteur est exclu) et inclus dans le plugin ; chargement : `--plugin-dir` ou `CLAUDE_CONFIG_DIR`.
+L'install manuelle enregistre aussi `SubagentStart`/`SubagentStop` (tagué, réversible) ; retrait :
+`uninstall` (hooks) puis suppression de `~/.claude/promptimizer/`.
+
 `/about` affiche la version installée de PMZ (`promptimizer/VERSION`, historisée dans
 `CHANGELOG.md` à chaque évolution) ainsi que l'epic et le lot en cours du projet courant.
 
