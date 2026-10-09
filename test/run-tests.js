@@ -9643,6 +9643,113 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   ok(tpl.startsWith(handoffLib.MANUAL_MARKER) && /Dette consolidée/.test(tpl) && /À trancher/.test(tpl), 'templates/epicmaster-handoff.md : manuel, dette + à trancher');
 }
 
+section('État live epicmaster — lib/epicmaster-live + CLI start/done/note + hooks Subagent* + statusline (lot #136)');
+{
+  const live = require(path.join(PKG, 'lib', 'epicmaster-live'));
+  const repoLv = path.join(SANDBOX, 'repo-epicmaster-live');
+  fs.mkdirSync(repoLv, { recursive: true });
+  execFileSync('git', ['init', '-q', repoLv]);
+  fs.writeFileSync(path.join(repoLv, 'a.txt'), '1');
+  execFileSync('git', ['-C', repoLv, 'add', '.']);
+  execFileSync('git', ['-C', repoLv, 'commit', '-q', '-m', 'init']);
+  const LF = path.join(repoLv, '.vibe-agent', 'epicmaster-live.json');
+  const readLive = () => JSON.parse(fs.readFileSync(LF, 'utf8'));
+  runNode(BKLG, ['add', '--cwd', repoLv, '--title', 'Lot un', '--model', 'sonnet', '--effort', 'low', '--perimeter', 'lib/a/**']);
+  runNode(BKLG, ['add', '--cwd', repoLv, '--title', 'Lot deux', '--model', 'sonnet', '--effort', 'low', '--perimeter', 'lib/b/**']);
+  runNode(BKLG, ['add', '--cwd', repoLv, '--title', 'Lot trois', '--model', 'sonnet', '--effort', 'low']);
+
+  // LV-1. Sans owner maître : aucun fichier live (start ordinaire / owner tiers).
+  runNode(BKLG, ['start', '--cwd', repoLv, '--id', '3']);
+  ok(!fs.existsSync(LF), 'LV-1 : start sans owner -> aucun epicmaster-live.json');
+  runNode(BKLG, ['start', '--cwd', repoLv, '--id', '3', '--owner', 'wave/lot-3']);
+  ok(!fs.existsSync(LF), 'LV-1 : owner non maître -> aucun epicmaster-live.json');
+  ok(/Aucun état live/.test(runNode(BKLG, ['epicmaster', '--cwd', repoLv, '--live']).out), 'LV-1 : --live sans fichier -> message explicite');
+  ok(live.isMasterOwner('master/lot-5') && !live.isMasterOwner('master') && !live.isMasterOwner(null) && !live.isMasterOwner('x/master/lot-1'), 'LV-1 : isMasterOwner (préfixe strict master/lot-)');
+
+  // LV-2. start/note/done avec owner master/lot-N alimentent le fichier.
+  runNode(BKLG, ['start', '--cwd', repoLv, '--id', '1', '--owner', 'master/lot-1']);
+  runNode(BKLG, ['start', '--cwd', repoLv, '--id', '2', '--owner', 'master/lot-2']);
+  let st = readLive();
+  ok(st.v === 1 && st.lots['1'] && st.lots['1'].status === 'running' && st.lots['1'].owner === 'master/lot-1' && st.lots['1'].title === 'Lot un' && st.lots['2'].status === 'running',
+    'LV-2 : start (owner master/lot-*) -> lots 1 et 2 running, owner et titre tracés');
+  ok(!st.lots['3'], 'LV-2 : le lot 3 (owner tiers) n\'apparaît pas');
+  runNode(BKLG, ['note', '--cwd', repoLv, '--id', '1', '--note', 'migration à moitié']);
+  ok(readLive().lots['1'].note === 'migration à moitié', 'LV-2 : note -> posée dans l\'état live');
+  runNode(BKLG, ['done', '--cwd', repoLv, '--id', '2', '--commit', 'abc1234', '--no-verify']);
+  st = readLive();
+  ok(st.lots['2'].status === 'done' && st.lots['2'].owner === 'master/lot-2' && st.lots['2'].done_at, 'LV-2 : done -> status done, owner (lu avant clôture) conservé');
+  ok(st.lots['1'].status === 'running', 'LV-2 : le lot 1 reste running');
+
+  // LV-3. Hooks SubagentStart/SubagentStop : suivi des agents, jamais de sortie, fail-open.
+  const rS = runHook('subagent-live.js', { hook_event_name: 'SubagentStart', cwd: repoLv, agent_id: 'ag-1', agent_type: 'general-purpose' });
+  ok(rS.code === 0 && !rS.out.trim(), 'LV-3 : SubagentStart -> exit 0, aucune sortie');
+  st = readLive();
+  ok(st.agents['ag-1'] && !st.agents['ag-1'].stopped_at && st.agents['ag-1'].type === 'general-purpose', 'LV-3 : agent enregistré, actif');
+  ok(st.agents['ag-1'].lot === 1, 'LV-3 : rattaché au lot 1 (seul lot running sans agent)');
+  runHook('subagent-live.js', { hook_event_name: 'SubagentStart', cwd: repoLv, agent_id: 'ag-2', agent_type: 'Explore' });
+  ok(readLive().agents['ag-2'].lot === null, 'LV-3 : plus de lot libre -> agent non rattaché (rien d\'inventé)');
+  runHook('subagent-live.js', { hook_event_name: 'SubagentStop', cwd: repoLv, agent_id: 'ag-1' });
+  ok(!!readLive().agents['ag-1'].stopped_at, 'LV-3 : SubagentStop -> agent arrêté');
+  const before = fs.readFileSync(LF, 'utf8');
+  runHook('subagent-live.js', { hook_event_name: 'SubagentStop', cwd: repoLv, agent_id: 'jamais-vu' });
+  ok(fs.readFileSync(LF, 'utf8') === before, 'LV-3 : arrêt d\'un agent inconnu -> état inchangé');
+  for (const inp of ['', '{bad json', {}, { hook_event_name: 'SubagentStart' }, { hook_event_name: 'SubagentStart', cwd: SANDBOX, agent_id: 'x' }]) {
+    const r = runHook('subagent-live.js', inp);
+    ok(r.code === 0 && !r.out.trim(), `LV-3 : fail-open subagent-live.js (${JSON.stringify(inp).slice(0, 30)}) -> exit 0 muet`);
+  }
+  ok(runHook('subagent-live.js', { hook_event_name: 'SubagentStart', cwd: repoLv, agent_id: 'ag-kill' }, { PMZ_DISABLE: '1' }).code === 0 && !readLive().agents['ag-kill'], 'LV-3 : PMZ_DISABLE=1 -> rien écrit');
+  // Sans session maître (aucun lot running) : aucun fichier créé par un sous-agent ordinaire.
+  const repoPlain = path.join(SANDBOX, 'repo-live-plain');
+  fs.mkdirSync(repoPlain, { recursive: true });
+  execFileSync('git', ['init', '-q', repoPlain]);
+  runHook('subagent-live.js', { hook_event_name: 'SubagentStart', cwd: repoPlain, agent_id: 'ag-p' });
+  ok(!fs.existsSync(path.join(repoPlain, '.vibe-agent', 'epicmaster-live.json')), 'LV-3 : hors session maître -> aucun fichier live créé');
+  // Câblage plugin : hooks.json déclare les deux événements -> subagent-live.js.
+  const hj = JSON.parse(fs.readFileSync(path.join(HOOKS, 'hooks.json'), 'utf8'));
+  ok(['SubagentStart', 'SubagentStop'].every((ev) => (hj.hooks[ev] || []).some((e) => (e.hooks || []).some((h) => /subagent-live\.js/.test(h.command || '')))),
+    'LV-3 : hooks.json (canal plugin) câble SubagentStart + SubagentStop -> subagent-live.js');
+
+  // LV-4. CLI --live : compact, détaillé, json.
+  const rc = runNode(BKLG, ['epicmaster', '--cwd', repoLv, '--live']);
+  ok(rc.code === 0 && /Epicmaster live : 1 en cours \(#1\) · 1 fait · 1 sous-agent actif/.test(rc.out) && rc.out.trim().split('\n').length === 1, 'LV-4 : --live compact = 1 ligne (1 en cours, 1 fait, 1 sous-agent)');
+  const rd = runNode(BKLG, ['epicmaster', '--cwd', repoLv, '--live', '--detailed']);
+  ok(/En cours :[\s\S]*▶ #1 Lot un — master\/lot-1/.test(rd.out) && /note : migration à moitié/.test(rd.out) && /Faits :[\s\S]*✔ #2 Lot deux/.test(rd.out) && /Sous-agents actifs :[\s\S]*Explore ag-2[\s\S]*lot non rattaché/.test(rd.out),
+    'LV-4 : --live --detailed : lots, note, faits, sous-agents');
+  const rj = JSON.parse(runNode(BKLG, ['epicmaster', '--cwd', repoLv, '--live', '--json']).out);
+  ok(rj.running.length === 1 && rj.done.length === 1 && rj.agents_active.length === 1 && rj.agents_stopped === 1, 'LV-4 : --live --json : résumé machine');
+  ok(!/Vague 1/.test(rc.out) && JSON.parse(fs.readFileSync(path.join(repoLv, '.vibe-agent', 'backlog.json'), 'utf8')).lots.length === 3, 'LV-4 : --live est en lecture seule (pas de plan, backlog intact)');
+
+  // LV-5. Péremption : un « running » trop vieux est signalé périmé, hors segment.
+  const old = Date.now() - live.STALE_MS - 60000;
+  const sum = live.summarize({ lots: { 9: { id: 9, status: 'running', title: 'Zombie', updated_at: new Date(old).toISOString(), started_at: new Date(old).toISOString() } }, agents: {} });
+  ok(sum.running.length === 0 && sum.stale.length === 1 && /1 périmé \(#9\)/.test(live.renderCompact(sum)), 'LV-5 : running sans mise à jour > STALE_MS -> périmé');
+  ok(live.NO_STATE === live.renderCompact(live.summarize(null)) && live.NO_STATE === live.renderDetailed(live.summarize({ lots: {}, agents: {} })), 'LV-5 : état vide -> message explicite');
+  // État corrompu / mal formé : jamais d'exception.
+  const repoBad = path.join(SANDBOX, 'repo-live-bad');
+  fs.mkdirSync(path.join(repoBad, '.vibe-agent'), { recursive: true });
+  fs.writeFileSync(path.join(repoBad, '.vibe-agent', 'epicmaster-live.json'), '{pas du json');
+  ok(live.statusSegment(repoBad) === '' && /Aucun état live/.test(live.renderLive(repoBad, {}).text), 'LV-5 : JSON corrompu -> segment vide, message explicite, aucune exception');
+  fs.writeFileSync(path.join(repoBad, '.vibe-agent', 'epicmaster-live.json'), JSON.stringify({ lots: { 1: null, 2: 'x' }, agents: [] }));
+  ok(live.statusSegment(repoBad) === '' && typeof live.renderLive(repoBad, { detailed: true }).text === 'string', 'LV-5 : entrées mal formées ignorées sans exception');
+  ok(live.recordStart(null, { id: 1 }, 'master/lot-1') === false && live.recordSubagent(null, 'start', {}) === false, 'LV-5 : root nul -> no-op (false), pas de throw');
+
+  // LV-6. Statusline : segment « EM ▶n ✔n ⚙n » ; messages.statusLineText le place avant ctx.
+  ok(live.statusSegment(repoLv) === 'EM ▶1 ✔1 ⚙1', 'LV-6 : statusSegment = EM ▶1 ✔1 ⚙1');
+  ok(messages.statusLineText({ version: '1.0.0', done: 1, total: 3, live: 'EM ▶1 ✔1', occ: 320000 }) === 'PMZ v1.0.0 · 1/3 · EM ▶1 ✔1 · ctx 320k', 'LV-6 : statusLineText insère le segment live avant ctx');
+  ok(messages.statusLineText({ version: '1.0.0', live: null }) === 'PMZ v1.0.0', 'LV-6 : sans segment -> ligne inchangée (non-régression)');
+  {
+    let o;
+    try { o = execFileSync(process.execPath, [path.join(PKG, 'scripts', 'statusline.js')], { input: JSON.stringify({ cwd: repoLv }), encoding: 'utf8' }); } catch (e) { o = (e.stdout || '').toString(); }
+    ok(/EM ▶1 ✔1 ⚙1/.test(o) && o.trim().split('\n').length === 1, 'LV-6 : statusline.js réelle affiche le segment live (1 ligne)');
+    const repoNo = path.join(SANDBOX, 'repo-live-no');
+    fs.mkdirSync(path.join(repoNo, '.vibe-agent'), { recursive: true });
+    execFileSync('git', ['init', '-q', repoNo]);
+    let o2;
+    try { o2 = execFileSync(process.execPath, [path.join(PKG, 'scripts', 'statusline.js')], { input: JSON.stringify({ cwd: repoNo }), encoding: 'utf8' }); } catch (e) { o2 = (e.stdout || '').toString(); }
+    ok(!/EM /.test(o2), 'LV-6 : hors session maître -> aucun segment EM');
+  }
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);

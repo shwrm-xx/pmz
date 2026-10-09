@@ -45,6 +45,20 @@
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/pmz-hook\" \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-compact.js\"", "timeout": 5 }
         ]
       }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/pmz-hook\" \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-live.js\"", "timeout": 5 }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/pmz-hook\" \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-live.js\"", "timeout": 5 }
+        ]
+      }
     ]
   }
 }

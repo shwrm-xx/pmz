@@ -287,6 +287,7 @@ function statusLineText(info) {
   if (Number.isFinite(i.done) && Number.isFinite(i.total) && i.total > 0) {
     parts.push(`${i.done}/${i.total}`);
   }
+  if (i.live) parts.push(String(i.live)); // lot #136 : segment « EM ▶2 ✔1 ⚙3 » de la session maître
   if (Number.isFinite(i.occ) && i.occ > 0) parts.push(`ctx ${fmtK(i.occ)}`);
   return parts.join(' · ');
 }

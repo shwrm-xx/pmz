@@ -3,7 +3,7 @@
 // Statusline Promptimizer (lot #45, opt-in) — invoquée par Claude Code via le champ
 // `statusLine` de settings.json (une commande qui reçoit un JSON sur stdin et dont la
 // PREMIÈRE ligne de stdout devient la barre d'état). N'affiche qu'UNE ligne :
-//   PMZ v<version> · <epic> · lot #<id> <titre> · <faits>/<total> · ctx <occupation>
+//   PMZ v<version> · <epic> · lot #<id> <titre> · <faits>/<total> · [EM ▶n ✔n ⚙n] · ctx <occupation>
 // Sources : VERSION du paquet, backlog du projet courant (déduit du cwd du workspace),
 // occupation temps réel lue dans le transcript de la session.
 //
@@ -57,6 +57,8 @@ function main() {
         info.done = p.done;
         info.total = p.total;
       }
+      // Segment de repli (lot #136) : état live de la session maître, vide hors session maître.
+      try { info.live = require('../lib/epicmaster-live').statusSegment(root) || null; } catch (_) { /* fail-open */ }
     }
   } catch (_) { /* projet illisible → on garde version + occupation */ }
 
