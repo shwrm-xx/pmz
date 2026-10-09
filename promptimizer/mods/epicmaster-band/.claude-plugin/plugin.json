@@ -1,0 +1,9 @@
+{
+  "name": "epicmaster-band",
+  "version": "0.1.0",
+  "description": "Promptimizer — bande compacte dépliable au-dessus de la saisie : avancement live d'une session /epicmaster (.vibe-agent/epicmaster-live.json).",
+  "author": {
+    "name": "Promptimizer"
+  },
+  "types": "./types/index.d.ts"
+}
