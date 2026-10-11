@@ -51,7 +51,7 @@ function main() {
 
   logStep('Étape 2 : Retirer les hooks legacy du canal manuel');
   run(`node "${path.join(INSTALL_ROOT, 'migrate-to-plugin.js')}"`);
-  log(`✅ Hooks PMZ retirés de ~/.claude/settings.json`);
+  log(`✅ Hooks PMZ et entrée de la bande retirés de ~/.claude/settings.json`);
 
   logStep('Étape 3 : Enregistrer la marketplace locale');
   const marketplaceCmd = `claude plugin marketplace add "${DIST_MARKETPLACE}"`;
@@ -69,7 +69,8 @@ function main() {
 ✅ Migration réussie !
 
 Résumé des changements :
-  • Hooks legacy retirés du canal manuel
+  • Hooks legacy retirés du canal manuel (+ entrée env.CLAUDE_CODE_PLUGIN_DIRS de la bande)
+  • Bande epicmaster portée par le plugin pmz (un seul plugin)
   • Plugin Claude Code natif installé
   • Marketplace locale prête pour partage à d'autres postes
 

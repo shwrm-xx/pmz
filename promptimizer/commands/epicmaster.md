@@ -9,8 +9,8 @@ tu **consolides** — commit et clôture par lot, CHANGELOG, et UN handoff final
 dette et ce qui reste à trancher. Les lots peuvent appartenir à une seule epic ou à plusieurs.
 
 > **Bande epicmaster** : pendant cette session maître, une bande live (`EM ▶n ✔n ⚙n`, sous-agents
-> en vol / terminés / outils) s'affiche via le mod `mods/epicmaster-band`, chargé automatiquement
-> (install PMZ : `env.CLAUDE_CODE_PLUGIN_DIRS` de `settings.json`) ; à défaut `backlog.js epicmaster --live`.
+> en vol / terminés / outils) s'affiche au-dessus de la saisie, chargée automatiquement (plugin `pmz` :
+> embarquée ; install manuelle : `env.CLAUDE_CODE_PLUGIN_DIRS`) ; à défaut `backlog.js epicmaster --live`.
 
 ## 1. Plan et confirmation (UNE question, cases précochées)
 

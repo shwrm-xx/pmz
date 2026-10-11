@@ -825,10 +825,29 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   sont préservées ; idempotent. `--remove` (donc `uninstall.js` et `migrate-to-plugin.js`) retire
   **uniquement** notre entrée, supprime la clé si elle devient vide puis `env` s'il ne reste rien ;
   backup horodaté comme le reste. `env` ou valeur non standard (non-objet / non-chaîne) → rien touché,
-  note affichée. `--check` expose `epicmaster_band_loaded`. Canal plugin : `build-plugin.js` copie
-  `mods/epicmaster-band` (même filtre `types/`) vers `dist/marketplace/epicmaster-band/` et l'ajoute
-  comme **second plugin** de `.claude-plugin/marketplace.json` (source relative `./epicmaster-band`) :
-  `/plugin install epicmaster-band@pmz-local` le rend actif sans `CLAUDE_CODE_PLUGIN_DIRS`.
+  note affichée. `--check` expose `epicmaster_band_loaded`. (Le canal plugin du lot #139 — second plugin
+  `epicmaster-band` dans la marketplace — est **remplacé** par le lot #140 ci-dessous.)
+- **Bande epicmaster embarquée dans le plugin pmz** (lot #140, un seul plugin à installer sur un
+  autre poste) : `build-plugin.js` **fusionne** le mod dans `dist/marketplace/promptimizer/` — plus de
+  second plugin, `marketplace.json` n'expose que `pmz`. **Cohabitation vérifiée empiriquement** : un
+  `hooks/hooks.json` peut porter à la fois `hooks` (commandes) et `modules` (mod) ; `claude plugin
+  validate` sur le plugin construit passe et voit le module (`session.start`, `prompt.submit`,
+  `ui.render{AbovePrompt}`), `claude plugin details pmz` compte toujours les 8 hooks commande, et les
+  tests du mod passent sur le plugin construit. Fusion **au build seulement** (la source garde son
+  miroir plat, `hooks/hooks.json` source inchangé) : (1) fichiers de `mods/epicmaster-band/hooks/`
+  (hors `hooks.json`) → `<plugin>/hooks/` (`register.tsx`, `live.ts` — collision de nom = build
+  refusé), (2) `mods/epicmaster-band/types/` → `<plugin>/types/` (l'import `../types` du module reste
+  valide) et `plugin.json` reçoit `"types": "./types/index.d.ts"`, (3) clé `modules` du mod ajoutée
+  (union sans doublon) au `hooks.json` du plugin, (4) `mods/` n'est pas copié en doublon dans le
+  plugin. **Propriété de l'état** : le moteur impose qu'un module n'écrive que l'état de **son
+  plugin** (`atom({ plugin })`, `PluginState`) ; la source du mod (canal manuel, chargé comme plugin
+  `epicmaster-band`) garde ce nom, et le build réécrit `'epicmaster-band'` → nom du plugin hôte
+  (`pmz`, relu du manifeste) dans les `.ts/.tsx` copiés. **Canal manuel inchangé** : miroir
+  `~/.claude/promptimizer/mods/` + `env.CLAUDE_CODE_PLUGIN_DIRS`. `migrate-to-plugin.js` retire
+  désormais **aussi** notre entrée `CLAUDE_CODE_PLUGIN_DIRS` (le plugin porte la bande : la garder la
+  chargerait deux fois), même quand il ne reste aucun hook legacy ; valeur tierce préservée. Tests
+  `B140-*` : un seul plugin, cohabitation `hooks`/`modules`, `validate`, migration, `~` dans une entrée
+  existante, séparateur (`path.delimiter` seul sépare : `;` sous Windows, pas sous posix).
 - **Réintégration en pipeline — `pmz:reintegrate`** (lot #80, 5ᵉ/6ᵉ brique de
   [D3](docs/decisions/D3-parallelisation-gouvernee.md), principe **P3** « jamais de big-bang ») :
   `lib/reintegrate.js` sépare trois responsabilités. `planReintegration(fleet, backlog)` (**pur**)

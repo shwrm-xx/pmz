@@ -2,6 +2,28 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-11 — Version 2.7.1
+
+Bande epicmaster (lots #136-#140) : état live, bande au-dessus de la saisie chargée
+automatiquement, embarquée dans le plugin `pmz` prêt à installer sur d'autres postes.
+
+## 2026-10-11 — Bande epicmaster embarquée dans le plugin pmz (lot #140, epic Bande epicmaster)
+
+Décision utilisateur : PMZ = un seul plugin prêt à installer pour d'autres utilisateurs, bande incluse.
+
+- **`build-plugin.js`** : la bande est fusionnée au build dans le plugin `pmz` — un seul
+  `hooks/hooks.json` porte les hooks commande (`hooks`) et le module (`modules`), `register.tsx`
+  et `live.ts` dans `hooks/`, `types/` à la racine ; la marketplace dist n'expose plus que `pmz`.
+  La clé d'état `epicmaster-band` est réécrite en `pmz` dans les copies (un module n'écrit que
+  l'état de son plugin) ; la source reste en miroir plat.
+- Vérifié sur le plugin construit : `claude plugin validate` ok, `plugin details` (8 hooks
+  commande), `plugin test` 6/6.
+- **`migrate-to-plugin.js`** (+ `-all`) : retire l'entrée `CLAUDE_CODE_PLUGIN_DIRS` de PMZ (le
+  plugin porte la bande, pas de double chargement), même sans hook legacy ; valeurs tierces
+  préservées.
+- **`commands/epicmaster.md`**, README, ARCHITECTURE : chargement de la bande selon le canal ;
+  install pour un autre poste. Tests B140-* + dette #139 (`~`, séparateur `;`) — 2365 OK.
+
 ## 2026-10-11 — Chargement automatique de la bande epicmaster (lot #139, epic Bande epicmaster)
 
 Décision utilisateur : la bande se charge toute seule (fin de l'opt-in `--plugin-dir`).

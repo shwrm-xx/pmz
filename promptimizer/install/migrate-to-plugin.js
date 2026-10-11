@@ -3,7 +3,9 @@
 // Migration canal manuel -> plugin Claude Code (lot D3).
 // Retire les hooks PMZ légataires de settings.json (réutilise merge-settings.js --remove, qui
 // restaure aussi un éventuel sidecar de prise de relais context-guard.py) pour éviter le
-// double-firing une fois le plugin installé. Ne touche jamais aux projets utilisateur.
+// double-firing une fois le plugin installé. Retire AUSSI notre entrée env.CLAUDE_CODE_PLUGIN_DIRS
+// (lot #140) : le plugin pmz porte désormais la bande epicmaster (module fusionné au build),
+// la garder chargerait la bande deux fois. Valeur tierce de la clé préservée. Ne touche jamais aux projets utilisateur.
 // L'installeur Node manuel (install.js) reste le canal legacy ; ce script en est l'outil de
 // sortie propre, cf. ARCHITECTURE.md « Canal plugin ».
 //
@@ -47,18 +49,21 @@ if (!fs.existsSync(MS)) {
 let before = '';
 try { before = spawnSync(process.execPath, [MS, SETTINGS, '--check'], { encoding: 'utf8' }).stdout || ''; }
 catch (_) { /* ignore */ }
-if (!/"pmz_hooks_present":\s*true/.test(before)) {
+const hasHooks = /"pmz_hooks_present":\s*true/.test(before);
+const hasBand = /"epicmaster_band_loaded":\s*true/.test(before);
+if (!hasHooks && !hasBand) {
   log('Aucun hook PMZ legacy dans ' + SETTINGS + ' — rien à migrer.');
   pause();
   process.exit(0);
 }
 
-// 2. Retrait des hooks PMZ legacy (backup + restauration du sidecar context-guard.py si
-//    applicable) — même appel que uninstall.js, réutilisé tel quel.
+// 2. Retrait des hooks PMZ legacy ET de notre entrée env.CLAUDE_CODE_PLUGIN_DIRS (backup + restauration
+//    du sidecar context-guard.py si applicable) — même appel que uninstall.js, réutilisé tel quel.
 const rMs = spawnSync(process.execPath, [MS, SETTINGS, '--remove'], { stdio: 'inherit' });
 if (rMs.status !== 0) fatal('le retrait des hooks legacy a échoué (rien modifié). Voir ci-dessus.');
 log('');
-log('Hooks PMZ legacy retirés de ' + SETTINGS + ' (sauvegarde créée).');
+if (hasHooks) log('Hooks PMZ legacy retirés de ' + SETTINGS + ' (sauvegarde créée).');
+if (hasBand) log('Entrée epicmaster-band retirée de env.CLAUDE_CODE_PLUGIN_DIRS : le plugin pmz porte la bande (valeur tierce préservée).');
 
 // 3. Purge optionnelle des fichiers legacy (défaut : conservés, comme uninstall.js).
 if (PURGE) {
