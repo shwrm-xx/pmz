@@ -58,8 +58,9 @@ claude plugin marketplace add dist/marketplace
 claude plugin install pmz@pmz-local
 ```
 
-Vérification : `claude plugin details pmz` (doit afficher **6 hooks** et les
-**13 commandes** ; commandes namespacées `/pmz:*`, ex. `/pmz:about`, `/pmz:scope`). Le nom du
+Vérification : `claude plugin validate dist/marketplace/promptimizer` (voit aussi le module de la
+bande epicmaster) puis `claude plugin details pmz` (doit afficher **8 hooks** et les
+**15 skills/commandes** ; commandes namespacées `/pmz:*`, ex. `/pmz:about`, `/pmz:scope`). Le nom du
 plugin (identifiant technique, pilote le namespace des commandes) est `pmz` ; l'identité
 « Promptimizer » reste le nom du projet/produit (description, branding). **Distribution à un tiers**
 (entreprise, équipe, communauté) : partager le dossier `dist/marketplace/` (ou un dépôt git
@@ -89,6 +90,11 @@ il déclare le plugin en source `git-subdir` pointant le dossier `promptimizer/`
 claude plugin marketplace add shwrm-xx/promptimiser
 claude plugin install pmz@pmz-marketplace
 ```
+
+Sur un **autre poste, pour un autre utilisateur**, c'est tout ce qu'il faut : le plugin `pmz`
+embarque tout (hooks, commandes, skill **et** bande epicmaster ; aucun `CLAUDE_CODE_PLUGIN_DIRS`,
+aucun second plugin). Forme équivalente depuis la commande interactive :
+`/plugin install pmz --marketplace shwrm-xx/promptimiser`.
 
 Prérequis : le dépôt doit être **public** (`marketplace add owner/repo` lit le dépôt sans
 authentification). Côté mainteneur, publier l'artefact de build à chaque release :
@@ -307,8 +313,10 @@ en CLI). Le mod `promptimizer/mods/epicmaster-band/` (panneau Claude Code) est d
 moteur est exclu) et **chargé automatiquement** (lot #139) : l'install manuelle ajoute son dossier à
 `env.CLAUDE_CODE_PLUGIN_DIRS` de `~/.claude/settings.json` (liste séparée par `:` / `;` selon
 l'OS ; append-only, valeur tierce préservée, idempotent ; valable CLI et app desktop). Canal
-plugin : `build-plugin.js` expose `epicmaster-band` comme second plugin de la marketplace générée
-(`claude plugin install epicmaster-band@pmz-local`). L'install manuelle enregistre aussi
+plugin (lot #140) : la bande est **embarquée dans le plugin `pmz`** (un seul plugin, pas de second
+plugin à installer) — `build-plugin.js` fusionne le module dans le `hooks/hooks.json` du plugin ;
+`migrate-to-plugin` retire alors l'entrée `CLAUDE_CODE_PLUGIN_DIRS` (évite un double chargement).
+L'install manuelle enregistre aussi
 `SubagentStart`/`SubagentStop` (tagué, réversible) ; retrait : `uninstall` (hooks + entrée
 `CLAUDE_CODE_PLUGIN_DIRS`, seule la nôtre) puis suppression de `~/.claude/promptimizer/`.
 
