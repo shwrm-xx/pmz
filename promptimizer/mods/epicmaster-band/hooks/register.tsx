@@ -13,17 +13,36 @@ import {
 } from './live'
 
 const expanded = atom({ plugin: 'epicmaster-band', key: 'expanded' } as const, false)
+const armedAt = atom({ plugin: 'epicmaster-band', key: 'armedAt' } as const, null as number | null)
 const dismissed = atom({ plugin: 'epicmaster-band', key: 'dismissed' } as const, null as EpicmasterBandDismissed)
 
 const POLL_MS = 2000
 const MINUTE_TICKS = 30 // 30 × 2 s : redessin périodique des temps écoulés
 const MAX_SEGMENTS = 40
+const ARM_MS = 15 * 60 * 1000 // l'attente « préparation du plan » expire seule
+const CALL_RE = /^\s*\/(?:pmz:)?epicmaster(?![\w-])/
 
 const SEG: Record<LiveLot['status'], { glyph: string; color: string }> = {
   done: { glyph: '■', color: 'success' },
   running: { glyph: '■', color: 'warning' },
   pending: { glyph: '□', color: 'inactive' },
   failed: { glyph: '■', color: 'error' },
+}
+
+type Fs = { read: (p: string) => Promise<unknown> }
+type Env = { get: (n: string) => Promise<string | undefined> }
+
+// Fichier live : celui du dossier de session, sinon la copie globale (<config>/promptimizer/…)
+// écrite par backlog.js — la bande marche alors quel que soit le dossier où la session est ouverte.
+async function readLive($: { fs: Fs; env: Env }, now: number): Promise<string | null> {
+  const asText = (t: unknown) => (typeof t === 'string' ? t : null)
+  const local = asText(await $.fs.read(LIVE_PATH).catch(() => null))
+  if (parseLive(local, now)) return local
+  const cfg = await $.env.get('CLAUDE_CONFIG_DIR').catch(() => undefined)
+  const home = cfg || ((await $.env.get('HOME').catch(() => undefined)) ?? '') + '/.claude'
+  if (!cfg && home === '/.claude') return local
+  const global = asText(await $.fs.read(`${home}/promptimizer/epicmaster-live.json`).catch(() => null))
+  return parseLive(global, now) ? global : local
 }
 
 export const register: Register = on => {
@@ -35,8 +54,8 @@ export const register: Register = on => {
     try {
       if (e.surface !== null) {
         $.clock.every(POLL_MS, () => {
-          $.fs.read(LIVE_PATH)
-            .then(t => (typeof t === 'string' ? t : null), () => null)
+          $.clock.now()
+            .then(now => readLive($, now))
             .then(text => {
               ticks = (ticks + 1) % MINUTE_TICKS
               if (text !== lastText || (text !== null && ticks === 0)) {
@@ -54,23 +73,43 @@ export const register: Register = on => {
   // Critère 6 : le récap « terminé » disparaît à la saisie suivante.
   on('prompt.submit', async ($, e, next) => {
     try {
-      const text = await $.fs.read(LIVE_PATH).catch(() => null)
-      const view = parseLive(text, await $.clock.now())
+      const now = await $.clock.now()
+      const view = parseLive(await readLive($, now), now)
       if (view && view.finished) {
         await update($, dismissed, () => view.signature)
         await update($, expanded, () => false)
       }
+      // /epicmaster saisi : la bande s'affiche tout de suite (plan en préparation), sans attendre le fichier.
+      if (CALL_RE.test(e.text)) await update($, armedAt, () => now)
     } catch (_) { /* fail-open */ }
     return next(e)
   }).catch(($, e, next) => next(e)) // jamais de refus : la saisie passe toujours
 
+  // /epicmaster est une commande : elle passe par command.run (et non toujours par prompt.submit).
+  // On arme la bande à cet instant puis on laisse la commande tourner, inchangée.
+  for (const command of ['epicmaster', 'pmz:epicmaster']) {
+    on('command.run', { command }, async ($, e, next) => {
+      try { const now = await $.clock.now(); await update($, armedAt, () => now) } catch (_) { /* fail-open */ }
+      return next(e)
+    }).catch(($, e, next) => next(e))
+  }
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     try {
       if (e.props.hasSurvey) return next(e)
-      const text = await $.fs.read(LIVE_PATH).catch(() => null)
       const now = await $.clock.now()
-      const view = parseLive(text, now)
-      if (!view) return next(e)
+      const view = parseLive(await readLive($, now), now)
+      if (!view) {
+        const armed = await read($, armedAt)
+        if (armed === null || now - armed > ARM_MS) return next(e)
+        const { Box, Text } = $.ui.resolve(e)
+        return (
+          <Box key="em-band" flexDirection="row">
+            <Text key="em-wait" bold wrap="truncate">{'◆ epicmaster · plan en préparation… '}</Text>
+            <Text key="em-wait-bar" dimColor>□□□</Text>
+          </Box>
+        )
+      }
       if (view.finished && (await read($, dismissed)) === view.signature) return next(e)
       const isOpen = !view.finished && (await read($, expanded))
       const { Box, Text, Button } = $.ui.resolve(e)

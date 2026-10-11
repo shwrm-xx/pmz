@@ -159,6 +159,21 @@ describe('bande epicmaster', () => {
     }
   })
 
+  test('immédiat : /epicmaster affiche la bande avant tout fichier live, et sans lui rien avant', async ($, on) => {
+    serve(on, { text: null })
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      expect(await text(ui, /plan en préparation/)).toBeUndefined()
+      await ui.unmount()
+    }
+    await $.prompt.submit({ text: '/epicmaster' })
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      expect(await text(ui, /^◆ epicmaster · plan en préparation… $/)).toBeDefined()
+      await ui.unmount()
+    }
+  })
+
   test('critère 2 : la bande suit le fichier live sans action utilisateur', async ($, on) => {
     const box: FileBox = { text: live() }
     serve(on, box)

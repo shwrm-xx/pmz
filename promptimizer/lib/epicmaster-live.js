@@ -16,6 +16,7 @@
 // même instant : on relit juste avant d'écrire, au pire une mise à jour est perdue (état indicatif,
 // jamais source de vérité — celle-ci reste backlog.json).
 const path = require('path');
+const os = require('os');
 const { readJson, writeAtomic } = require('./fsjson');
 
 const LIVE_FILE = 'epicmaster-live.json';
@@ -85,8 +86,21 @@ function save(root, st, now) {
   try {
     st.updated_at = nowIso(now);
     prune(st, now);
-    return writeAtomic(livePath(root), st);
+    const ok = writeAtomic(livePath(root), st);
+    mirrorGlobal(st);
+    return ok;
   } catch (_) { return false; }
+}
+
+// Copie globale <config>/promptimizer/epicmaster-live.json : la bande (lue depuis n'importe quel
+// dossier de session) la prend en repli quand le dossier de session n'a pas de .vibe-agent live.
+// Best-effort, jamais bloquant ; PMZ_NO_LIVE_MIRROR=1 la désactive (tests).
+function globalLivePath() {
+  const cfg = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+  return path.join(cfg, 'promptimizer', LIVE_FILE);
+}
+function mirrorGlobal(st) {
+  try { if (!process.env.PMZ_NO_LIVE_MIRROR) writeAtomic(globalLivePath(), st); } catch (_) { /* indicatif */ }
 }
 
 // ── Plan complet : vague courante + fin de plan (lot #141) ────────────────────────────────
@@ -348,6 +362,6 @@ function statusSegment(root, now) {
 }
 
 module.exports = {
-  LIVE_FILE, OWNER_RE, STALE_MS, NO_STATE, isMasterOwner, livePath, load, summarize, isActive,
+  LIVE_FILE, globalLivePath, OWNER_RE, STALE_MS, NO_STATE, isMasterOwner, livePath, load, summarize, isActive,
   recordStart, recordDone, recordNote, recordSubagent, seedFromPlan, refreshProgress, renderCompact, renderDetailed, renderLive, statusSegment,
 };

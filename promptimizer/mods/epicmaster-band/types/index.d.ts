@@ -8,6 +8,8 @@ declare module 'claude-code' {
       /** Bande dépliée (« Détails ») ou repliée (« Masquer »). */
       expanded: boolean
       dismissed: EpicmasterBandDismissed
+      /** Instant (ms) où /epicmaster a été saisi : la bande s'affiche aussitôt, même sans fichier live. */
+      armedAt: number | null
     }
   }
 }

@@ -836,6 +836,11 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   backlog. `commands/epicmaster.md` orchestre `--live-seed` (après confirmation), `note --decide`,
   `done --verify-verdict failed` (+ `reopen`, le lot reste ouvert au backlog) et `--tokens`. Test de
   la bande sur un fichier produit par le vrai writer (`mods/epicmaster-band/tests/band.test.ts`).
+- **Bande immédiate et indépendante du dossier** : `register.tsx` arme l'atom `armedAt` sur `command.run`
+  (`epicmaster`, `pmz:epicmaster`) et `prompt.submit` (`/epicmaster`) → ligne « plan en préparation… » sans
+  fichier live (15 min max). `readLive` lit `.vibe-agent/epicmaster-live.json` puis, en repli, la copie
+  globale `<CLAUDE_CONFIG_DIR ou ~/.claude>/promptimizer/epicmaster-live.json` que `save()` écrit à chaque
+  mise à jour (best-effort ; `PMZ_NO_LIVE_MIRROR=1` la coupe).
 - **Bande epicmaster embarquée dans le plugin pmz** (lot #140, un seul plugin à installer sur un
   autre poste) : `build-plugin.js` **fusionne** le mod dans `dist/marketplace/promptimizer/` — plus de
   second plugin, `marketplace.json` n'expose que `pmz`. **Cohabitation vérifiée empiriquement** : un

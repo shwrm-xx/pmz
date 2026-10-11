@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-11 — Bande epicmaster immédiate, où que soit la session
+
+- La bande s'affiche dès la saisie de `/epicmaster` (hook `command.run` + `prompt.submit`) : « plan en préparation… » jusqu'au semis du plan, expirée seule après 15 min.
+- `lib/epicmaster-live.js` copie l'état live vers `<config>/promptimizer/epicmaster-live.json` ; la bande le lit en repli quand le dossier de session n'a pas de `.vibe-agent` live (`PMZ_NO_LIVE_MIRROR=1` coupe la copie, posé par `run-tests.js`).
+- Nouvel atom `armedAt` ; test « immédiat » ; suite à 2404 OK. Chargement toujours au démarrage de session : réinstaller puis relancer la session.
+
 ## 2026-10-11 — À trancher, tokens réels et procédure maître (lot #142, epic Bande epicmaster)
 
 - `note --decide` alimente `to_decide` du fichier live (une entrée par lot).
