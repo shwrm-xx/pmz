@@ -142,3 +142,4 @@
 #0137 | 2026-10-09 | ceaed14 | epic:Bande epicmaster | verify:inconnu | fiche:oui | Bande epicmaster au-dessus de la saisie
 #0138 | 2026-10-09 | 2d46094 | epic:Bande epicmaster | verify:inconnu | fiche:oui | Packaging, install et doc de la bande epicmaster
 #0139 | 2026-10-11 | cc30424 | epic:Bande epicmaster | verify:inconnu | fiche:non | Chargement automatique de la bande epicmaster
+#0140 | 2026-10-11 | 900281c | epic:Bande epicmaster | verify:inconnu | fiche:non | Bande epicmaster embarquée dans le plugin pmz
