@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 136,
+  "next_id": 139,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-09T07:47:07.325Z",
+  "updated_at": "2026-10-09T08:32:55.376Z",
   "lots": [
     {
       "id": 1,
@@ -3848,6 +3848,104 @@
       ],
       "depends_on": [],
       "session_owner": null
+    },
+    {
+      "id": 136,
+      "title": "État live epicmaster",
+      "scope": "fait quand : .vibe-agent/epicmaster-live.json alimenté par start/done/note (owner master/lot-*) et hooks SubagentStart/SubagentStop ; backlog.js epicmaster --live rend l'état compact/détaillé ; segment de repli dans la statusline PMZ ; tests verts",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "high",
+      "epic": "Bande epicmaster",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": "992ae13",
+      "closed_at": "2026-10-09T08:21:33.466Z",
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-10-09T08:17:35.313Z",
+      "lot_number": 605,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/lib/**",
+        "promptimizer/scripts/**",
+        "promptimizer/hooks/**",
+        "test/**"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-136"
+    },
+    {
+      "id": 137,
+      "title": "Bande epicmaster au-dessus de la saisie",
+      "scope": "fait quand : le module promptimizer/mods/epicmaster-band/ (ui.render AbovePrompt) affiche la variante C (compacte dépliable) depuis le fichier live, rien hors epicmaster, fail-open ; claude plugin validate + test passent",
+      "status": "done",
+      "model_hint": "opus",
+      "effort_hint": "high",
+      "epic": "Bande epicmaster",
+      "verify": "claude plugin validate promptimizer/mods/epicmaster-band && claude plugin test promptimizer/mods/epicmaster-band",
+      "us": "docs/us/US-137.md",
+      "closed_commit": "ceaed14",
+      "closed_at": "2026-10-09T08:28:26.090Z",
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-10-09T08:21:46.479Z",
+      "lot_number": 606,
+      "note": "à trancher : schéma live #136 sans epic/vague/lots en attente/verify rouge/to_decide — bande en récap partiel, « terminé » possible à tort entre deux lots",
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/mods/**"
+      ],
+      "depends_on": [
+        136
+      ],
+      "session_owner": "master/lot-137"
+    },
+    {
+      "id": 138,
+      "title": "Packaging, install et doc de la bande epicmaster",
+      "scope": "fait quand : install.js et build-plugin.js déploient le module (retrait propre), epicmaster.md le mentionne, README/ARCHITECTURE/CHANGELOG à jour, node test/run-tests.js passe",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Bande epicmaster",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": "2d46094",
+      "closed_at": "2026-10-09T08:32:55.345Z",
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-10-09T08:28:26.261Z",
+      "lot_number": 607,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/install/**",
+        "promptimizer/commands/epicmaster.md",
+        "README.md",
+        "ARCHITECTURE.md",
+        "CHANGELOG.md"
+      ],
+      "depends_on": [
+        137
+      ],
+      "session_owner": "master/lot-138"
     }
   ]
 }

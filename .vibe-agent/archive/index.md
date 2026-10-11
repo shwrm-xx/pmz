@@ -138,3 +138,6 @@
 #0133 | 2026-10-09 | 25bd658 | epic:Session maître | verify:inconnu | fiche:oui | Session maître : /epicmaster + préparation en fin de /scope
 #0134 | 2026-10-09 | 5a689ee | epic:Session maître | verify:inconnu | fiche:non | Confirmation /epicmaster lisible, cases précochées
 #0135 | 2026-10-09 | 1bc96b3 | epic:Session maître | verify:inconnu | fiche:non | Budget maître recalé sur la mesure réelle
+#0136 | 2026-10-09 | 992ae13 | epic:Bande epicmaster | verify:inconnu | fiche:oui | État live epicmaster
+#0137 | 2026-10-09 | ceaed14 | epic:Bande epicmaster | verify:inconnu | fiche:oui | Bande epicmaster au-dessus de la saisie
+#0138 | 2026-10-09 | 2d46094 | epic:Bande epicmaster | verify:inconnu | fiche:oui | Packaging, install et doc de la bande epicmaster
