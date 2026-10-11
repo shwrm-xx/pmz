@@ -319,6 +319,11 @@ plugin à installer) — `build-plugin.js` fusionne le module dans le `hooks/hoo
 L'install manuelle enregistre aussi
 `SubagentStart`/`SubagentStop` (tagué, réversible) ; retrait : `uninstall` (hooks + entrée
 `CLAUDE_CODE_PLUGIN_DIRS`, seule la nôtre) puis suppression de `~/.claude/promptimizer/`.
+Fichier live (lots #141-#142) : `backlog.js epicmaster --live-seed` sème le **plan complet**
+(epic, vagues, lots en attente) ; `note --id N --note "…" --decide` ajoute la décision à
+`to_decide` (« N à trancher » dans la bande) ; `done --id N --tokens <réels>` remplace l'estimation
+du plan par les tokens réels du sous-agent (`tokens_basis: measured`) ; `done --verify-verdict
+failed` passe le lot en rouge. `/epicmaster` enchaîne ces quatre gestes.
 
 `/about` affiche la version installée de PMZ (`promptimizer/VERSION`, historisée dans
 `CHANGELOG.md` à chaque évolution) ainsi que l'epic et le lot en cours du projet courant.

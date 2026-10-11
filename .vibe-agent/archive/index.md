@@ -143,3 +143,4 @@
 #0138 | 2026-10-09 | 2d46094 | epic:Bande epicmaster | verify:inconnu | fiche:oui | Packaging, install et doc de la bande epicmaster
 #0139 | 2026-10-11 | cc30424 | epic:Bande epicmaster | verify:inconnu | fiche:non | Chargement automatique de la bande epicmaster
 #0140 | 2026-10-11 | 900281c | epic:Bande epicmaster | verify:inconnu | fiche:non | Bande epicmaster embarquée dans le plugin pmz
+#0141 | 2026-10-11 | 996e075 | epic:Bande epicmaster | verify:inconnu | fiche:non | Plan complet dans le fichier live

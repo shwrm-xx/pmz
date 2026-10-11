@@ -50,6 +50,10 @@ Si des lots sont décochés : relance avec `--skip 12,15`, réaffiche, et ne red
 lot est devenu **bloqué** (dépendance sur un lot décoché). N'embarque **jamais** un lot absent de
 la sortie du script.
 
+Plan confirmé : **sème le plan complet dans la bande** (rien n'est démarré, backlog intact) —
+`backlog.js epicmaster --live-seed` avec les **mêmes** `--epic`/`--skip`/`--max-parallel` que le
+plan validé. La bande affiche aussitôt epic, vagues et lots en attente.
+
 Si le script préconise un autre modèle que le tien pour la session maître, dis-le en une
 ligne (`/model …`) avant de lancer — tu orchestres, tu n'as pas besoin de raisonner lourd.
 
@@ -71,14 +75,22 @@ Pour **chaque vague** du plan, et **jamais plus de lots en vol que le paralléli
    fin du brief) :
    - **Verify verte** → commit **borné au périmètre** (`git add -- ':(glob)…'`, ou `git add -A`
      pour un lot sans périmètre, seul en vol) + message français court, puis
-     `backlog.js done --id <id> --commit "$(git rev-parse --short HEAD)" --verify-verdict ok`.
+     `backlog.js done --id <id> --commit "$(git rev-parse --short HEAD)" --verify-verdict ok --tokens <N>`.
+     `<N>` = tokens **réels** du sous-agent (ligne d'usage rendue avec son rapport, jamais estimés
+     par toi ; absent -> omets `--tokens`, la bande garde l'estimation du plan).
    - **Lot sans verify** (non vérifiable par commande : doc, choix visuel) → commit + `done
-     --verify-verdict none` : clos **sans preuve**, et dit comme tel dans le handoff.
+     --verify-verdict none --tokens <N>` : clos **sans preuve**, et dit comme tel dans le handoff.
    - **Verify rouge** → **pas de commit** ; `backlog.js note --id <id> --note "verify rouge :
-     <cause en une ligne>"` ; le lot reste ouvert et passe dans « À trancher ». Si la cause est
+     <cause en une ligne>" --decide` (le lot entre dans « à trancher » de la bande), puis
+     `backlog.js done --id <id> --verify-verdict failed --tokens <N>` (la bande passe le lot en
+     rouge) et `backlog.js reopen --id <id> --note "verify rouge : <cause>"` : le lot reste
+     **ouvert** dans le backlog et passe dans « À trancher » du handoff. Si la cause est
      triviale (< 5 min), relance **un** sous-agent de correction au même modèle, une seule fois.
    - Un sous-agent qui a écrit **hors de son périmètre** : ne commite pas ses écritures hors zone
      (`git checkout -- <chemin>` après confirmation), note-le, poursuis.
+   - Toute décision qui attend l'humain (« À trancher » du rapport d'un sous-agent) :
+     `backlog.js note --id <id> --note "<décision en une ligne>" --decide` — la bande compte
+     « N à trancher » en direct.
 4. Ajoute au `CHANGELOG.md` une entrée datée par lot, reprise du « Bloc CHANGELOG » du rapport.
 
 ## 3. Vigilance contexte (non négociable)

@@ -39,12 +39,12 @@ function flagList(name) {
 function out(s) { process.stdout.write(s + '\n'); }
 // État live de la session maître (lot #136) : best-effort, jamais bloquant — n'écrit que si le
 // lot appartient à une session « master/lot-* » (lib/epicmaster-live.js).
-function liveRecord(root, kind, lot, owner, verdict) {
+function liveRecord(root, kind, lot, owner, verdict, extra) {
   try {
     const live = require('../lib/epicmaster-live');
     if (kind === 'start') live.recordStart(root, lot, owner);
-    else if (kind === 'done') live.recordDone(root, lot, owner, undefined, verdict); // verdict `failed` -> lot failed (lot #141)
-    else if (kind === 'note') live.recordNote(root, lot, owner);
+    else if (kind === 'done') live.recordDone(root, lot, owner, undefined, verdict, extra && extra.tokens); // verdict `failed` -> lot failed (lot #141)
+    else if (kind === 'note') live.recordNote(root, lot, owner, undefined, extra && extra.decide);
   } catch (_) { /* fail-open : l'état live est indicatif */ }
 }
 // Suffixe texte de l'estimation prédictive (lot #63) : vide si backlog.estimateCost n'a
@@ -833,7 +833,7 @@ function main() {
     }
     const lot = backlog.doneLot(root, id, flag('commit'), null, sessionId, occupancy);
     if (!lot) return out(`Lot #${id} introuvable.`);
-    liveRecord(root, 'done', lot, preUs && preUs.session_owner, verdict); // owner lu AVANT clôture (doneLot le vide)
+    liveRecord(root, 'done', lot, preUs && preUs.session_owner, verdict, { tokens: flag('tokens') }); // owner lu AVANT clôture (doneLot le vide)
     const posted = verdict ? backlog.setClosedVerify(root, lot.id, verdict) : null;
     const proof = posted
       ? ` — verify : ${verdict}${verdict === 'failed' ? ' ⚠️ échec PERSISTÉ (closed_verify), à corriger' : ''}${verdict === 'timeout' ? ' ⚠️ non terminée dans le délai — ce n\'est PAS une preuve de réussite (suite longue ? pose `verify_close_ms` sous `budget:` dans .vibe-agent/rules.yaml)' : ''}`
@@ -851,8 +851,8 @@ function main() {
   if (cmd === 'note') {
     if (truncGuard([{ name: '--note', value: flag('note'), max: backlog.MAX_NOTE }])) return;
     const lot = backlog.noteLot(root, id, flag('note'));
-    if (lot) liveRecord(root, 'note', lot, lot.session_owner);
-    return out(lot ? `Note posée sur le lot #${lot.id}.` : `Lot #${id} introuvable ou --note manquante.`);
+    if (lot) liveRecord(root, 'note', lot, lot.session_owner, undefined, { decide: process.argv.includes('--decide') });
+    return out(lot ? `Note posée sur le lot #${lot.id}${process.argv.includes('--decide') ? ' (à trancher)' : ''}.` : `Lot #${id} introuvable ou --note manquante.`);
   }
 
   if (cmd === 'next') {

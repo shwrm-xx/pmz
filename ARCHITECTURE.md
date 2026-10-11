@@ -827,6 +827,15 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   backup horodaté comme le reste. `env` ou valeur non standard (non-objet / non-chaîne) → rien touché,
   note affichée. `--check` expose `epicmaster_band_loaded`. (Le canal plugin du lot #139 — second plugin
   `epicmaster-band` dans la marketplace — est **remplacé** par le lot #140 ci-dessous.)
+- **À trancher et tokens réels dans le fichier live** (lot #142) : `lib/epicmaster-live.js`
+  (`recordNote(…, decide)`, `recordDone(…, verdict, tokens)`) et `scripts/backlog.js` (`liveRecord`,
+  flag valeur `--tokens` déclaré dans `VALUE_FLAGS`). `note --decide` (owner `master/lot-*`
+  seulement) pose/remplace UNE entrée `to_decide:[{id,title,reason}]` par lot ; `done --tokens N`
+  (N > 0, sinon ignoré) remplace l'estimation du semis par `tokens` réels, `tokens_basis:
+  'measured'` (`comparable|base|measured`) — live uniquement, ne touche pas `cost_tokens` du
+  backlog. `commands/epicmaster.md` orchestre `--live-seed` (après confirmation), `note --decide`,
+  `done --verify-verdict failed` (+ `reopen`, le lot reste ouvert au backlog) et `--tokens`. Test de
+  la bande sur un fichier produit par le vrai writer (`mods/epicmaster-band/tests/band.test.ts`).
 - **Bande epicmaster embarquée dans le plugin pmz** (lot #140, un seul plugin à installer sur un
   autre poste) : `build-plugin.js` **fusionne** le mod dans `dist/marketplace/promptimizer/` — plus de
   second plugin, `marketplace.json` n'expose que `pmz`. **Cohabitation vérifiée empiriquement** : un

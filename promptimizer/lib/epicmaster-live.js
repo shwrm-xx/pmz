@@ -9,7 +9,7 @@
 // Schéma v1 (additif, rétrocompatible) :
 //   racine : v, updated_at, epic, wave:{current,total}, finished, to_decide:[{id,title,reason}], lots, agents
 //   lot    : id, title, owner, status (pending|running|done|failed), wave, model, effort, tokens,
-//            tokens_basis (comparable|base), depends_on, verify (verdict de clôture), started_at, done_at, note
+//            tokens_basis (comparable|base|measured), depends_on, verify (verdict de clôture), started_at, done_at, note
 //
 // Fail-open ABSOLU : aucune fonction publique ne lève ; toute erreur d'E/S ou de JSON -> no-op /
 // valeur vide. Écriture atomique (fsjson). Course possible entre deux sous-agents qui écrivent au
@@ -131,10 +131,21 @@ function recordLot(root, kind, lot, owner, now, extra) {
       const verdict = extra && typeof extra.verdict === 'string' ? extra.verdict : null;
       Object.assign(cur, { status: verdict === 'failed' ? 'failed' : 'done', done_at: t });
       if (verdict) cur.verify = verdict;
+      // Tokens RÉELS (lot #142, `done --tokens N`) : remplacent l'estimation du semis, marqués
+      // `measured` — jamais déduits ; absent/invalide -> l'estimation reste telle quelle.
+      const tk = extra && Number(extra.tokens);
+      if (extra && extra.tokens != null && Number.isFinite(tk) && tk > 0) { cur.tokens = Math.round(tk); cur.tokens_basis = 'measured'; }
       if (!cur.started_at) cur.started_at = lot.started_at || t;
     } else if (kind === 'note') {
       if (!cur.status) Object.assign(cur, { status: 'running', started_at: lot.started_at || t });
       cur.note = clipStr(lot.note, MAX_NOTE);
+      // `note --decide` (lot #142) : la note devient une entrée de `to_decide` (une par lot,
+      // la dernière raison remplace la précédente) — la bande compte « N à trancher ».
+      if (extra && extra.decide) {
+        const list = Array.isArray(st.to_decide) ? st.to_decide.filter((x) => x && String(x.id) !== key) : [];
+        list.push({ id: lot.id, title: clipStr(lot.title, MAX_STR), reason: clipStr(lot.note, MAX_NOTE) });
+        st.to_decide = list;
+      }
     } else return false;
     st.lots[key] = cur;
     refreshProgress(st);
@@ -142,8 +153,8 @@ function recordLot(root, kind, lot, owner, now, extra) {
   } catch (_) { return false; }
 }
 const recordStart = (root, lot, owner, now) => recordLot(root, 'start', lot, owner, now);
-const recordDone = (root, lot, owner, now, verdict) => recordLot(root, 'done', lot, owner, now, { verdict });
-const recordNote = (root, lot, owner, now) => recordLot(root, 'note', lot, owner, now);
+const recordDone = (root, lot, owner, now, verdict, tokens) => recordLot(root, 'done', lot, owner, now, { verdict, tokens });
+const recordNote = (root, lot, owner, now, decide) => recordLot(root, 'note', lot, owner, now, { decide: !!decide });
 
 // ── Semis du plan complet (lot #141) — `backlog.js epicmaster --live-seed` ───────────────
 // `plan` = planMaster(...) (lib/epicmaster.js) ; `b` = backlog (estimation de tokens par famille

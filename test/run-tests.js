@@ -9853,6 +9853,55 @@ section('Plan complet dans le fichier live — epicmaster --live-seed + vague/fi
   ok(stNoPlan.finished === undefined && stNoPlan.wave === undefined, 'SD-5 : refreshProgress est sans effet sur un état non semé');
 }
 
+// ============ Lot #142 — à trancher, tokens réels (note --decide, done --tokens) ============
+section('À trancher et tokens réels dans le fichier live — note --decide, done --tokens (lot #142)');
+{
+  const live = require(path.join(PKG, 'lib', 'epicmaster-live'));
+  const repoTk = path.join(SANDBOX, 'repo-live-tokens');
+  fs.mkdirSync(repoTk, { recursive: true });
+  execFileSync('git', ['init', '-q', repoTk]);
+  fs.writeFileSync(path.join(repoTk, 'a.txt'), '1');
+  execFileSync('git', ['-C', repoTk, 'add', '.']);
+  execFileSync('git', ['-C', repoTk, 'commit', '-q', '-m', 'init']);
+  const readLive = () => JSON.parse(fs.readFileSync(path.join(repoTk, '.vibe-agent', 'epicmaster-live.json'), 'utf8'));
+  runNode(BKLG, ['add', '--cwd', repoTk, '--title', 'Un', '--model', 'sonnet', '--effort', 'low', '--epic', 'T', '--perimeter', 'lib/a/**']);
+  runNode(BKLG, ['add', '--cwd', repoTk, '--title', 'Deux', '--model', 'sonnet', '--effort', 'low', '--epic', 'T', '--perimeter', 'lib/b/**']);
+  runNode(BKLG, ['epicmaster', '--cwd', repoTk, '--live-seed', '--epic', 'T']);
+  runNode(BKLG, ['start', '--cwd', repoTk, '--id', '1', '--owner', 'master/lot-1']);
+  runNode(BKLG, ['start', '--cwd', repoTk, '--id', '2', '--owner', 'master/lot-2']);
+
+  // TK-1. note sans --decide : pas de to_decide ; avec --decide : entrée {id,title,reason}.
+  runNode(BKLG, ['note', '--cwd', repoTk, '--id', '1', '--note', 'simple note']);
+  ok(Array.isArray(readLive().to_decide) && readLive().to_decide.length === 0, 'TK-1 : note sans --decide -> to_decide inchangé');
+  const rn = runNode(BKLG, ['note', '--cwd', repoTk, '--id', '1', '--note', 'choisir A ou B', '--decide']);
+  let st = readLive();
+  ok(/à trancher/.test(rn.out) && st.to_decide.length === 1 && st.to_decide[0].id === 1 && st.to_decide[0].title === 'Un' && st.to_decide[0].reason === 'choisir A ou B', 'TK-1 : note --decide alimente to_decide {id,title,reason}');
+  runNode(BKLG, ['note', '--cwd', repoTk, '--id', '1', '--note', 'finalement C', '--decide']);
+  runNode(BKLG, ['note', '--cwd', repoTk, '--id', '2', '--note', 'autre point', '--decide']);
+  st = readLive();
+  ok(st.to_decide.length === 2 && st.to_decide.find((x) => x.id === 1).reason === 'finalement C', 'TK-1 : une entrée par lot (la dernière raison remplace), deux lots -> deux entrées');
+  ok(st.lots['1'].note === 'finalement C' && st.wave && st.epic === 'T', 'TK-1 : la note du lot et le plan (epic, vague) sont conservés');
+
+  // TK-2. done --tokens N : tokens réels (measured) ; invalide -> estimation conservée.
+  runNode(BKLG, ['done', '--cwd', repoTk, '--id', '1', '--commit', 'aaa1111', '--verify-verdict', 'ok', '--tokens', '47123']);
+  st = readLive();
+  ok(st.lots['1'].status === 'done' && st.lots['1'].tokens === 47123 && st.lots['1'].tokens_basis === 'measured', 'TK-2 : done --tokens 47123 -> tokens réels, basis measured');
+  runNode(BKLG, ['done', '--cwd', repoTk, '--id', '2', '--commit', 'bbb2222', '--verify-verdict', 'failed', '--tokens', 'abc']);
+  st = readLive();
+  ok(st.lots['2'].status === 'failed' && st.lots['2'].tokens === 60000 && st.lots['2'].tokens_basis === 'base', 'TK-2 : --tokens invalide -> estimation du semis conservée, lot failed');
+  // TK-4. done failed puis reopen : le lot reste rouge dans le fichier live (backlog rouvert).
+  runNode(BKLG, ['reopen', '--cwd', repoTk, '--id', '2', '--note', 'verify rouge : x']);
+  ok(readLive().lots['2'].status === 'failed' && readLive().lots['2'].verify === 'failed', 'TK-4 : reopen après done failed -> le lot reste failed dans la bande');
+
+  ok(live.recordDone(repoTk, { id: 2, title: 'x' }, 'master/lot-2', undefined, 'ok', 0) && readLive().lots['2'].tokens_basis !== 'measured', 'TK-2 : tokens <= 0 ignoré');
+  ok(live.recordNote(null, { id: 1 }, 'master/lot-1', undefined, true) === false && live.recordNote(repoTk, { id: 1, note: 'x' }, 'autre', undefined, true) === false, 'TK-2 : fail-open (root nul, owner non maître -> false)');
+  ok(!/--decide|--tokens/.test(runNode(BKLG, ['epicmaster', '--cwd', repoTk, '--live']).out), 'TK-2 : --live rend sans exception');
+
+  // TK-3. epicmaster.md appelle les quatre gestes.
+  const em = fs.readFileSync(path.join(PKG, 'commands', 'epicmaster.md'), 'utf8');
+  ok(/--live-seed/.test(em) && /note[^\n]*--decide/.test(em) && /--verify-verdict failed/.test(em) && /--tokens/.test(em), 'TK-3 : epicmaster.md appelle --live-seed, note --decide, done failed, --tokens');
+}
+
 // ============ Lot #139 — chargement automatique de la bande epicmaster ============
 section('Lot #139 — env.CLAUDE_CODE_PLUGIN_DIRS (merge-settings), filtre types/, plugin epicmaster-band');
 {

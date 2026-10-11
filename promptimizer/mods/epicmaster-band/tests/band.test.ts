@@ -49,6 +49,10 @@ function live(over: Record<string, unknown> = {}, lots?: Record<string, unknown>
   })
 }
 
+// Fichier produit par le VRAI writer (lib/epicmaster-live.js : seedFromPlan + recordStart/Done/Note
+// --decide, tokens réels) — régénéré par un script bac à sable, pas écrit à la main (lot #142).
+const REAL_WRITER = `{"v":1,"updated_at":"2026-10-09T11:55:00.000Z","lots":{"1":{"id":1,"title":"Spec","status":"done","wave":1,"model":"sonnet","effort":"low","tokens":33000,"tokens_basis":"measured","depends_on":[],"started_at":"2026-10-09T11:10:00.000Z","done_at":"2026-10-09T11:20:00.000Z","updated_at":"2026-10-09T11:20:00.000Z","owner":"master/lot-1","verify":"ok"},"2":{"id":2,"title":"Fichier","status":"failed","wave":1,"model":"opus","effort":"high","tokens":41000,"tokens_basis":"measured","depends_on":[],"started_at":"2026-10-09T11:10:00.000Z","done_at":"2026-10-09T11:35:00.000Z","updated_at":"2026-10-09T11:35:00.000Z","owner":"master/lot-2","note":"verify rouge : test X","verify":"failed"},"3":{"id":3,"title":"Bande","status":"running","wave":2,"model":"sonnet","effort":"medium","tokens":60000,"tokens_basis":"base","depends_on":[1],"started_at":"2026-10-09T11:55:00.000Z","done_at":null,"updated_at":"2026-10-09T11:55:00.000Z","owner":"master/lot-3"},"4":{"id":4,"title":"Doc","status":"pending","wave":2,"model":"haiku","effort":"low","tokens":60000,"tokens_basis":"base","depends_on":[1],"started_at":null,"done_at":null,"updated_at":"2026-10-09T11:00:00.000Z"}},"agents":{},"epic":"Plan","wave":{"current":2,"total":2},"finished":false,"to_decide":[{"id":2,"title":"Fichier","reason":"verify rouge : test X"}]}`
+
 const ENGINE = { key: 'engine-band' } // ce que dessine le moteur quand la bande passe la main
 const toggle = { key: 'em-toggle' }
 type UI = {
@@ -172,5 +176,16 @@ describe('bande epicmaster', () => {
     await mockClock.advance(2500)
     expect(await text(ui, /^ ✓3 ⟳1 ⧗0$/)).toBeDefined()
     await ui.unmount()
+  })
+  test('lot #142 : fichier du vrai writer — vague, à trancher, verify rouge, tokens', async ($, on) => {
+    serve(on, { text: REAL_WRITER })
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      expect(await text(ui, /◆ Plan · vague 2\/2/)).toBeDefined()
+      expect(await text(ui, /^ ✓1 ⟳1 ⧗1$/)).toBeDefined()
+      const red = await text(ui, /1 ✗ verify rouge #2/)
+      expect(red?.props.color).toBe('error')
+      await ui.unmount()
+    }
   })
 })
