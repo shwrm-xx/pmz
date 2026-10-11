@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 140,
+  "next_id": 141,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-11T05:59:14.762Z",
+  "updated_at": "2026-10-11T06:13:50.914Z",
   "lots": [
     {
       "id": 1,
@@ -3980,6 +3980,40 @@
       ],
       "depends_on": [],
       "session_owner": "master/lot-139"
+    },
+    {
+      "id": 140,
+      "title": "Bande epicmaster embarquée dans le plugin pmz",
+      "scope": "fait quand : build-plugin.js embarque le module de la bande dans le plugin pmz (un seul plugin, plus de second plugin epicmaster-band dans la marketplace dist), claude plugin validate passe sur le plugin pmz construit, migrate-to-plugin retire l'entrée CLAUDE_CODE_PLUGIN_DIRS (le plugin porte la bande), install manuelle inchangée, doc à jour, tests verts",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "high",
+      "epic": "Bande epicmaster",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": "900281c",
+      "closed_at": "2026-10-11T06:13:50.877Z",
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-10-11T06:02:53.436Z",
+      "lot_number": 609,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/install/**",
+        "promptimizer/mods/**",
+        "promptimizer/hooks/hooks.json",
+        "README.md",
+        "ARCHITECTURE.md",
+        "test/**"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-140"
     }
   ]
 }
