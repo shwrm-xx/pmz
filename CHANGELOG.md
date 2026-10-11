@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-11 — À trancher, tokens réels et procédure maître (lot #142, epic Bande epicmaster)
+
+- `note --decide` alimente `to_decide` du fichier live (une entrée par lot).
+- `done --tokens N` pose les tokens réels (`tokens_basis: measured`) dans le fichier live.
+- `--tokens` déclaré comme flag à valeur (garde anti-troncature).
+- `/epicmaster` enchaîne `--live-seed`, `note --decide`, `done failed` et `--tokens`.
+- Test de la bande sur un fichier du vrai writer ; tests TK-1 à TK-4 ; README et ARCHITECTURE à jour.
+
 ## 2026-10-11 — Plan complet dans le fichier live (lot #141, epic Bande epicmaster)
 
 - `epicmaster --live-seed` : plan complet (epic, vagues, lots `pending` avec modèle·effort, `depends_on`, tokens estimés) dans le fichier live.
