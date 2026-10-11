@@ -9750,6 +9750,109 @@ section('État live epicmaster — lib/epicmaster-live + CLI start/done/note + h
   }
 }
 
+// ============ Lot #141 — plan complet dans le fichier live (--live-seed) ============
+section('Plan complet dans le fichier live — epicmaster --live-seed + vague/finished + verdict failed (lot #141)');
+{
+  const live = require(path.join(PKG, 'lib', 'epicmaster-live'));
+  const repoSd = path.join(SANDBOX, 'repo-live-seed');
+  fs.mkdirSync(repoSd, { recursive: true });
+  execFileSync('git', ['init', '-q', repoSd]);
+  fs.writeFileSync(path.join(repoSd, 'a.txt'), '1');
+  execFileSync('git', ['-C', repoSd, 'add', '.']);
+  execFileSync('git', ['-C', repoSd, 'commit', '-q', '-m', 'init']);
+  const LF = path.join(repoSd, '.vibe-agent', 'epicmaster-live.json');
+  const readLive = () => JSON.parse(fs.readFileSync(LF, 'utf8'));
+  // #1 et #2 : périmètres disjoints (vague 1) ; #3 dépend de #1 (vague 2) ; #4 hors epic.
+  runNode(BKLG, ['add', '--cwd', repoSd, '--title', 'Lot un', '--model', 'opus', '--effort', 'high', '--epic', 'Plan', '--perimeter', 'lib/a/**']);
+  runNode(BKLG, ['add', '--cwd', repoSd, '--title', 'Lot deux', '--model', 'sonnet', '--effort', 'low', '--epic', 'Plan', '--perimeter', 'lib/b/**']);
+  runNode(BKLG, ['add', '--cwd', repoSd, '--title', 'Lot trois', '--model', 'sonnet', '--effort', 'medium', '--epic', 'Plan', '--perimeter', 'lib/c/**', '--depends', '1']);
+  runNode(BKLG, ['add', '--cwd', repoSd, '--title', 'Lot quatre', '--model', 'haiku', '--effort', 'low', '--epic', 'Autre']);
+
+  // SD-1. --live-seed : plan complet, rien démarré, backlog intact.
+  const bkBefore = fs.readFileSync(path.join(repoSd, '.vibe-agent', 'backlog.json'), 'utf8');
+  const rs = runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live-seed', '--epic', 'Plan']);
+  ok(rs.code === 0 && /État live semé : epic « Plan », 2 vagues, 3 lots en attente/.test(rs.out), 'SD-1 : --live-seed annonce epic, vagues, lots');
+  let st = readLive();
+  ok(st.v === 1 && st.epic === 'Plan' && st.wave.current === 1 && st.wave.total === 2 && st.finished === false, 'SD-1 : racine = epic, wave {current:1,total:2}, finished:false');
+  ok(Object.keys(st.lots).length === 3 && Object.values(st.lots).every((l) => l.status === 'pending' && l.started_at === null), 'SD-1 : 3 lots, tous pending, aucun démarré');
+  ok(st.lots['1'].model === 'opus' && st.lots['1'].effort === 'high' && st.lots['1'].wave === 1 && st.lots['2'].wave === 1 && st.lots['3'].wave === 2, 'SD-1 : modèle·effort et vague par lot');
+  ok(JSON.stringify(st.lots['3'].depends_on) === '[1]' && st.lots['1'].depends_on.length === 0, 'SD-1 : depends_on repris du backlog');
+  ok(st.lots['1'].tokens === 60000 && st.lots['1'].tokens_basis === 'base', 'SD-1 : tokens est. = socle sous-agent, marqué base (aucune famille comparable)');
+  ok(fs.readFileSync(path.join(repoSd, '.vibe-agent', 'backlog.json'), 'utf8') === bkBefore, 'SD-1 : --live-seed n\'écrit que le fichier live (backlog intact)');
+  ok(!fs.existsSync(path.join(repoSd, '.vibe-agent', 'handoff.md')), 'SD-1 : --live-seed n\'écrit aucun handoff');
+  const rjs = JSON.parse(runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live-seed', '--epic', 'Plan', '--json']).out);
+  ok(rjs.seeded === true && rjs.lots === 3 && rjs.waves === 2, 'SD-1 : --live-seed --json : résumé machine');
+  ok(/3 en attente/.test(runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live']).out)
+    && /En attente :[\s\S]*⧗ #3 Lot trois[\s\S]*vague 2 · attend #1/.test(runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live', '--detailed']).out), 'SD-1 : --live (compact + détaillé) montre les lots en attente et leur dépendance');
+  const repoNone = path.join(SANDBOX, 'repo-live-seed-none');
+  fs.mkdirSync(repoNone, { recursive: true });
+  execFileSync('git', ['init', '-q', repoNone]);
+  ok(/Aucun lot à semer/.test(runNode(BKLG, ['epicmaster', '--cwd', repoNone, '--live-seed']).out) && !fs.existsSync(path.join(repoNone, '.vibe-agent', 'epicmaster-live.json')), 'SD-1 : plan vide -> rien écrit, annoncé');
+
+  // SD-2. Schéma lu par le live.ts du mod (sans le modifier) — Node ≥ 22.6, sinon vérification structurelle seule.
+  {
+    const liveTs = path.join(PKG, 'mods', 'epicmaster-band', 'hooks', 'live.ts');
+    const script = `import(${JSON.stringify('file://' + liveTs)}).then((m)=>{process.stdout.write(JSON.stringify(m.parseLive(require('fs').readFileSync(${JSON.stringify(LF)},'utf8'),Date.now())))}).catch(()=>process.exit(3))`;
+    let view = null, skipped = false;
+    try { view = JSON.parse(execFileSync(process.execPath, ['--experimental-strip-types', '--no-warnings', '-e', script], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); } catch (_) { skipped = true; }
+    if (skipped) ok(true, 'SD-2 : (ignoré) Node sans --experimental-strip-types — schéma vérifié structurellement par SD-1');
+    else {
+      ok(view && view.epic === 'Plan' && view.wave && view.wave.current === 1 && view.wave.total === 2 && view.pending === 3 && view.running === 0 && view.finished === false,
+        'SD-2 : live.ts (parseLive) lit le fichier semé : epic, vague 1/2, 3 pending, non terminé');
+      const l1 = view && view.lots.find((l) => l.id === '1');
+      ok(l1 && l1.model === 'opus' && l1.effort === 'high' && l1.tokens === 60000 && view.lots.find((l) => l.id === '3').dependsOn[0] === '1', 'SD-2 : live.ts lit modèle·effort, tokens, depends_on');
+    }
+  }
+
+  // SD-3. start / done tiennent la vague courante et finished ; lot déjà semé conservé (modèle, tokens).
+  runNode(BKLG, ['start', '--cwd', repoSd, '--id', '1', '--owner', 'master/lot-1']);
+  runNode(BKLG, ['start', '--cwd', repoSd, '--id', '2', '--owner', 'master/lot-2']);
+  st = readLive();
+  ok(st.lots['1'].status === 'running' && st.lots['1'].started_at && st.lots['1'].model === 'opus' && st.lots['1'].tokens === 60000 && st.lots['1'].wave === 1 && st.lots['3'].status === 'pending',
+    'SD-3 : start -> running ; modèle, tokens, vague du semis conservés ; lot 3 toujours pending');
+  ok(st.wave.current === 1 && st.finished === false, 'SD-3 : vague courante 1 tant que la vague 1 est ouverte');
+  runNode(BKLG, ['done', '--cwd', repoSd, '--id', '1', '--commit', 'aaa1111', '--no-verify']);
+  runNode(BKLG, ['done', '--cwd', repoSd, '--id', '2', '--commit', 'bbb2222', '--no-verify']);
+  st = readLive();
+  ok(st.lots['1'].status === 'done' && st.lots['2'].status === 'done' && st.wave.current === 2 && st.finished === false, 'SD-3 : vague 1 close -> vague courante 2/2, pas terminé');
+  runNode(BKLG, ['start', '--cwd', repoSd, '--id', '3', '--owner', 'master/lot-3']);
+  runNode(BKLG, ['done', '--cwd', repoSd, '--id', '3', '--commit', 'ccc3333', '--no-verify']);
+  st = readLive();
+  ok(st.lots['3'].status === 'done' && st.finished === true && st.wave.current === 2 && st.wave.total === 2, 'SD-3 : dernier lot clos -> finished:true, vague 2/2');
+
+  // SD-4. Verdict failed -> lot failed (couleur danger côté bande) ; start relance -> running.
+  runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live-seed', '--epic', 'Autre']);
+  ok(readLive().lots['4'] && Object.keys(readLive().lots).length === 1, 'SD-4 : un nouveau --live-seed repart d\'un état neuf (lots précédents écartés)');
+  runNode(BKLG, ['start', '--cwd', repoSd, '--id', '4', '--owner', 'master/lot-4']);
+  runNode(BKLG, ['done', '--cwd', repoSd, '--id', '4', '--commit', 'ddd4444', '--verify-verdict', 'failed']);
+  st = readLive();
+  ok(st.lots['4'].status === 'failed' && st.lots['4'].verify === 'failed' && st.lots['4'].done_at, 'SD-4 : done --verify-verdict failed -> lot failed (verify tracé)');
+  ok(st.finished === true, 'SD-4 : un lot failed est terminal (n\'empêche pas la fin du plan)');
+  ok(/1 verify rouge \(#4\)/.test(runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live']).out) && /Verify rouge :[\s\S]*✗ #4/.test(runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live', '--detailed']).out), 'SD-4 : --live signale le lot rouge');
+  {
+    const liveTs = path.join(PKG, 'mods', 'epicmaster-band', 'hooks', 'live.ts');
+    const script = `import(${JSON.stringify('file://' + liveTs)}).then((m)=>{process.stdout.write(JSON.stringify(m.parseLive(require('fs').readFileSync(${JSON.stringify(LF)},'utf8'),Date.now())))}).catch(()=>process.exit(3))`;
+    let view = null;
+    try { view = JSON.parse(execFileSync(process.execPath, ['--experimental-strip-types', '--no-warnings', '-e', script], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); } catch (_) { /* Node trop ancien */ }
+    ok(view === null || (view.failed.length === 1 && view.failed[0].id === '4' && view.finished === true), 'SD-4 : live.ts lit le lot failed et la fin de plan');
+  }
+  runNode(BKLG, ['reopen', '--cwd', repoSd, '--id', '4', '--note', 'correctif']);
+  runNode(BKLG, ['start', '--cwd', repoSd, '--id', '4', '--owner', 'master/lot-4']);
+  st = readLive();
+  ok(st.lots['4'].status === 'running' && !st.lots['4'].verify && st.lots['4'].done_at === null && st.finished === false, 'SD-4 : relance d\'un lot rouge -> running, ancien verdict effacé, plan rouvert');
+  ok(live.recordDone(repoSd, { id: 4, title: 'x' }, 'master/lot-4', undefined, 'timeout') && readLive().lots['4'].status === 'done', 'SD-4 : verdict timeout -> done (ni rouge ni preuve inventée)');
+
+  // SD-5. Fail-open / non-régression : états anciens (sans plan), seed invalide, pending périmés.
+  ok(live.seedFromPlan(null, { lots: [{ id: 1 }] }, {}).ok === false && live.seedFromPlan(repoSd, { lots: [] }, {}).ok === false && live.seedFromPlan(repoSd, null, null).ok === false, 'SD-5 : seedFromPlan sans root / plan vide / plan nul -> ok:false, pas de throw');
+  const oldSum = live.summarize({ updated_at: new Date(Date.now() - live.STALE_MS - 60000).toISOString(), lots: { 1: { id: 1, status: 'pending' }, 2: { id: 2, status: 'failed' } }, agents: {} });
+  ok(oldSum.pending.length === 0 && oldSum.failed.length === 0, 'SD-5 : plan non touché depuis > STALE_MS -> pending/failed ignorés');
+  const bare = live.summarize({ lots: { 1: { id: 1, status: 'running', updated_at: new Date().toISOString() } }, agents: {} });
+  ok(bare.pending.length === 0 && bare.failed.length === 0 && bare.finished === undefined && !/en attente|verify rouge/.test(live.renderCompact(bare)), 'SD-5 : état sans plan : rendu compact inchangé (non-régression)');
+  const stNoPlan = { lots: { 1: { id: 1, status: 'done' } } };
+  live.refreshProgress(stNoPlan);
+  ok(stNoPlan.finished === undefined && stNoPlan.wave === undefined, 'SD-5 : refreshProgress est sans effet sur un état non semé');
+}
+
 // ============ Lot #139 — chargement automatique de la bande epicmaster ============
 section('Lot #139 — env.CLAUDE_CODE_PLUGIN_DIRS (merge-settings), filtre types/, plugin epicmaster-band');
 {

@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-11 — Plan complet dans le fichier live (lot #141, epic Bande epicmaster)
+
+- `epicmaster --live-seed` : plan complet (epic, vagues, lots `pending` avec modèle·effort, `depends_on`, tokens estimés) dans le fichier live.
+- `start` et `done` tiennent `wave.current` et `finished` sur un état semé.
+- Un verdict de clôture `failed` met le lot en `failed`.
+- `--live` affiche les lots en attente et en verify rouge ; un plan périmé (plus de 6 h) est ignoré.
+- Schéma additif lu par `live.ts` sans modifier le mod ; tests SD-1 à SD-5, suite à 2393 OK.
+
 ## 2026-10-11 — Version 2.7.1
 
 Bande epicmaster (lots #136-#140) : état live, bande au-dessus de la saisie chargée
