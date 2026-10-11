@@ -814,6 +814,21 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   (append-only, tagué `promptimizer/hooks/`, idempotent, retiré par `--remove`) ; le canal plugin
   les câble via `hooks/hooks.json`. Retrait : `uninstall.js` (hooks + `commands/epicmaster.md`
   + `~/.claude/promptimizer/` incl. mods).
+- **Chargement automatique de la bande epicmaster** (lot #139, fin de l'opt-in `--plugin-dir`) :
+  Claude Code charge chaque chemin de `CLAUDE_CODE_PLUGIN_DIRS` comme un `--plugin-dir`, lue depuis
+  l'environnement du process ou le bloc `env` de `~/.claude/settings.json` (jamais les settings
+  projet ; vaut aussi pour l'app desktop). `merge-settings.js` (install) ajoute le chemin absolu
+  `<CLAUDE_CONFIG_DIR ou ~/.claude>/promptimizer/mods/epicmaster-band` à `env.CLAUDE_CODE_PLUGIN_DIRS`,
+  séparateur `path.delimiter` (`:` mac/linux, `;` windows). Le JSON n'ayant pas de commentaire, notre
+  entrée se reconnaît à son **chemin exact** (normalisé : `~`, séparateurs, casse sous Windows).
+  Append-only : n'ajoute que si absente ; toute valeur tierce de la clé et toute autre clé de `env`
+  sont préservées ; idempotent. `--remove` (donc `uninstall.js` et `migrate-to-plugin.js`) retire
+  **uniquement** notre entrée, supprime la clé si elle devient vide puis `env` s'il ne reste rien ;
+  backup horodaté comme le reste. `env` ou valeur non standard (non-objet / non-chaîne) → rien touché,
+  note affichée. `--check` expose `epicmaster_band_loaded`. Canal plugin : `build-plugin.js` copie
+  `mods/epicmaster-band` (même filtre `types/`) vers `dist/marketplace/epicmaster-band/` et l'ajoute
+  comme **second plugin** de `.claude-plugin/marketplace.json` (source relative `./epicmaster-band`) :
+  `/plugin install epicmaster-band@pmz-local` le rend actif sans `CLAUDE_CODE_PLUGIN_DIRS`.
 - **Réintégration en pipeline — `pmz:reintegrate`** (lot #80, 5ᵉ/6ᵉ brique de
   [D3](docs/decisions/D3-parallelisation-gouvernee.md), principe **P3** « jamais de big-bang ») :
   `lib/reintegrate.js` sépare trois responsabilités. `planReintegration(fleet, backlog)` (**pur**)

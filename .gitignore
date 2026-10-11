@@ -5,6 +5,9 @@ node_modules/
 # Artéfacts de test en bac à sable
 /.sandbox/
 
+# Types générés par le moteur de mods au chargement d'un mod (jamais livrés)
+promptimizer/mods/*/.claude-plugin/types/
+
 # Plugin Claude Code assemblé (build-plugin.js) — dérivé de la source, jamais committé
 /dist/
 *.pmz-backup-*.json

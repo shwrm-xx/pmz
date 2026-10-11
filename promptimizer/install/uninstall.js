@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 // Désinstalleur Promptimizer — cross-platform, stdlib seule.
-// Retire UNIQUEMENT les hooks PMZ de settings.json (restaure context-guard.py si applicable),
+// Retire UNIQUEMENT les hooks PMZ (et notre entrée env.CLAUDE_CODE_PLUGIN_DIRS) de settings.json (restaure context-guard.py si applicable),
 // puis propose de supprimer les fichiers installés. Ne touche jamais aux projets utilisateur.
 const fs = require('fs');
 const path = require('path');
@@ -34,7 +34,7 @@ if (!fs.existsSync(MS)) {
 
 // 1. Retrait des hooks PMZ (backup + restauration du sidecar context-guard.py si applicable)
 const rMs = spawnSync(process.execPath, [MS, SETTINGS, '--remove'], { stdio: 'inherit' });
-if (rMs.status === 0) log('Hooks PMZ retirés de settings.json (sauvegarde créée).');
+if (rMs.status === 0) log('Hooks PMZ et entrée epicmaster-band (env.CLAUDE_CODE_PLUGIN_DIRS) retirés de settings.json (sauvegarde créée ; valeurs tierces préservées).');
 else err('ERREUR : modification de settings.json impossible (rien changé).');
 
 // 2. Suppression optionnelle des fichiers installés (défaut : conserver)

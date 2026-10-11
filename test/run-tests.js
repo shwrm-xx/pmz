@@ -9750,6 +9750,120 @@ section('État live epicmaster — lib/epicmaster-live + CLI start/done/note + h
   }
 }
 
+// ============ Lot #139 — chargement automatique de la bande epicmaster ============
+section('Lot #139 — env.CLAUDE_CODE_PLUGIN_DIRS (merge-settings), filtre types/, plugin epicmaster-band');
+{
+  const home = path.join(SANDBOX, 'band-home with space');
+  const sp = path.join(home, 'settings.json');
+  const modDir = path.join(home, 'promptimizer', 'mods', 'epicmaster-band');
+  const envv = { CLAUDE_CONFIG_DIR: home, PMZ_STATE_DIR: path.join(home, 'state') };
+  const KEY = 'CLAUDE_CODE_PLUGIN_DIRS';
+  const rd = () => JSON.parse(fs.readFileSync(sp, 'utf8'));
+  const put = (o) => { fs.mkdirSync(home, { recursive: true }); fs.writeFileSync(sp, JSON.stringify(o, null, 2)); };
+
+  // B139-1. Settings vierge : ajout du chemin absolu résolu (espaces conservés).
+  fs.mkdirSync(home, { recursive: true });
+  fs.rmSync(sp, { force: true });
+  ok(runNode(MS, [sp], envv).code === 0, 'B139-1 : install sur settings absent → exit 0');
+  ok(rd().env && rd().env[KEY] === modDir && path.isAbsolute(rd().env[KEY]), 'B139-1 : env.CLAUDE_CODE_PLUGIN_DIRS = chemin absolu du mod');
+
+  // B139-2. Idempotence : réinstall → octet pour octet identique côté env, pas de doublon.
+  const before = rd().env[KEY];
+  ok(runNode(MS, [sp], envv).code === 0 && rd().env[KEY] === before, 'B139-2 : réinstall → valeur inchangée (idempotent)');
+  ok(rd().env[KEY].split(path.delimiter).length === 1, 'B139-2 : une seule entrée (pas de doublon)');
+  ok(JSON.parse(runNode(MS, [sp, '--check'], envv).out).epicmaster_band_loaded === true, 'B139-2 : --check epicmaster_band_loaded = true');
+
+  // B139-3. Valeur tierce + autre clé env préservées ; ajout en fin avec path.delimiter.
+  const third = ['/opt/tiers/plugin-a', '/opt/tiers/plugin b'].join(path.delimiter);
+  put({ env: { FOO: 'bar', [KEY]: third }, permissions: { allow: ['Bash(ls)'] } });
+  ok(runNode(MS, [sp], envv).code === 0, 'B139-3 : install avec valeur tierce → exit 0');
+  ok(rd().env[KEY] === third + path.delimiter + modDir, 'B139-3 : valeur tierce préservée, notre entrée ajoutée après path.delimiter');
+  ok(rd().env.FOO === 'bar' && rd().permissions.allow[0] === 'Bash(ls)', 'B139-3 : autre clé env et permissions préservées');
+  ok(runNode(MS, [sp], envv).code === 0 && rd().env[KEY] === third + path.delimiter + modDir, 'B139-3 : réinstall → toujours une seule fois');
+
+  // B139-4. Retrait : uniquement notre entrée.
+  ok(runNode(MS, [sp, '--remove'], envv).code === 0, 'B139-4 : --remove → exit 0');
+  ok(rd().env[KEY] === third && rd().env.FOO === 'bar', 'B139-4 : --remove retire SEULEMENT notre entrée (tierce + FOO intactes)');
+
+  // B139-5. Retrait propre : clé vide supprimée, env supprimé s'il ne reste rien ; env non vide gardé.
+  fs.rmSync(sp, { force: true });
+  runNode(MS, [sp], envv);
+  runNode(MS, [sp, '--remove'], envv);
+  ok(rd().env === undefined, 'B139-5 : env créé par nous → supprimé au retrait (clé vide puis env vide)');
+  put({ env: { FOO: 'bar' } });
+  runNode(MS, [sp], envv);
+  runNode(MS, [sp, '--remove'], envv);
+  ok(rd().env && rd().env.FOO === 'bar' && rd().env[KEY] === undefined, 'B139-5 : env avec autre clé conservé, seule notre clé retirée');
+
+  // B139-6. Entrée écrite avec ~ ou séparateur final : reconnue (pas de doublon), retirée proprement.
+  put({ env: { [KEY]: modDir + path.delimiter } });
+  runNode(MS, [sp], envv);
+  ok(rd().env[KEY] === modDir + path.delimiter, 'B139-6 : entrée déjà présente (séparateur final) → rien ajouté');
+  runNode(MS, [sp, '--remove'], envv);
+  ok(rd().env === undefined, 'B139-6 : retrait → plus de clé ni env');
+
+  // B139-7. env / valeur non standard : rien écrasé (fail-safe), install OK.
+  put({ env: 'pas-un-objet' });
+  ok(runNode(MS, [sp], envv).code === 0 && rd().env === 'pas-un-objet', 'B139-7 : env non-objet préservé tel quel');
+  put({ env: { [KEY]: 42 } });
+  ok(runNode(MS, [sp], envv).code === 0 && rd().env[KEY] === 42, 'B139-7 : valeur non-chaîne préservée telle quelle');
+
+  // B139-8. Sans notre entrée, --remove ne touche pas à une valeur tierce seule.
+  put({ env: { [KEY]: third } });
+  runNode(MS, [sp, '--remove'], envv);
+  ok(rd().env[KEY] === third, 'B139-8 : --remove sans notre entrée → valeur tierce intacte');
+
+  // B139-9. install.js bout-en-bout : copie du mod SANS .claude-plugin/types/, entrée posée, uninstall la retire.
+  const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-b139-'));
+  fs.mkdirSync(path.join(stage, 'skills'), { recursive: true });
+  fs.cpSync(PKG, path.join(stage, 'promptimizer'), { recursive: true });
+  fs.cpSync(path.join(REPO, 'skills', 'promptimizer'), path.join(stage, 'skills', 'promptimizer'), { recursive: true });
+  // Artefact généré par le moteur de mods : ne doit JAMAIS être déployé (dette #138).
+  const genTypes = path.join(stage, 'promptimizer', 'mods', 'epicmaster-band', '.claude-plugin', 'types');
+  fs.mkdirSync(genTypes, { recursive: true });
+  fs.writeFileSync(path.join(genTypes, 'generated.d.ts'), '// généré');
+  const fake = path.join(stage, 'claude home');
+  const ienv = { CLAUDE_CONFIG_DIR: fake, PMZ_STATE_DIR: path.join(stage, 'state') };
+  fs.mkdirSync(fake, { recursive: true });
+  fs.writeFileSync(path.join(fake, 'settings.json'), JSON.stringify({ env: { [KEY]: '/opt/tiers/x' } }));
+  const rI = runNode(path.join(stage, 'promptimizer', 'install', 'install.js'), ['--no-pause'], ienv);
+  ok(rI.code === 0, 'B139-9 : install.js exit 0');
+  const deployedMod = path.join(fake, 'promptimizer', 'mods', 'epicmaster-band');
+  ok(fs.existsSync(path.join(deployedMod, '.claude-plugin', 'plugin.json')), 'B139-9 : mod déployé (plugin.json)');
+  ok(!fs.existsSync(path.join(deployedMod, '.claude-plugin', 'types')), 'B139-9 : .claude-plugin/types/ NON copié (filtre install.js)');
+  const sI = JSON.parse(fs.readFileSync(path.join(fake, 'settings.json'), 'utf8'));
+  ok(sI.env[KEY] === '/opt/tiers/x' + path.delimiter + deployedMod, 'B139-9 : install.js pose l\'entrée du mod déployé, tierce préservée');
+  ok(!/opt-in/.test(rI.out) && /CLAUDE_CODE_PLUGIN_DIRS/.test(rI.out), 'B139-9 : récap install.js sans « opt-in », mentionne le chargement auto');
+  const rU = runNode(path.join(fake, 'promptimizer', 'install', 'uninstall.js'), ['--no-pause'], ienv);
+  ok(rU.code === 0, 'B139-9 : uninstall.js exit 0');
+  const sU = JSON.parse(fs.readFileSync(path.join(fake, 'settings.json'), 'utf8'));
+  ok(sU.env && sU.env[KEY] === '/opt/tiers/x', 'B139-9 : uninstall retire notre entrée, valeur tierce intacte');
+  fs.rmSync(stage, { recursive: true, force: true });
+
+  // B139-10. build-plugin : epicmaster-band = second plugin de la marketplace, sans types/.
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-b139-plugin-'));
+  const srcTypes = path.join(PKG, 'mods', 'epicmaster-band', '.claude-plugin', 'types');
+  const hadTypes = fs.existsSync(srcTypes);
+  if (!hadTypes) { fs.mkdirSync(srcTypes, { recursive: true }); fs.writeFileSync(path.join(srcTypes, 'tmp-b139.d.ts'), '//'); }
+  let rB;
+  try { rB = runNode(path.join(PKG, 'install', 'build-plugin.js'), [out], {}); }
+  finally { if (!hadTypes) fs.rmSync(srcTypes, { recursive: true, force: true }); }
+  ok(rB.code === 0, 'B139-10 : build-plugin exit 0');
+  const bandOut = path.join(out, 'marketplace', 'epicmaster-band');
+  ok(fs.existsSync(path.join(bandOut, '.claude-plugin', 'plugin.json')), 'B139-10 : plugin epicmaster-band à la racine de la marketplace');
+  ok(!fs.existsSync(path.join(bandOut, '.claude-plugin', 'types')), 'B139-10 : .claude-plugin/types/ non embarqué (plugin band)');
+  ok(!fs.existsSync(path.join(out, 'marketplace', 'promptimizer', 'mods', 'epicmaster-band', '.claude-plugin', 'types')), 'B139-10 : .claude-plugin/types/ non embarqué (plugin pmz)');
+  let mk = null;
+  try { mk = JSON.parse(fs.readFileSync(path.join(out, 'marketplace', '.claude-plugin', 'marketplace.json'), 'utf8')); } catch (_) { /* null */ }
+  const bandEntry = mk && mk.plugins && mk.plugins.find((p) => p.name === 'epicmaster-band');
+  ok(bandEntry && bandEntry.source === './epicmaster-band', 'B139-10 : marketplace.json expose epicmaster-band (source relative)');
+  ok(mk && mk.plugins[0].name === 'pmz' && mk.plugins.length === 2, 'B139-10 : pmz reste premier, 2 plugins au total');
+  fs.rmSync(out, { recursive: true, force: true });
+
+  // B139-11. .gitignore : types/ généré ignoré.
+  ok(/^promptimizer\/mods\/\*\/\.claude-plugin\/types\/$/m.test(fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8')), 'B139-11 : .gitignore ignore promptimizer/mods/*/.claude-plugin/types/');
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);

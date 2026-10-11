@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-11 — Chargement automatique de la bande epicmaster (lot #139, epic Bande epicmaster)
+
+Décision utilisateur : la bande se charge toute seule (fin de l'opt-in `--plugin-dir`).
+
+- **`install/merge-settings.js`** : l'install manuelle ajoute le dossier du mod à
+  `env.CLAUDE_CODE_PLUGIN_DIRS` de `~/.claude/settings.json` (séparateur `path.delimiter`) —
+  append-only, idempotent, valeur tierce et autres clés `env` préservées ; `--remove`/uninstall ne
+  retirent que notre entrée (puis la clé, puis `env` s'ils deviennent vides) ; `--check` expose
+  `epicmaster_band_loaded`.
+- **`build-plugin.js`** : `epicmaster-band` devient second plugin de la marketplace `dist`
+  (`./epicmaster-band`, sans `.claude-plugin/types/`).
+- **`.gitignore`** : `promptimizer/mods/*/.claude-plugin/types/`.
+- Doc alignée (README, ARCHITECTURE, `commands/epicmaster.md`, récap d'install) ; tests `B139-*`
+  en bac à sable, dont le filtre de copie (dette #138) — 2340 OK.
+
 ## 2026-10-09 — Packaging, install et doc de la bande epicmaster (lot #138, epic Bande epicmaster)
 
 - **`install/merge-settings.js`** : enregistre `SubagentStart`/`SubagentStop`
