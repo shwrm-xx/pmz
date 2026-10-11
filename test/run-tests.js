@@ -10,6 +10,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
+process.env.PMZ_NO_LIVE_MIRROR = '1'; // jamais de copie globale vers le vrai ~/.claude pendant les tests
 
 const REPO = path.join(__dirname, '..');
 const PKG = path.join(REPO, 'promptimizer');
