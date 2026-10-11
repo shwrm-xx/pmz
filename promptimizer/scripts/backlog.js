@@ -39,11 +39,11 @@ function flagList(name) {
 function out(s) { process.stdout.write(s + '\n'); }
 // État live de la session maître (lot #136) : best-effort, jamais bloquant — n'écrit que si le
 // lot appartient à une session « master/lot-* » (lib/epicmaster-live.js).
-function liveRecord(root, kind, lot, owner) {
+function liveRecord(root, kind, lot, owner, verdict) {
   try {
     const live = require('../lib/epicmaster-live');
     if (kind === 'start') live.recordStart(root, lot, owner);
-    else if (kind === 'done') live.recordDone(root, lot, owner);
+    else if (kind === 'done') live.recordDone(root, lot, owner, undefined, verdict); // verdict `failed` -> lot failed (lot #141)
     else if (kind === 'note') live.recordNote(root, lot, owner);
   } catch (_) { /* fail-open : l'état live est indicatif */ }
 }
@@ -502,6 +502,8 @@ function fleetCmd(root, sub, json) {
 //   --brief --id N        brief autonome d'UN lot, à coller dans le prompt du sous-agent
 //   --json                plan machine
 //   --live [--detailed]   état live de la session maître (lecture seule, lot #136)
+//   --live-seed           sème le plan COMPLET dans .vibe-agent/epicmaster-live.json (lot #141) : epic,
+//                         vagues, lots pending (modèle·effort, depends_on, tokens est.) — mêmes filtres que le plan
 function epicmaster(root, json) {
   // --live [--detailed] (lot #136) : état LIVE de la session maître (.vibe-agent/epicmaster-live.json),
   // lecture seule — ne calcule ni plan ni handoff. Compact par défaut ; --detailed : une ligne par lot/agent.
@@ -532,6 +534,16 @@ function epicmaster(root, json) {
     return;
   }
   const plan = em.planMaster(root, b, opts);
+  // --live-seed (lot #141) : écrit le plan complet dans le fichier live (la bande l'affiche dès le
+  // lancement, avant tout `start`). N'écrit QUE ce fichier — aucun lot démarré, aucun handoff.
+  if (process.argv.includes('--live-seed')) {
+    const r = require('../lib/epicmaster-live').seedFromPlan(root, plan, b, { epic: opts.epic });
+    if (json) return out(JSON.stringify({ seeded: r.ok, epic: r.epic, waves: r.waves, lots: r.lots, file: '.vibe-agent/epicmaster-live.json' }, null, 2));
+    if (!plan.lots.length) return out('Aucun lot à semer : état live NON écrit (rien à embarquer).');
+    return out(r.ok
+      ? `État live semé : epic « ${r.epic} », ${r.waves} vague${r.waves > 1 ? 's' : ''}, ${r.lots} lot${r.lots > 1 ? 's' : ''} en attente — .vibe-agent/epicmaster-live.json (aucun lot démarré).`
+      : 'Refusé : écriture de l\'état live impossible (droits ? .vibe-agent absent ?).');
+  }
   let handoffPath = null;
   if (process.argv.includes('--write-handoff')) {
     if (!plan.lots.length) {
@@ -821,7 +833,7 @@ function main() {
     }
     const lot = backlog.doneLot(root, id, flag('commit'), null, sessionId, occupancy);
     if (!lot) return out(`Lot #${id} introuvable.`);
-    liveRecord(root, 'done', lot, preUs && preUs.session_owner); // owner lu AVANT clôture (doneLot le vide)
+    liveRecord(root, 'done', lot, preUs && preUs.session_owner, verdict); // owner lu AVANT clôture (doneLot le vide)
     const posted = verdict ? backlog.setClosedVerify(root, lot.id, verdict) : null;
     const proof = posted
       ? ` — verify : ${verdict}${verdict === 'failed' ? ' ⚠️ échec PERSISTÉ (closed_verify), à corriger' : ''}${verdict === 'timeout' ? ' ⚠️ non terminée dans le délai — ce n\'est PAS une preuve de réussite (suite longue ? pose `verify_close_ms` sous `budget:` dans .vibe-agent/rules.yaml)' : ''}`
