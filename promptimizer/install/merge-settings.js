@@ -11,6 +11,11 @@
 //   node merge-settings.js [settingsPath] [--takeover]     (install)
 //   node merge-settings.js [settingsPath] --remove          (désinstall, restaure + retire notre statusline)
 //   node merge-settings.js [settingsPath] --check           (diagnostic JSON)
+//
+// Bande epicmaster (lot #139) : l'install ajoute aussi le dossier du mod
+// <claudeDir>/promptimizer/mods/epicmaster-band à env.CLAUDE_CODE_PLUGIN_DIRS (liste séparée
+// par path.delimiter, chaque entrée chargée comme un --plugin-dir). Append-only, valeur tierce
+// préservée, idempotent ; --remove retire UNIQUEMENT notre entrée.
 //   node merge-settings.js [settingsPath] --statusline      (opt-in : pose la statusline PMZ, jamais sur une tierce)
 //   node merge-settings.js [settingsPath] --statusline-remove (retire la statusline PMZ, jamais une tierce)
 const fs = require('fs');
@@ -62,6 +67,44 @@ function pmzStatusLine() {
 }
 function isPmzStatusLine(sl) {
   return !!(sl && typeof sl === 'object' && typeof sl.command === 'string' && sl.command.includes(SL_TAG));
+}
+
+// Bande epicmaster (lot #139) : chargement AUTOMATIQUE du mod via env.CLAUDE_CODE_PLUGIN_DIRS
+// (lu par Claude Code depuis le bloc `env` de settings.json ; CLI et app desktop). Chemin
+// ABSOLU sous claudeDir() — là où install.js déploie déjà le mod (pas pmzDir() : hors contexte
+// plugin, le mod vit toujours dans le miroir manuel). Le JSON n'a pas de commentaire : notre
+// entrée se reconnaît à son chemin exact (comparaison normalisée), jamais à un motif flou.
+const MOD_ENV_KEY = 'CLAUDE_CODE_PLUGIN_DIRS';
+const MOD_DIR = path.join(cdir.claudeDir(), 'promptimizer', 'mods', 'epicmaster-band');
+function normDir(p) {
+  let x = String(p).trim();
+  if (x === '~' || x.startsWith('~/') || x.startsWith('~\\')) x = path.join(require('os').homedir(), x.slice(1));
+  x = path.resolve(x);
+  return process.platform === 'win32' ? x.toLowerCase() : x;
+}
+function isModEntry(e) { return typeof e === 'string' && e.trim() !== '' && normDir(e) === normDir(MOD_DIR); }
+function hasModEntry(v) { return typeof v === 'string' && v.split(path.delimiter).some(isModEntry); }
+// Ajoute notre entrée si absente. Retourne 'added' | 'present' | 'skipped' (env/valeur non standard : rien touché).
+function addModDir(settings) {
+  if (settings.env !== undefined && (settings.env === null || typeof settings.env !== 'object' || Array.isArray(settings.env))) return 'skipped';
+  const cur = settings.env ? settings.env[MOD_ENV_KEY] : undefined;
+  if (cur !== undefined && typeof cur !== 'string') return 'skipped';
+  if (hasModEntry(cur)) return 'present';
+  if (!settings.env) settings.env = {};
+  let base = typeof cur === 'string' ? cur.trimEnd() : '';
+  while (base.endsWith(path.delimiter)) base = base.slice(0, -1).trimEnd(); // pas de séparateur doublé
+  settings.env[MOD_ENV_KEY] = base ? base + path.delimiter + MOD_DIR : MOD_DIR;
+  return 'added';
+}
+// Retire UNIQUEMENT notre entrée ; supprime la clé si elle devient vide, et env s'il ne reste rien.
+function removeModDir(settings) {
+  const env = settings.env;
+  if (!env || typeof env !== 'object' || Array.isArray(env) || !hasModEntry(env[MOD_ENV_KEY])) return false;
+  const kept = env[MOD_ENV_KEY].split(path.delimiter).filter((e) => !isModEntry(e) && e.trim() !== '');
+  if (kept.length) env[MOD_ENV_KEY] = kept.join(path.delimiter);
+  else delete env[MOD_ENV_KEY];
+  if (Object.keys(env).length === 0) delete settings.env;
+  return true;
 }
 
 const T = SETTINGS_TIMEOUT_S;
@@ -216,6 +259,7 @@ function main() {
       context_guard_present: guardPresent,
       double_stop: doubleStop,
       statusline,
+      epicmaster_band_loaded: !!(settings.env && hasModEntry(settings.env[MOD_ENV_KEY])),
     }, null, 2) + '\n');
     process.exit(0);
   }
@@ -234,6 +278,10 @@ function main() {
       if (taken.length) note = `Prise de relais : ${taken.length} hook(s) context-guard.py désactivé(s) (réversible).`;
     }
     addVsg(hooks);
+    if (addModDir(settings) === 'skipped') {
+      const extra = `env.${MOD_ENV_KEY} non standard : bande epicmaster non chargée automatiquement (settings.json préservé).`;
+      note = note ? note + '\n' + extra : extra;
+    }
   } else if (mode === 'statusline') {
     // Opt-in : ne JAMAIS écraser une statusLine tierce (préservation stricte de l'existant).
     if (settings.statusLine && !isPmzStatusLine(settings.statusLine)) {
@@ -259,6 +307,7 @@ function main() {
     }
     // Nettoyage de NOTRE statusline uniquement (jamais une tierce).
     if (isPmzStatusLine(settings.statusLine)) delete settings.statusLine;
+    removeModDir(settings);
     if (Object.keys(hooks).length === 0) delete settings.hooks;
   }
 

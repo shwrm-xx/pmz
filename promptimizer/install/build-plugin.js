@@ -10,6 +10,7 @@
 // Sortie (gitignorée) :
 //   dist/marketplace/
 //     .claude-plugin/marketplace.json        (marketplace locale : source = "./promptimizer")
+//     epicmaster-band/                        (RACINE du 2e plugin : mod bande, sans .claude-plugin/types/)
 //     promptimizer/                           (RACINE du plugin)
 //       .claude-plugin/plugin.json
 //       hooks/hooks.json + hooks/*.js
@@ -35,6 +36,20 @@ const MARKET = path.join(OUT_ROOT, 'marketplace');
 const PLUGIN = path.join(MARKET, 'promptimizer');         // racine du plugin
 
 const MARKETPLACE_NAME = 'pmz-local';
+// Bande epicmaster (lot #139) : second plugin de la marketplace générée, pour que
+// `/plugin install epicmaster-band@pmz-local` le charge (équivalent du CLAUDE_CODE_PLUGIN_DIRS
+// de l'install manuelle). Source = mods/epicmaster-band, copiée à <marketplace>/epicmaster-band.
+const BAND_NAME = 'epicmaster-band';
+const BAND_SRC = path.join(PMZ_SRC, 'mods', BAND_NAME);
+const BAND = path.join(MARKET, BAND_NAME);
+// Même filtre que install.js : `<mod>/.claude-plugin/types/` est généré par le moteur de mods au
+// chargement (artefact local), jamais livré ; bruit OS exclu.
+function modCopyFilter(src) {
+  const base = path.basename(src);
+  if (base === '.DS_Store') return false;
+  if (base === 'types' && path.basename(path.dirname(src)) === '.claude-plugin') return false;
+  return true;
+}
 // Composants EXCLUS du plugin : l'installeur manuel (obsolète en plugin) et le bruit OS.
 // `statusline.md` : commande opt-in du CANAL MANUEL uniquement (lot #45). Elle invoque
 // install/merge-settings.js, absent du plugin (install/ exclu) → la livrer dans le plugin
@@ -95,6 +110,10 @@ fs.cpSync(PMZ_SRC, PLUGIN, {
     !(path.basename(src) === 'types' && path.basename(path.dirname(src)) === '.claude-plugin'),
 });
 
+// ── 2b. Bande epicmaster → second plugin de la marketplace (racine = <marketplace>/epicmaster-band) ──
+if (!fs.existsSync(path.join(BAND_SRC, '.claude-plugin', 'plugin.json'))) fail('mod introuvable : ' + BAND_SRC);
+fs.cpSync(BAND_SRC, BAND, { recursive: true, filter: modCopyFilter });
+
 // ── 3. Skill : source hors miroir (skills/promptimizer/) → <plugin>/skills/promptimizer/ ──
 if (!fs.existsSync(path.join(SKILL_SRC, 'SKILL.md'))) fail('skill introuvable : ' + SKILL_SRC);
 fs.cpSync(SKILL_SRC, path.join(PLUGIN, 'skills', 'promptimizer'), { recursive: true });
@@ -130,7 +149,14 @@ fs.writeFileSync(path.join(MARKET, '.claude-plugin', 'marketplace.json'),
     name: MARKETPLACE_NAME,
     owner: { name: 'Marwan' },
     metadata: { description: 'Marketplace locale Promptimizer (gouvernance de session vibecoding).' },
-    plugins: [{ name: 'pmz', source: './promptimizer' }],
+    plugins: [
+      { name: 'pmz', source: './promptimizer' },
+      {
+        name: BAND_NAME,
+        source: './' + BAND_NAME,
+        description: 'Promptimizer — bande live /epicmaster au-dessus de la saisie (mod Claude Code).',
+      },
+    ],
   }, null, 2) + '\n');
 
 // ── 8. Bits +x (posix) : wrapper + scripts + hooks ──
@@ -141,8 +167,10 @@ chmodInDir(path.join(PLUGIN, 'scripts'), ['.js']);
 log('Plugin assemblé : ' + PLUGIN);
 log(`  version manifeste : ${manifest.version}`);
 log(`  chemins réécrits  : ${nCmd} command(s) + ${nSkill} fichier(s) skill`);
+log('  bande epicmaster  : ' + BAND + ' (plugin « ' + BAND_NAME + ' »)');
 log('  marketplace       : ' + path.join(MARKET, '.claude-plugin', 'marketplace.json'));
 log('');
 log('Test (bac à sable) :');
 log(`  CLAUDE_CONFIG_DIR=/tmp/pmz-sbx claude plugin marketplace add "${MARKET}"`);
 log('  CLAUDE_CONFIG_DIR=/tmp/pmz-sbx claude plugin install pmz@' + MARKETPLACE_NAME);
+log('  CLAUDE_CONFIG_DIR=/tmp/pmz-sbx claude plugin install ' + BAND_NAME + '@' + MARKETPLACE_NAME);

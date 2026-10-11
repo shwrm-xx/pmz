@@ -304,9 +304,13 @@ session fraîche suivante) et ne démarre plus de lot lui-même.
 sous-agents en vol / terminés (`EM ▶n ✔n ⚙n` dans la statusline ; `backlog.js epicmaster --live`
 en CLI). Le mod `promptimizer/mods/epicmaster-band/` (panneau Claude Code) est déployé par
 `install.js` vers `~/.claude/promptimizer/mods/` (le dossier `.claude-plugin/types/` généré par le
-moteur est exclu) et inclus dans le plugin ; chargement : `--plugin-dir` ou `CLAUDE_CONFIG_DIR`.
-L'install manuelle enregistre aussi `SubagentStart`/`SubagentStop` (tagué, réversible) ; retrait :
-`uninstall` (hooks) puis suppression de `~/.claude/promptimizer/`.
+moteur est exclu) et **chargé automatiquement** (lot #139) : l'install manuelle ajoute son dossier à
+`env.CLAUDE_CODE_PLUGIN_DIRS` de `~/.claude/settings.json` (liste séparée par `:` / `;` selon
+l'OS ; append-only, valeur tierce préservée, idempotent ; valable CLI et app desktop). Canal
+plugin : `build-plugin.js` expose `epicmaster-band` comme second plugin de la marketplace générée
+(`claude plugin install epicmaster-band@pmz-local`). L'install manuelle enregistre aussi
+`SubagentStart`/`SubagentStop` (tagué, réversible) ; retrait : `uninstall` (hooks + entrée
+`CLAUDE_CODE_PLUGIN_DIRS`, seule la nôtre) puis suppression de `~/.claude/promptimizer/`.
 
 `/about` affiche la version installée de PMZ (`promptimizer/VERSION`, historisée dans
 `CHANGELOG.md` à chaque évolution) ainsi que l'epic et le lot en cours du projet courant.
