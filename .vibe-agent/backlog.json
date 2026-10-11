@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 139,
+  "next_id": 140,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-09T08:32:55.376Z",
+  "updated_at": "2026-10-11T05:59:14.762Z",
   "lots": [
     {
       "id": 1,
@@ -3946,6 +3946,40 @@
         137
       ],
       "session_owner": "master/lot-138"
+    },
+    {
+      "id": 139,
+      "title": "Chargement automatique de la bande epicmaster",
+      "scope": "fait quand : install manuelle ajoute le dossier du mod à env.CLAUDE_CODE_PLUGIN_DIRS de ~/.claude/settings.json (append-only, valeur tierce préservée, idempotent, retiré par uninstall/--remove), canal plugin expose epicmaster-band dans la marketplace dist, .gitignore ignore mods/*/.claude-plugin/types/, doc à jour, tests bac à sable verts",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "high",
+      "epic": "Bande epicmaster",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": "cc30424",
+      "closed_at": "2026-10-11T05:59:14.728Z",
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-10-11T05:53:24.197Z",
+      "lot_number": 608,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/install/**",
+        "promptimizer/commands/epicmaster.md",
+        "README.md",
+        "ARCHITECTURE.md",
+        "test/**",
+        ".gitignore"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-139"
     }
   ]
 }
