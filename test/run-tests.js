@@ -3142,18 +3142,19 @@ section('Trim injection SessionStart (titre compressé + slim si règles dans CL
     try { return JSON.parse(r.out).hookSpecificOutput.additionalContext || null; } catch (_) { return null; }
   };
 
-  // -- sessionTitleMessage : TRANSPARENT par défaut (nomenclature posée), dialogue seulement pour la poser --
-  const t = messages.sessionTitleMessage('promptimiser — Lot 25 : Lot T1 — Nudge anti-compaction chiffré');
-  ok(Buffer.byteLength(t, 'utf8') <= 400, 'T2 : sessionTitleMessage <= 400 o (titre réaliste)');
-  ok(t.includes('PRÉCÉDENTE') && /jamais la courante/.test(t), 'T2 : cible la session PRÉCÉDENTE, jamais la courante');
+  // -- selfTitleMessage : la session COURANTE se titre (self), jamais une autre ; dialogue seulement pour poser la nomenclature --
+  const t = messages.selfTitleMessage('[COC · #25] Plan · Lot #1 · Nudge anti-compaction chiffré');
+  ok(Buffer.byteLength(t, 'utf8') <= 400, 'T2 : selfTitleMessage <= 400 o (titre réaliste)');
+  ok(/CETTE session/.test(t) && /"self"/.test(t) && !/PRÉCÉDENTE/.test(t), 'T2 : cible la session COURANTE (self), jamais la précédente');
   ok(/en silence, sans question ni annonce/.test(t) && !/question à choix/.test(t), 'T2 : nomenclature posée -> renommage transparent, aucun dialogue');
-  const tn = messages.sessionTitleMessage('[COC · #1] X', { nomenclature: true });
-  ok(Buffer.byteLength(tn, 'utf8') <= 480, 'T2 : variante nomenclature <= 480 o');
-  ok(/question à choix IMMÉDIATE/.test(tn) && /AVANT la demande/.test(tn) && /1er tour/.test(tn) && /jamais en fin de tour/.test(tn),
-    'T2 : nomenclature à poser -> dialogue immédiat au 1er tour');
-  ok(/trigram --set/.test(tn) && /réussi|échec/.test(tn) && /jamais muet/.test(tn), 'T2 : nomenclature -> fixe le trigramme, accusé de résultat');
-  const ts = messages.selfTitleMessage('[COC · #1] X');
-  ok(/"self"/.test(ts) && /sans question ni annonce/.test(ts), 'T2 : titre de la session courante -> self, en silence');
+  const tc = messages.selfTitleMessage('[COC] Session Libre', { compose: true });
+  ok(/Session Libre · <objet de la demande/.test(tc), 'T2 : sans lot -> l\'assistant complète le résumé d\'après la demande');
+  const tn = messages.selfTitleMessage('[COC · #1] X', { nomenclature: true });
+  ok(Buffer.byteLength(tn, 'utf8') <= 520, 'T2 : variante nomenclature <= 520 o');
+  ok(/question à choix IMMÉDIATE/.test(tn) && /AVANT la demande/.test(tn) && /jamais en fin de tour/.test(tn),
+    'T2 : nomenclature à poser -> dialogue immédiat');
+  ok(/trigram --set/.test(tn) && /CETTE session/.test(tn) && /"self"/.test(tn) && /réussi|échec/.test(tn) && /jamais muet/.test(tn),
+    'T2 : nomenclature -> fixe le trigramme puis renomme CETTE session, accusé de résultat');
 
   // -- MSG_ACTIF_SLIM : ne répète plus les règles d'économie, garde le protocole de clôture --
   ok(!/réduire les relectures/.test(messages.MSG_ACTIF_SLIM), 'T2 : slim ne répète pas les règles d\'économie');
@@ -3976,8 +3977,8 @@ section('doctor.js — dérive de version : cache plugin en retard sur la source
   fs.rmSync(stage, { recursive: true, force: true });
 }
 
-// ============================ Q. RAPPEL DOUBLÉ DU RENOMMAGE (lot #40) ============================
-section('Titre suggéré : rappelé aussi au 1er UserPromptSubmit (fiabilité, lot #40)');
+// ============================ Q. TITRE DE LA SESSION COURANTE (self) ============================
+section('Titre de session : la session COURANTE se renomme elle-même, jamais la précédente');
 {
   const repo = path.join(SANDBOX, 'repo-title-reminder');
   fs.mkdirSync(repo, { recursive: true });
@@ -3986,40 +3987,43 @@ section('Titre suggéré : rappelé aussi au 1er UserPromptSubmit (fiabilité, l
   fs.writeFileSync(path.join(repo, 'a.txt'), '1');
   execFileSync('git', ['-C', repo, 'add', '.']);
   execFileSync('git', ['-C', repo, 'commit', '-q', '-m', 'premier commit']);
-  const addedQ = backlogLib.addLot(repo, 'Lot du rappel doublé', 'fait quand : test', 'sonnet');
-  backlogLib.startLot(repo, addedQ.id);
+  fs.mkdirSync(path.join(repo, '.vibe-agent'), { recursive: true }); // projet initialisé, backlog vide
+  const trigramLibQ = require(path.join(PKG, 'lib', 'trigram'));
 
   function ctxOf(r) { try { return JSON.parse(r.out).hookSpecificOutput.additionalContext || ''; } catch (_) { return ''; } }
+  const upsQ = (sid, prompt) => ctxOf(runHook('user-prompt-submit.js', { cwd: repo, session_id: sid, prompt }));
 
-  // Q1. SessionStart : titre injecté (comportement déjà existant, non régressé)
-  const rStart = runHook('session-start.js', { source: 'startup', cwd: repo, session_id: 'sess-q1' });
-  const ctxStart = ctxOf(rStart);
-  ok(/Titre suggéré \(session PRÉCÉDENTE\)/.test(ctxStart), 'SessionStart : titre suggéré toujours injecté');
+  // Q1. SessionStart ne parle plus de renommer la session précédente.
+  const ctxStart = ctxOf(runHook('session-start.js', { source: 'startup', cwd: repo, session_id: 'sess-q1' }));
+  ok(!/PRÉCÉDENTE/.test(ctxStart) && !/Titre/.test(ctxStart), 'Q1 : SessionStart -> aucun renommage de la session précédente');
 
-  // Q2. 1er UserPromptSubmit de la même session : le titre est RÉAFFICHÉ (2e chance)
-  const rPrompt1 = runHook('user-prompt-submit.js', { cwd: repo, session_id: 'sess-q1', prompt: 'bonjour' });
-  const ctxPrompt1 = ctxOf(rPrompt1);
-  ok(/Titre suggéré \(session PRÉCÉDENTE\)/.test(ctxPrompt1), '1er UserPromptSubmit : titre réaffiché (2e chance)');
-  ok(ctxPrompt1.includes('Lot du rappel doublé'), '1er UserPromptSubmit : même titre que celui du SessionStart');
+  // Q2. Nomenclature non posée, aucun lot : question au 1er prompt, titre de CETTE session à compléter.
+  const ctxP1 = upsQ('sess-q1', 'fais-moi une présentation');
+  ok(/Titre de CETTE session : « \[[A-Z]{3}\] Session Libre · <objet/.test(ctxP1) && /question à choix IMMÉDIATE/.test(ctxP1)
+    && /"self"/.test(ctxP1) && !/PRÉCÉDENTE/.test(ctxP1), 'Q2 : 1er prompt sans trigramme -> question + renommage de CETTE session');
+  ok(!/Titre de CETTE session/.test(upsQ('sess-q1', 'et ensuite ?')), 'Q3 : 2e prompt -> anti-spam');
 
-  // Q3. 2e UserPromptSubmit de la même session : anti-spam, pas de répétition
-  const rPrompt2 = runHook('user-prompt-submit.js', { cwd: repo, session_id: 'sess-q1', prompt: 'et ensuite ?' });
-  ok(!/Titre suggéré/.test(ctxOf(rPrompt2)), '2e UserPromptSubmit : anti-spam, plus de rappel du titre');
+  // Q4. Un lot démarre dans la session sans trigramme : pas de 2e question dans la même session.
+  const addedQ = backlogLib.addLot(repo, 'Lot du rappel doublé', 'fait quand : test', 'sonnet');
+  backlogLib.startLot(repo, addedQ.id);
+  ok(!/Titre de CETTE session/.test(upsQ('sess-q1', 'go')), 'Q4 : nomenclature déjà demandée -> pas de 2e question');
 
-  // Q4. Pas de recalcul : suggestedTitle() lu directement ne montre pas « (partie 2) »
-  // (touchLot ne doit être incrémenté qu'une fois, par session-start.js — jamais par
-  // le rappel de user-prompt-submit.js, qui ne fait que relire l'état persisté).
-  ok(!/\(partie 2\)/.test(ctxPrompt1), 'pas de double incrément touchLot via le rappel UserPromptSubmit');
+  // Q5. Nomenclature posée : la session courante se nomme (self) d'après son lot, en silence, une fois.
+  trigramLibQ.writeTrigram(repo, 'RTR');
+  runHook('session-start.js', { source: 'startup', cwd: repo, session_id: 'sess-q5' });
+  const ctxP5 = upsQ('sess-q5', 'go');
+  ok(/Titre de CETTE session : « \[RTR · #\d+\][^»]*Lot du rappel doublé/.test(ctxP5) && /"self"/.test(ctxP5)
+    && /en silence/.test(ctxP5) && !/question à choix/.test(ctxP5), 'Q5 : 1er prompt -> la session courante se renomme (self) d\'après son lot');
+  ok(!/Titre de CETTE session/.test(upsQ('sess-q5', 'suite')), 'Q5 : titre inchangé -> pas de réinjection');
 
-  // Q5. Nomenclature posée (trigramme écrit) : renommage TRANSPARENT de la précédente, et la session
-  // courante se nomme elle-même (self) une fois, puis seulement si son lot change.
-  require(path.join(PKG, 'lib', 'trigram')).writeTrigram(repo, 'RTR');
-  const ctxS5 = ctxOf(runHook('session-start.js', { source: 'startup', cwd: repo, session_id: 'sess-q5' }));
-  ok(/en silence, sans question ni annonce/.test(ctxS5) && !/question à choix IMMÉDIATE/.test(ctxS5), 'Q5 : nomenclature posée -> SessionStart sans dialogue');
-  const ctxP5 = ctxOf(runHook('user-prompt-submit.js', { cwd: repo, session_id: 'sess-q5', prompt: 'go' }));
-  ok(/Titre de CETTE session : « \[RTR · #\d+\][^»]*Lot du rappel doublé/.test(ctxP5) && /"self"/.test(ctxP5), 'Q5 : 1er prompt -> la session courante se renomme (self) d\'après son lot');
-  const ctxP5b = ctxOf(runHook('user-prompt-submit.js', { cwd: repo, session_id: 'sess-q5', prompt: 'suite' }));
-  ok(!/Titre de CETTE session/.test(ctxP5b), 'Q5 : titre inchangé -> pas de réinjection');
+  // Q6. Plus aucun lot en cours : la session suivante compose un titre « Session Libre » d'après la demande.
+  backlogLib.dropLot(repo, addedQ.id);
+  ok(!backlogLib.loadBacklog(repo).lots.some((l) => l.status === 'in_progress'), 'Q6 : pré-requis, aucun lot en cours');
+  const ctxP6 = upsQ('sess-q6', 'autre chose');
+  ok(/« \[RTR\] Session Libre · <objet/.test(ctxP6) && /en silence/.test(ctxP6), 'Q6 : aucun lot en cours -> titre composé d\'après la demande');
+
+  // Q7. Session maître : /epicmaster se titre lui-même, le hook se tait.
+  ok(!/Titre de CETTE session/.test(upsQ('sess-q7', '/pmz:epicmaster')), 'Q7 : /epicmaster -> aucun titre injecté par le hook');
 }
 
 // ============================ R. VIGIE MODÈLE RÉEL VS PRÉCONISÉ (lot #42) ============================

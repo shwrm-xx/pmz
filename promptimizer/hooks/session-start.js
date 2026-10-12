@@ -19,7 +19,6 @@ const { injectContext, systemMessage, passThrough } = require('../lib/output');
 const { gitRoot, isFullyInitialized, hasAnyCommit, carriesRules } = require('../lib/project');
 const { runBootstrap, commitScaffold } = require('../lib/bootstrap');
 const { loadSessionState, saveSessionState } = require('../lib/state');
-const { suggestedTitle, nomenclatureSet } = require('../lib/lot');
 const { readHandoff, parseSkipPaths, parseSummaryLines, markConsumed, purgeOrphanLotHandoffs } = require('../lib/handoff');
 const { seedAvoidReread, seedSummaries, avoidRereadNotes, topSummaries } = require('../lib/ledger');
 const { loadBacklog, currentLot, nextLot, blockedByOf, progress, readTodoSnapshot } = require('../lib/backlog');
@@ -29,7 +28,7 @@ const rtkStatus = require('../lib/rtk-status');
 const { readVersion } = require('../lib/version');
 const { firstRunWelcome } = require('../lib/welcome');
 const {
-  MSG_ACTIF, MSG_ACTIF_SLIM, MSG_NON_INIT, MSG_HANDOFF, sessionTitleMessage, autoInitMessage,
+  MSG_ACTIF, MSG_ACTIF_SLIM, MSG_NON_INIT, MSG_HANDOFF, autoInitMessage,
   compactResumeMessage, backlogResumeMessage, occupancyMessage, rtkStartupLine,
 } = require('../lib/messages');
 
@@ -178,18 +177,8 @@ function main() {
     let msg = carriesRules(root) ? MSG_ACTIF_SLIM : MSG_ACTIF;
     msg = withRtk(root, msg);
     msg = withVersion(msg);
-    try {
-      // suggestedTitle (via previousSessionId) doit lire session-state.json AVANT le
-      // saveSessionState ci-dessous, qui l'écrase avec le session_id de CETTE session.
-      const title = suggestedTitle(root);
-      msg = msg + '\n\n' + sessionTitleMessage(title, { nomenclature: !nomenclatureSet(root) });
-      // Persisté pour un 2e rappel au 1er UserPromptSubmit (lot #40) — jamais recalculé
-      // depuis là-bas (suggestedTitle a un effet de bord : touchLot incrémente le
-      // compteur « (partie N) », un recalcul le fausserait).
-      st.pending_title_rename = title;
-    } catch (_) {
-      /* fail-open : le rappel de base part quand même */
-    }
+    // Plus de renommage de la session PRÉCÉDENTE (2026-10-12) : la session courante se titre
+    // elle-même au 1er prompt (user-prompt-submit.js, lot.currentSessionTitle).
     st.session_start_reminded = true;
     saveSessionState(root, st);
     return ctx(withFleet(root, input.session_id || null, withHandoff(root, msg, input.session_id || null)));

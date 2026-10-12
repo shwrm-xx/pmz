@@ -298,19 +298,27 @@ function suggestedTitle(root) {
   return deduced ? `${libre} · ${truncateTitle(stripLotPrefix(deduced))}` : libre;
 }
 
-// Titre de la session COURANTE d'après son lot en cours (renommage transparent, « self »).
-// null si rien de sûr à annoncer : aucun lot en cours, vague à plusieurs lots sans lot attribué à
-// cette session, ou session maître (un lot piloté « master/lot-* » : le maître a son propre titre).
-function currentSessionTitle(root, sid) {
+// Titre de la session COURANTE (renommage « self »). Renvoie { title, compose } ou null :
+//   - null : une session maître pilote la vague (lot « master/lot-* » en cours) — le maître a son
+//     propre titre (epicmaster --session-title), on ne le concurrence pas ;
+//   - session de CONCEPTION (opts.plan : mode plan / /pmz:scope) : « [XXX · Plan] <epic> » ;
+//   - lot en cours attribuable à cette session (le sien, ou l'unique en cours) : titre du lot ;
+//   - sinon « [XXX] Session Libre » avec compose: true — l'assistant complète d'après la demande.
+function currentSessionTitle(root, sid, opts) {
   try {
     const backlog = require('./backlog');
+    const trigram = trigramLib.readTrigram(root);
     const b = backlog.loadBacklog(root);
     const inProg = b.lots.filter((l) => l.status === 'in_progress');
-    if (!inProg.length || inProg.some((l) => /^master\//.test(String(l.session_owner || '')))) return null;
+    if (inProg.some((l) => /^master\//.test(String(l.session_owner || '')))) return null;
+    if (opts && opts.plan) {
+      const epic = planSessionEpic(root, b);
+      if (epic) return { title: titleForPlanSession(trigram, epic), compose: false };
+    }
     const mine = sid ? inProg.filter((l) => l.session_owner === sid) : [];
     const l = mine.length === 1 ? mine[0] : (inProg.length === 1 ? inProg[0] : null);
-    if (!l) return null;
-    return titleForLot(trigramLib.readTrigram(root), l, 0, backlog.lotRankInEpic(b, l));
+    if (l) return { title: titleForLot(trigram, l, 0, backlog.lotRankInEpic(b, l)), compose: false };
+    return { title: `[${trigram}] ${SESSION_LIBRE}`, compose: true };
   } catch (_) { return null; }
 }
 
