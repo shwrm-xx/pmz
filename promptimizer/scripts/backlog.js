@@ -505,6 +505,7 @@ function fleetCmd(root, sub, json) {
 //   --live-seed           sème le plan COMPLET dans .vibe-agent/epicmaster-live.json (lot #141) : epic,
 //                         vagues, lots pending (modèle·effort, depends_on, tokens est.) — mêmes filtres que le plan
 //                         [--wave-labels "1=Socle;2=Providers"] : libellé de chaque vague affiché par la bande
+//   --session-title       titre de la session maître (« [XXX · Epicmaster] Epic · #a–#b »)
 function epicmaster(root, json) {
   // --live [--detailed] (lot #136) : état LIVE de la session maître (.vibe-agent/epicmaster-live.json),
   // lecture seule — ne calcule ni plan ni handoff. Compact par défaut ; --detailed : une ligne par lot/agent.
@@ -535,6 +536,13 @@ function epicmaster(root, json) {
     return;
   }
   const plan = em.planMaster(root, b, opts);
+  // --session-title : titre de la session maître courante (« [XXX · Epicmaster] Epic · #a–#b »), mêmes
+  // filtres que le plan ; le maître renomme SA session avec, dès le plan confirmé.
+  if (process.argv.includes('--session-title')) {
+    if (!plan.lots.length) return out('Aucun lot à embarquer : pas de titre.');
+    const epics = [...new Set(plan.lots.map((l) => l.epic).filter(Boolean))];
+    return out(require('../lib/lot').titleForMasterSession(trigram.readTrigram(root), opts.epic || epics.join(' + '), plan.lots.map((l) => l.id)));
+  }
   // --live-seed (lot #141) : écrit le plan complet dans le fichier live (la bande l'affiche dès le
   // lancement, avant tout `start`). N'écrit QUE ce fichier — aucun lot démarré, aucun handoff.
   if (process.argv.includes('--live-seed')) {

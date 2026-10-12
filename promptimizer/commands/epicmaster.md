@@ -57,6 +57,12 @@ des titres de ses lots, jamais inventé au-delà — ex. « Socle registre », �
 La bande affiche aussitôt epic et vagues (« Vague 2 (#10, #11) · libellé ») ; son bouton **Plan**
 ouvre le plan complet (vagues, lots, modèle · effort, « fait quand ») dans un panneau.
 
+Puis **renomme ta propre session** (une session maître se nomme elle-même, dès le lancement) :
+`backlog.js epicmaster --session-title` (mêmes `--epic`/`--skip`) donne
+« [XXX · Epicmaster] Epic · #a–#b » ; dans l'app desktop, outil de titre de session avec
+`session_id: "self"`. Hors app : ignore cette étape, sans le signaler. Le titre suggéré au
+démarrage de la session suivante reprend ce format (session qui a clos plusieurs lots).
+
 Si le script préconise un autre modèle que le tien pour la session maître, dis-le en une
 ligne (`/model …`) avant de lancer — tu orchestres, tu n'as pas besoin de raisonner lourd.
 

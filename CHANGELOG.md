@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Mise à jour du plugin à version égale + titre de session maître (v2.8.1)
+
+- Corrige : `install-plugin.js` laissait l'ancien code en place quand la version n'avait pas changé, car `claude plugin update` ne recopie rien dans ce cas. Les nouvelles bandes restaient donc invisibles. L'installeur compare désormais le contenu installé au build et réinstalle s'ils diffèrent (`uninstall --keep-data` + `install`). Test B143-8.
+- Session maître : `backlog.js epicmaster --session-title` donne « [XXX · Epicmaster] Epic · #a–#b ». `/epicmaster` renomme sa propre session (`session_id: "self"`) dès le lancement.
+- Le titre suggéré au démarrage suivant décrit une session qui a clos plusieurs lots comme une session maître (epic + ids), et non plus par son seul dernier lot.
+- VERSION 2.8.1. Tests TM-1 à TM-3 ; suite à 2487 OK.
+
 ## 2026-10-12 — Bande epicmaster par vagues + bouton Plan
 
 - La bande raisonne en **vagues**. La barre est groupée par vague. Dépliée, elle affiche une ligne par vague, `⟳ Vague 2 (#10, #11) · libellé`, avec en dessous les lots en vol et les verify rouges de la vague en cours.

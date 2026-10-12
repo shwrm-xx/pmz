@@ -9950,6 +9950,25 @@ section('À trancher et tokens réels dans le fichier live — note --decide, do
   ok(/--live-seed/.test(em) && /note[^\n]*--decide/.test(em) && /--verify-verdict failed/.test(em) && /--tokens/.test(em), 'TK-3 : epicmaster.md appelle --live-seed, note --decide, done failed, --tokens');
 }
 
+section('Titre de session maître — « [XXX · Epicmaster] Epic · #a–#b »');
+{
+  const lotLib = require(path.join(PKG, 'lib', 'lot'));
+  ok(lotLib.idRanges([146, 143, 144, 145, 150, 152, 153]) === '#143–#146, #150, #152, #153', 'TM-1 : ids triés, plages compressées (≥ 3 consécutifs)');
+  ok(lotLib.titleForMasterSession('PMZ', 'Install sans couture', [143, 144, 145, 146]) === '[PMZ · Epicmaster] Install sans couture · #143–#146', 'TM-1 : format du titre maître');
+  const repoTm = path.join(SANDBOX, 'repo-master-title');
+  fs.mkdirSync(repoTm, { recursive: true });
+  execFileSync('git', ['init', '-q', repoTm]);
+  fs.writeFileSync(path.join(repoTm, 'a.txt'), '1');
+  execFileSync('git', ['-C', repoTm, 'add', '.']);
+  execFileSync('git', ['-C', repoTm, 'commit', '-q', '-m', 'init']);
+  runNode(BKLG, ['add', '--cwd', repoTm, '--title', 'Un', '--model', 'sonnet', '--effort', 'low', '--epic', 'Install']);
+  runNode(BKLG, ['add', '--cwd', repoTm, '--title', 'Deux', '--model', 'sonnet', '--effort', 'low', '--epic', 'Install']);
+  const t = runNode(BKLG, ['epicmaster', '--cwd', repoTm, '--session-title']).out.trim();
+  ok(/^\[[A-Z0-9]{3} · Epicmaster\] Install · #1, #2$/.test(t), 'TM-2 : epicmaster --session-title -> titre de la session maître (' + t + ')');
+  const em = fs.readFileSync(path.join(PKG, 'commands', 'epicmaster.md'), 'utf8');
+  ok(/--session-title/.test(em) && /"self"/.test(em), 'TM-3 : epicmaster.md renomme la session maître elle-même (session_id "self")');
+}
+
 section('Bande par session/projet — copie globale par projet, seeded_at, ancienne copie unique retirée');
 {
   const live = require(path.join(PKG, 'lib', 'epicmaster-live'));
@@ -10334,6 +10353,24 @@ section('install-plugin.js — installeur plugin en un clic (lot #143, bac à sa
     ok(c2.includes('plugin marketplace update pmz-local') && c2.includes('plugin update pmz@pmz-local') &&
       !c2.some((c) => c.startsWith('plugin install') || c.startsWith('plugin marketplace add')),
       'B143-7 : déjà installé -> mise à jour (marketplace update + plugin update), jamais d\'échec ni de ré-ajout');
+    // B143-8 : même version mais contenu installé différent du build -> uninstall --keep-data + install ;
+    // contenu identique -> simple update (pas de réinstallation inventée).
+    const ipf = path.join(cfg5, 'plugins', 'installed_plugins.json');
+    const stale = path.join(base, 'stale-install');
+    fs.mkdirSync(stale, { recursive: true });
+    fs.writeFileSync(path.join(stale, 'VERSION'), 'ancien');
+    fs.writeFileSync(ipf, JSON.stringify({ version: 2, plugins: { 'pmz@pmz-local': [{ scope: 'user', installPath: stale, version: '2.8.0' }] } }));
+    fs.writeFileSync(logf, '');
+    const r9 = runNode(IP, ['--no-pause'], env5);
+    const c3 = calls();
+    ok(r9.code === 0 && c3.includes('plugin uninstall pmz@pmz-local --keep-data') && c3.includes('plugin install pmz@pmz-local'),
+      'B143-8 : contenu installé ≠ build (même version) -> réinstallation, données conservées');
+    const same = path.join(base, 'same-install');
+    fs.cpSync(path.join(cfg5, 'pmz-plugin', 'build', 'marketplace', 'promptimizer'), same, { recursive: true });
+    fs.writeFileSync(ipf, JSON.stringify({ version: 2, plugins: { 'pmz@pmz-local': [{ scope: 'user', installPath: same, version: '2.8.0' }] } }));
+    fs.writeFileSync(logf, '');
+    runNode(IP, ['--no-pause'], env5);
+    ok(!calls().some((c) => c.startsWith('plugin uninstall')), 'B143-8 : contenu identique -> pas de réinstallation');
     const cfg6 = path.join(base, 'cli-fail');
     const r8 = runNode(IP, ['--no-pause'], envFor(cfg6, { PMZ_CLAUDE_BIN: stub, STUB_LOG: logf, STUB_FAIL: '1' }));
     ok(r8.code === 0 && rd(path.join(cfg6, 'settings.json')).enabledPlugins['pmz@pmz-local'] === true,

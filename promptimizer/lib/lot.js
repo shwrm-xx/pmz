@@ -140,6 +140,27 @@ function titleForPlanSession(trigram, epic) {
   return `[${trigram} · ${PLAN_TAG}] ${truncateTitle(epic)}`;
 }
 
+// Titre d'une SESSION MAÎTRE (/epicmaster) — « [XXX · Epicmaster] Epic · #a–#b » : elle orchestre
+// plusieurs lots, son titre les nomme tous (jamais le dernier lot seul). Ids triés, plages
+// compressées (« #143–#146, #150 »).
+const MASTER_TAG = 'Epicmaster';
+function idRanges(ids) {
+  const xs = [...new Set(ids.map(Number).filter(Number.isFinite))].sort((a, c) => a - c);
+  const out = [];
+  for (let i = 0; i < xs.length;) {
+    let j = i;
+    while (j + 1 < xs.length && xs[j + 1] === xs[j] + 1) j++;
+    out.push(j - i >= 2 ? `#${xs[i]}–#${xs[j]}` : xs.slice(i, j + 1).map((x) => '#' + x).join(', '));
+    i = j + 1;
+  }
+  return out.join(', ');
+}
+function titleForMasterSession(trigram, epic, ids) {
+  const e = truncateTitle(epic || 'epicmaster');
+  const r = idRanges(ids || []);
+  return `[${trigram} · ${MASTER_TAG}] ${e}${r ? ` · ${r}` : ''}`;
+}
+
 // Thème à afficher pour une session de plan : l'epic du DERNIER lot créé (plus grand id) — ce
 // que le découpage vient de nommer — sinon le label global .vibe-agent/epic (posé par
 // `/pmz:scope` étape 3). null si aucun epic nulle part : rien à annoncer, on retombe alors sur
@@ -209,6 +230,13 @@ function suggestedTitle(root) {
       // sur le suivant (cur = nouveau lot in_progress, jamais encore touché), c'est la
       // clôture qui décrit cette session-là, pas le lot fraîchement démarré (bug : titre
       // affichait le lot courant au lieu du lot clos).
+      // Session MAÎTRE : elle a clos plusieurs lots -> titre
+      // de session maître (epic + ids), pas le seul dernier lot clos.
+      const closedByPrev = prevSid ? b.lots.filter((l) => l.status === 'done' && l.closed_session_id === prevSid) : [];
+      if (closedByPrev.length >= 2) {
+        const epics = [...new Set(closedByPrev.map((l) => l.epic).filter(Boolean))];
+        return titleForMasterSession(trigram, epics.join(' + '), closedByPrev.map((l) => l.id));
+      }
       const mine = backlog.lotClosedBySession(b, prevSid);
       if (mine) return T(mine, 0);
       // Session de CONCEPTION (lot #130) : mode plan de Claude Code, ou /pmz:scope (epic posé /
@@ -270,4 +298,4 @@ function suggestedTitle(root) {
   return deduced ? `${libre} · ${truncateTitle(stripLotPrefix(deduced))}` : libre;
 }
 
-module.exports = { readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, MAX_EPIC };
+module.exports = { readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, titleForMasterSession, idRanges, MAX_EPIC };
