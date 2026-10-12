@@ -1,5 +1,5 @@
 <!-- pmz:archive:index -->
-# Archive PMZ — index des lots clos
+# Archive PMZ — index des US closes
 
 <!-- Fichier machine : réécrit trié par id à chaque écriture. Format d'une entrée :
      #NNNN | AAAA-MM-JJ | <sha> | epic:<epic> | verify:<OK|ÉCHEC|timeout|aucune|inconnu> | fiche:<oui|non> | <titre> -->
@@ -152,3 +152,6 @@
 #0147 | 2026-10-12 | 50b141c | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Commande /maquette autonome
 #0148 | 2026-10-12 | cf400fa | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Intégration maquettes dans scope et epicmaster
 #0149 | 2026-10-12 | 9e37b56 | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Doc et release maquettes v2.10.0
+#0150 | 2026-10-12 | 31f6cd3 | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Un dossier par US : spec et maquettes harmonisées
+
+# Archive PMZ — index des lots clos
