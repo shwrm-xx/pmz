@@ -1,6 +1,6 @@
 # Changelog
 
-Format inspiré de Keep a Changelog. Une entrée datée par lot.
+Format inspiré de Keep a Changelog. Une entrée datée par US.
 
 ## [Non publié]
 

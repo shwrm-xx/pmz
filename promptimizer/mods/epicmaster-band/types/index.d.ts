@@ -12,6 +12,8 @@ declare module 'claude-code' {
       armedAt: number | null
       /** Copie globale de projet (<config>/promptimizer/epicmaster-live/<slug>.json) suivie par cette session, ou null. */
       boundFile: string | null
+      /** Bande forcée par /epicband : plan le plus récent, sans exiger un semis après /epicmaster. */
+      manual: boolean
     }
   }
 }

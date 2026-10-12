@@ -42,16 +42,16 @@ function main() {
 
   lines.push(`Epic : ${epic}`);
   if (!b.lots.length) {
-    lines.push('Lot en cours : (aucun plan de lots)');
+    lines.push('US en cours : (aucun plan d\'US)');
   } else {
-    lines.push(`Progression : ${p.done}/${p.total} lots faits`);
-    if (cur) lines.push(`Lot en cours : #${cur.id} ${cur.title}`);
+    lines.push(`Progression : ${p.done}/${p.total} US faites`);
+    if (cur) lines.push(`US en cours : #${cur.id} ${cur.title}`);
     else if (nxt) {
       const bl = blockedByOf(b, nxt);
-      lines.push(`Prochain lot : #${nxt.id} ${nxt.title}`
+      lines.push(`Prochaine US : #${nxt.id} ${nxt.title}`
         + (bl.length ? ` — ⚠️ bloqué par ${bl.map((d) => '#' + d).join(', ')}` : ''));
     }
-    else lines.push('Lot en cours : (aucun — tous faits ou abandonnés)');
+    else lines.push('US en cours : (aucune — toutes faites ou abandonnées)');
   }
   process.stdout.write(lines.join('\n') + '\n');
 }

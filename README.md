@@ -10,15 +10,15 @@ poursuit trois objectifs :
    le coût croît en tours^1,66 à ^1,98), via un message visible **non bloquant** et **non
    réinjecté** dans le contexte du modèle ; seule la prescription de tours est aussi injectée
    au prompt suivant, parce qu'un message non réinjecté ne fait pas agir Claude.
-2. **Clôture propre des lots** — rappelle vérification ciblée + `CHANGELOG` + commit + handoff ;
+2. **Clôture propre des US** — rappelle vérification ciblée + `CHANGELOG` + commit + handoff ;
    le handoff est écrit dans `.vibe-agent/handoff.md` (auto à chaque fin de tour, riche via
    `/fresh-session`) et **injecté automatiquement au démarrage de la session suivante**.
-   Une grosse demande peut être **lotie** (`/scope`) en un plan de 2-5 lots persistant
-   (`.vibe-agent/backlog.json`), **chaque lot portant une préconisation de modèle**
+   Une grosse demande peut être **découpée en US** (`/scope`) en un plan de 2-5 US persistant
+   (`.vibe-agent/backlog.json`), **chaque US portant une préconisation de modèle**
    (`sonnet`/`opus`, réaffichée à chaque `show`/`start`, au resume et dans le handoff — avec
    suggestion `/model` si le modèle diffère, muette pour un runtime tiers) et, si vérifiable par
-   commande, une **`verify`** rejouée comme preuve à la clôture (un lot sans elle est signalé
-   « clos sans preuve ») : chaque lot est clos automatiquement au commit, le suivant est annoncé,
+   commande, une **`verify`** rejouée comme preuve à la clôture (une US sans elle est signalée
+   « close sans preuve ») : chaque US est close automatiquement au commit, la suivante est annoncée,
    et le plan survit aux sessions comme à la compaction.
 3. **Initialisation prudente des projets** — propose de créer `CLAUDE.md` / `AGENTS.md` /
    `.vibe-agent/` / `CHANGELOG.md`, **uniquement après ta confirmation**, jamais d'écrasement.
@@ -180,8 +180,8 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
   (`git reset --hard`, `rm -rf <dossier>`…) ; les commandes catastrophiques sont bloquées. Les
   lectures/éditions normales ne sont **pas** ralenties (respect de `acceptEdits`).
 - **En fin de tour** : alerte de coût aux paliers de contexte et sur le **coût du dernier tour**
-  (tour à +50k tokens ; cache invalidé après une pause vs en plein tour) ; rappel de clôture si un
-  lot est ouvert sans commit ; si un plan de lots existe, le lot en cours est **clos automatiquement
+  (tour à +50k tokens ; cache invalidé après une pause vs en plein tour) ; rappel de clôture si une
+  US est ouverte sans commit ; si un plan d'US existe, l'US en cours est **close automatiquement
   au commit** et le suivant annoncé. Le **gaspillage de relecture** cumulé (relectures complètes de
   fichiers inchangés) est surfacé aux paliers 25k/50k/100k avec le **top-3 des fichiers coupables**
   (une seule fois par palier, sur toute la vie du projet). À haute occupation avec beaucoup de
@@ -192,7 +192,7 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
   (ou clôture) maintenant » — le travail non versionné est exposé à la perte et finit en commit
   monstre (anti-spam par palier ; réarmé au commit). Un **CLAUDE.md projet absent ou hypertrophié**
   (> 10 Ko, rechargé à chaque session) déclenche un nudge « créer / dégraisser » (1×/session).
-  Sur les 2 événements les plus graves (zone rouge, clôture de lot), une **notification OS**
+  Sur les 2 événements les plus graves (zone rouge, clôture d'US), une **notification OS**
   native (mac/linux/win) peut relayer le signal hors du terminal — **opt-in** (`PMZ_NOTIFY=1`
   dans l'environnement), désactivée par défaut.
   Ces rappels visibles portent un **glyphe de sévérité** (ℹ info / ⚠ warn /
@@ -212,8 +212,8 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
   donc rarement atteint). Pour être averti **plus tôt**, décommente une ligne dans
   `.vibe-agent/rules.yaml`, bloc `budget:` :
   `red_zone_tokens: 350000` (borne absolue en tokens) ou `red_zone_ratio: 0.35` (fraction de la
-  fenêtre du modèle). Au franchissement, `stop.js` prescrit la clôture **y compris en milieu de
-  lot** — commit intermédiaire + `/fresh-session`, le lot reste ouvert et le handoff le reprend —
+  fenêtre du modèle). Au franchissement, `stop.js` prescrit la clôture **y compris en milieu 
+  d'US** — commit intermédiaire + `/fresh-session`, l'US reste ouverte et le handoff la reprend —
   avec l'occupation courante et ce que coûterait une compaction en regard. Clé absente ou valeur
   aberrante → seuil historique inchangé.
 - **Budget de tours par session** (actif par défaut) : l'occupation ne dit pas tout — une session
@@ -221,7 +221,7 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
   **tours^1,66 à ^1,98** (mesuré : scinder une session en deux coûte ~37 à 49 % de moins à travail
   égal). À **12 tours**, un rappel ⚠ visible invite à viser un point de commit ; à **20 tours**, PMZ
   **prescrit** la session fraîche (⛔, hors plafond de l'arbitre) et **injecte la consigne à Claude**
-  au prompt suivant — amener le lot à un point de commit, puis proposer la clôture. Rappel ensuite
+  au prompt suivant — amener l'US à un point de commit, puis proposer la clôture. Rappel ensuite
   tous les **+10 tours** : une session marathon ne devient jamais muette. Les deux seuils se
   déplacent dans `.vibe-agent/rules.yaml`, bloc `budget:` :
   `warn_after_session_turns: 12` et `recommend_fresh_session_after_turns: 20` (3 à 500 ; hors bornes
@@ -235,7 +235,7 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
   au budget de tours) : c'est un style à corriger, pas une action à répéter. Seuils réglables dans
   `.vibe-agent/rules.yaml`, bloc `budget:` : `warn_after_output_tokens: 30000` et
   `warn_after_output_per_turn: 1500` ; extinction par `output_budget: off`.
-- **Budget de la verify de clôture** (réglable par projet) : la commande `verify` du lot est
+- **Budget de la verify de clôture** (réglable par projet) : la commande `verify` de l'US est
   rejouée par `/close-batch` et par `backlog.js done` avec un délai de **300 s** par défaut. Une
   suite qui dépasse ce budget est rendue « non terminée dans le délai » et le verdict `timeout`
   est **persisté** — donc une suite verte finit archivée comme non prouvée. Si la suite du dépôt
@@ -245,47 +245,49 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
 - **Occupation déjà haute** : au-delà de 500k tokens, un rappel court (2 lignes) est ajouté au
   prompt suivant (plafonné 1×/palier) ; à la **reprise** d'une session déjà chargée (≥ 300k),
   un message visible (zéro token ajouté au contexte) le signale sans attendre la fin du tour.
-- **Plan de lots durable** : `.vibe-agent/backlog.json` est versionné par défaut (un
+- **Plan d'US durable** : `.vibe-agent/backlog.json` est versionné par défaut (un
   `.vibe-agent/.gitignore` ignore l'état éphémère mais garde le plan), et stagé à chaque écriture —
   il ne se perd plus entre deux sessions. Un plan reste **corrigeable** : `backlog.js depends --id N
-  --depends "2,3"` réécrit les dépendances d'un lot après coup, et `backlog.js reopen --id N --note
-  "raison"` rouvre un lot clos à tort (repassé « à faire », trace de clôture effacée et raison
+  --depends "2,3"` réécrit les dépendances d'une US après coup, et `backlog.js reopen --id N --note
+  "raison"` rouvre une US close à tort (repassé « à faire », trace de clôture effacée et raison
   archivée) — plus besoin d'éditer le JSON à la main, hors de toute garde. Le nombre de
-  réouvertures est exporté (colonne `reopened` du CSV/Markdown) : un lot repris deux fois cesse de
-  se lire comme un lot passé du premier coup.
-- **Pointeur US** : un lot peut référencer une User Story détaillée — **pointeur seul, jamais
-  le contenu**. C'est un fichier du dépôt (gabarit `promptimizer/templates/us-template.md` :
+  réouvertures est exporté (colonne `reopened` du CSV/Markdown) : une US reprise deux fois cesse de
+  se lire comme une US passée du premier coup.
+- **Pointeur de spec** : une US peut référencer une **spec détaillée** (champ `spec`, ex-`us`,
+  renommé le 2026-10-12 depuis que « US » désigne l'item du backlog) — **pointeur seul, jamais
+  le contenu**. C'est un fichier du dépôt (gabarit `promptimizer/templates/spec-template.md` :
   récit persona/besoin/bénéfice, critères d'acceptation vérifiables, hors périmètre, preuve de
-  clôture) posé via `backlog.js add --us docs/us/US-42.md` — chemin **vérifié à l'ajout** (un
-  pointeur mort est refusé). Pas d'US sous la main ? `backlog.js us --id N --new` **écrit** le
-  fichier depuis le gabarit (`docs/us/US-N.md`, titre et epic du lot déjà remplis) et le
-  rattache au lot ; il refuse d'écraser un fichier existant, et `us --id N --set <chemin>`
-  rattache une US écrite ailleurs. Sans flag, `us --id N` affiche juste le pointeur. Il se
+  clôture) posé via `backlog.js add --spec docs/specs/SPEC-42.md` — chemin **vérifié à l'ajout** (un
+  pointeur mort est refusé ; `--us` reste accepté comme alias déprécié). Pas de spec sous la main ?
+  `backlog.js spec --id N --new` **écrit** le fichier depuis le gabarit (titre et epic de l'US déjà
+  remplis) et le rattache à l'US ; il refuse d'écraser un fichier existant, et
+  `spec --id N --set <chemin>` rattache une spec écrite ailleurs. Sans flag, `spec --id N` affiche
+  juste le pointeur (`[Spec : …]`). Il se
   retrouve partout où on trace : `show`, export CSV/Markdown, fiche d'archive. (Un pointeur
   Jira a existé un temps, retiré faute de connectivité réelle derrière — cf. ARCHITECTURE.md,
   décision « Frontière Jira : écarté ».)
-- **Après un `/clear` ou une compaction** : le handoff (ou le lot en cours) est réinjecté —
+- **Après un `/clear` ou une compaction** : le handoff (ou l'US en cours) est réinjecté —
   le plan ne se perd pas.
 - **Vagues parallèles fiables** : quand plusieurs sessions travaillent le même dépôt, chacune a son
   propre handoff (`handoff-lot-<id>.md`) — plus de dernier-écrivain-gagne qui remplaçait l'état
-  d'un lot par celui d'un autre. Le registre de vague s'écrit **par commande**
+  d'une US par celui d'une autre. Le registre de vague s'écrit **par commande**
   (`backlog.js fleet join | ready | leave | show`) et non à la main : un `fleet.json` cassé désactivait
   toute la vague en silence, `fleet show` le dit maintenant, et `fleet leave --id N` permet à une
-  session de se désinscrire (le lot reste au plan) sans attendre une réintégration qu'elle ne veut
+  session de se désinscrire (l'US reste au plan) sans attendre une réintégration qu'elle ne veut
   pas. Une fois la vague réintégrée, tout est
-  **rangé** (registre vidé, handoffs de lot purgés) et chaque `reintegrate --execute` laisse un
+  **rangé** (registre vidé, handoffs d'US purgés) et chaque `reintegrate --execute` laisse un
   **rapport** dans `.vibe-agent/logs/` — plan, gates rouges, changelog agrégé — que le crash d'une
   session ne peut plus emporter.
-- **Archive des lots clos, à tiroirs** : la mémoire longue du projet, **jamais réinjectée** dans le
+- **Archive des US closes, à tiroirs** : la mémoire longue du projet, **jamais réinjectée** dans le
   contexte — l'historique ne coûte rien tant qu'on ne l'ouvre pas, et on n'ouvre qu'un tiroir à la
   fois. Chaque clôture ajoute une ligne à `.vibe-agent/archive/index.md` (id, date, sha, epic,
   verify, titre — versionné, greppable) et `/close-batch` fait rédiger une **fiche**
   `archive/lots/lot-NNNN.md` : décisions **et pourquoi**, vérifié / non vérifié, dette. Versionnée
-  et immuable une fois posée — seule exception, une réouverture de lot y **ajoute** une ligne en
+  et immuable une fois posée — seule exception, une réouverture d'US y **ajoute** une ligne en
   pied (« rouvert le …, raison ») sans rien réécrire ; ni diff ni listing de code (le sha et le
   CHANGELOG font foi pour le volatil). Le brut intégral (`archive/raw/`, local, non versionné) garde le handoff manuel et les
   retours de sous-agents avant leur destruction.
-  Consultation : `/pmz:archive` (index), `/pmz:archive 57` (la fiche du lot #57), le brut seulement
+  Consultation : `/pmz:archive` (index), `/pmz:archive 57` (la fiche de l'US#57), le brut seulement
   sur confirmation explicite. Rétro-remplir un projet existant :
   `node ~/.claude/promptimizer/scripts/archive.js backfill --dry-run` puis sans `--dry-run`.
 - **Moteur de mesure de session** (manuel, aucun hook ne l'appelle) : les nudges de session
@@ -314,46 +316,48 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
 `/close-batch` · `/fresh-session` · `/archive` · `/dashboard` · `/rtk` · `/about` · `/help` ·
 `/statusline`
 
-`/epicmaster` **(session maître)** lance **tous les lots ouverts** du backlog — une epic ou
-plusieurs — en **sous-agents**, chacun au **modèle + effort préconisés** par le lot, après **une**
-confirmation (lots classés par epic, **tous cochés par défaut**, décochables). Le plan est calculé par
-`backlog.js epicmaster` : vagues (périmètres disjoints en parallèle, lots sans périmètre seuls en
-vol), **parallélisme borné** (plafond 4, réglable) **et** budget de contexte du maître (au plus N lots
+`/epicmaster` **(session maître)** lance **toutes les US ouvertes** du backlog — une epic ou
+plusieurs — en **sous-agents**, chacune au **modèle + effort préconisés** par l'US, après **une**
+confirmation (US classées par epic, **toutes cochées par défaut**, décochables). Le plan est calculé par
+`backlog.js epicmaster` : vagues (périmètres disjoints en parallèle, US sans périmètre seules en
+vol), **parallélisme borné** (plafond 4, réglable) **et** budget de contexte du maître (au plus N US
 par session maître, découpe en sessions successives au-delà), modèle préconisé pour le maître
 lui-même. Le maître ne relit jamais la sortie brute d'un sous-agent (rapport ≤ 250 mots, sections
-fixes), commite **par périmètre**, clôt chaque lot avec verdict de verify persisté, et termine par
+fixes), commite **par périmètre**, clôt chaque US avec verdict de verify persisté, et termine par
 un **handoff consolidé** portant la **dette** et ce qui reste **à trancher**. `/scope` se termine
 **systématiquement** par la préparation de cette session maître (handoff maître écrit, injecté à la
-session fraîche suivante) et ne démarre plus de lot lui-même.
+session fraîche suivante) et ne démarre plus d'US lui-même.
 
-**Bande epicmaster** (lots #136-#138) : pendant la session maître, une bande live affiche les
+**Bande epicmaster** (US#136-#138) : pendant la session maître, une bande live affiche les
 sous-agents en vol / terminés (`EM ▶n ✔n ⚙n` dans la statusline ; `backlog.js epicmaster --live`
 en CLI). Le mod `promptimizer/mods/epicmaster-band/` (panneau Claude Code) est déployé par
 `install.js` vers `~/.claude/promptimizer/mods/` (le dossier `.claude-plugin/types/` généré par le
-moteur est exclu) et **chargé automatiquement** (lot #139) : l'install manuelle ajoute son dossier à
+moteur est exclu) et **chargé automatiquement** (US#139) : l'install manuelle ajoute son dossier à
 `env.CLAUDE_CODE_PLUGIN_DIRS` de `~/.claude/settings.json` (liste séparée par `:` / `;` selon
 l'OS ; append-only, valeur tierce préservée, idempotent ; valable CLI et app desktop). Canal
-plugin (lot #140) : la bande est **embarquée dans le plugin `pmz`** (un seul plugin, pas de second
+plugin (US#140) : la bande est **embarquée dans le plugin `pmz`** (un seul plugin, pas de second
 plugin à installer) — `build-plugin.js` fusionne le module dans le `hooks/hooks.json` du plugin ;
 `migrate-to-plugin` retire alors l'entrée `CLAUDE_CODE_PLUGIN_DIRS` (évite un double chargement).
 L'install manuelle enregistre aussi
 `SubagentStart`/`SubagentStop` (tagué, réversible) ; retrait : `uninstall` (hooks + entrée
 `CLAUDE_CODE_PLUGIN_DIRS`, seule la nôtre) puis suppression de `~/.claude/promptimizer/`.
-Fichier live (lots #141-#142) : `backlog.js epicmaster --live-seed` sème le **plan complet**
-(epic, vagues, lots en attente) ; `note --id N --note "…" --decide` ajoute la décision à
+Bande absente ? **`/epicband`** l'affiche à la demande (plan le plus récent du projet, sans appel au
+modèle) ; `/epicband plan` ouvre aussi le panneau du plan, `/epicband off` la retire.
+Fichier live (US#141-#142) : `backlog.js epicmaster --live-seed` sème le **plan complet**
+(epic, vagues, US en attente) ; `note --id N --note "…" --decide` ajoute la décision à
 `to_decide` (« N à trancher » dans la bande) ; `done --id N --tokens <réels>` remplace l'estimation
 du plan par les tokens réels du sous-agent (`tokens_basis: measured`) ; `done --verify-verdict
-failed` passe le lot en rouge. `/epicmaster` enchaîne ces quatre gestes.
+failed` passe l'US en rouge. `/epicmaster` enchaîne ces quatre gestes.
 
 `/about` affiche la version installée de PMZ (`promptimizer/VERSION`, historisée dans
-`CHANGELOG.md` à chaque évolution) ainsi que l'epic et le lot en cours du projet courant.
+`CHANGELOG.md` à chaque évolution) ainsi que l'epic et l'US en cours du projet courant.
 
 `/help` liste toutes les commandes disponibles avec leur description, **dérivée des fichiers
 `commands/` réellement installés** (jamais une liste codée en dur) : sur le canal plugin,
-`doctor` et `statusline` y figurent aussi (livrées dans le plugin depuis le lot #144).
+`doctor` et `statusline` y figurent aussi (livrées dans le plugin depuis l'US#144).
 
 `/statusline` **(opt-in)** pose la barre d'état PMZ dans `settings.json` :
-`PMZ v<version> · <epic> · lot #<id> <titre> · <faits>/<total> · ctx <occupation>` (occupation
+`PMZ v<version> · <epic> · US#<id> <titre> · <faits>/<total> · ctx <occupation>` (occupation
 temps réel). Posée **uniquement sur demande explicite** ; **jamais** si une `statusLine` tierce
 existe (préservée) ; retrait propre via la même commande (`--statusline-remove`) et à la
 désinstallation. Un redémarrage de session peut être nécessaire pour l'affichage.
@@ -361,7 +365,7 @@ désinstallation. Un redémarrage de session peut être nécessaire pour l'affic
 `/budget` et `/check-context` chiffrent leur statut vert/orange/rouge en **tokens réels**
 (occupation courante du contexte + gaspillage de relecture), avec repli annoncé sur le comptage
 de relectures quand l'occupation token n'est pas encore connue. `/budget` affiche aussi le
-**hitRate cache** du dernier tour quand il est connu, et un **diagnostic enrichi** (lot #113) quand
+**hitRate cache** du dernier tour quand il est connu, et un **diagnostic enrichi** (US#113) quand
 un transcript exploitable existe pour la session courante : le **coût marginal réel d'un token de
 sortie écrit maintenant** (émission + relecture future projetée jusqu'à la borne de zone rouge du
 projet, avec alerte si la relecture pèse déjà plus lourd que l'émission), et la **ventilation du
@@ -375,7 +379,7 @@ qui l'a déclenché et son seuil. Le détail technique est au **second niveau**,
 (`<details>` natif, aucun script) : occupation (médiane / p90 / max) et préfixe, décomposition du
 coût (cache-read en 4 postes), accrétion tokens/tour, loi d'échelle `coût ∝ tours^k`, **3
 recommandations chiffrées** classées par argent récupérable, sessions les plus chères, gain RTK par
-lot. La synthèse ne mesure rien de neuf : elle dérive des mêmes indicateurs, par seuils nommés
+US. La synthèse ne mesure rien de neuf : elle dérive des mêmes indicateurs, par seuils nommés
 (`lib/dashboard-synthesis.js`), et une métrique absente ne produit **aucun** signal — la promesse
 de 3 + 3 est tenue par un encadré neutre qui dit l'insuffisance de mesure. Les montants s'affichent **en euros** (taux $→€
 statique de `lib/metrics.js`, réserve rappelée au footer), avec l'équivalent en tokens à côté ;
@@ -385,11 +389,11 @@ fait **aucune requête réseau** et suit le thème clair/sombre du système. Opt
 complet des transcripts) : à la demande uniquement, jamais depuis un hook — d'où une commande et
 non un nudge.
 
-Chaque auto-clôture de lot émet **une seule carte** : lot clos, avancement du plan, coût réel du
-lot, durée, relectures évitées, lot suivant — et, à la clôture du **dernier lot d'une epic**, le
-**bilan chiffré** de l'epic (nombre de lots, coût total, coût moyen/lot, durée) comme ligne de plus.
-Un lot en cours commité dans une **autre session** que celle qui l'a démarré est clos quand même
-(arbre propre + un seul lot en cours + un commit depuis son démarrage).
+Chaque auto-clôture d'US émet **une seule carte** : US close, avancement du plan, coût réel 
+de l'US, durée, relectures évitées, US suivante — et, à la clôture de la **dernière US d'une epic**, le
+**bilan chiffré** de l'epic (nombre d'US, coût total, coût moyen/US, durée) comme ligne de plus.
+Une US en cours commitée dans une **autre session** que celle qui l'a démarrée est close quand même
+(arbre propre + une seule US en cours + un commit depuis son démarrage).
 
 _Après une mise à jour du package, relance l'installeur (`install.command`/`.sh`/`.ps1`) puis
 redémarre Claude Code : les matchers de hooks ne s'appliquent qu'à la réinstallation._
@@ -405,8 +409,8 @@ redémarre Claude Code : les matchers de hooks ne s'appliquent qu'à la réinsta
   défaut**. Opt-in en exportant `PMZ_RTK_ENABLE=1` (et en ayant `rtk` installé) — PMZ fait alors
   transiter les commandes Bash **jugées sûres** par `rtk rewrite`, la sécurité PMZ restant
   prioritaire (une commande dangereuse n'est jamais réécrite). Sans la variable, aucun surcoût.
-  Activation guidée + diagnostic via `/pmz:rtk [status|enable|disable|migrate]`. À la clôture d'un
-  lot, le bilan affiche le **gain RTK avec son niveau de preuve** (compteur local de commandes
+  Activation guidée + diagnostic via `/pmz:rtk [status|enable|disable|migrate]`. À la clôture d'une
+  US, le bilan affiche le **gain RTK avec son niveau de preuve** (compteur local de commandes
   réécrites, ou rien si aucune activité — jamais de valeur inventée).
 - **Fallback de sortie volumineuse** (filet générique quand RTK est absent) : une sortie de commande
   Bash **très longue** (> 300 lignes) est réduite avant d'entrer dans le contexte (dédup, en-tête,

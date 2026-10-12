@@ -247,7 +247,7 @@ function seedFromPlan(root, plan, b, opts, now) {
     st.wave_plan = (plan.waves || []).map((w) => {
       const ids = (w.ids || []).slice();
       const one = ids.length === 1 ? plan.lots.find((l) => l.id === ids[0]) : null;
-      const label = labels[w.index] || (one ? one.title : `${ids.length} lots en parallèle`);
+      const label = labels[w.index] || (one ? one.title : `${ids.length} US en parallèle`);
       return { index: w.index, ids, parallel: ids.length > 1, label: clipStr(label, 80) };
     });
     st.finished = false;
@@ -371,7 +371,7 @@ function renderDetailed(sum, now) {
   if (sum.agents_active.length) {
     L.push('Sous-agents actifs :');
     for (const a of sum.agents_active) {
-      L.push(`  ⚙ ${a.type || 'agent'} ${String(a.id).slice(0, 12)} · depuis ${ago(a.started_at, now)}${a.lot != null ? ` · lot #${a.lot}` : ' · lot non rattaché'}`);
+      L.push(`  ⚙ ${a.type || 'agent'} ${String(a.id).slice(0, 12)} · depuis ${ago(a.started_at, now)}${a.lot != null ? ` · US#${a.lot}` : ' · US non rattachée'}`);
     }
   }
   return L.join('\n');

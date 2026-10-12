@@ -60,7 +60,7 @@ function writeEpic(root, name) {
 function seedFromChangelog(root) {
   try {
     const content = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8');
-    const re = /\(lot\s+(\d+)\)/gi;
+    const re = /\((?:lot\s+|US\s*#\s*)(\d+)\)/gi; // « (lot N) » historique ou « (US#N) »
     let max = 0;
     let m;
     while ((m = re.exec(content))) {
@@ -85,9 +85,16 @@ function incrementLot(root) {
   return next;
 }
 
-// Repli quand aucun plan (epic) ne nomme le lot travaillé — cf. nomenclature validée
-// utilisateur : « [XXX] Session Libre · résumé » (pas de #lot, il n'y a pas de plan nommé).
-const SESSION_LIBRE = 'Session Libre';
+// Nomenclature des titres de session (validée utilisateur 2026-10-12) — un seul numéro, l'id
+// backlog GLOBAL, préfixé de ce qu'il désigne :
+//   - session d'US     : « [XXX · US#Y] Epic · résumé » (sans epic : « [XXX · US#Y] résumé ») ;
+//   - session maître   : « [XXX · EP#a–#b] <nom de l'epic> » ;
+//   - session hors US  : « [XXX · HS] résumé » (rien du backlog ne la décrit).
+// Le rang dans le plan (ex-« Lot #X ») a disparu : deux numéros pour une même US se
+// contredisaient (#105 global vs Lot #10 du plan).
+const US_TAG = 'US#';
+const HS_TAG = 'HS';
+const MASTER_TAG = 'EP';
 
 function truncateTitle(title) {
   const t = String(title == null ? '' : title);
@@ -103,7 +110,7 @@ function stripLotPrefix(title) {
 
 // Nom de plan (≤ 3 mots) = l'epic du lot, le « voyageur » qui reste juste selon le lot
 // réellement travaillé (décision utilisateur). Coupe au 1er séparateur — / – / : d'un libellé
-// long, puis borne à 3 mots. Epic absent/vide -> null (le titre bascule en « Session Libre »).
+// long, puis borne à 3 mots. Epic absent/vide -> null (titre « [XXX · US#Y] résumé », sans epic).
 function planName(l) {
   const raw = l && l.epic ? String(l.epic).trim() : '';
   if (!raw) return null;
@@ -112,21 +119,15 @@ function planName(l) {
   return words || null;
 }
 
-// Titre de session pour un lot backlog donné — nomenclature « [XXX · #Y] PlanTitle · Lot #X · résumé »
-// (validée utilisateur 2026-07-13) : deux numéros distincts, chacun accolé à ce qu'il qualifie.
-//   - Y = ID backlog GLOBAL (le « #N » de `backlog.js show`), accolé au trigramme.
-//   - X = rang du lot DANS SON PLAN (epic), remis à zéro à chaque plan (cf. lotRankInEpic),
-//         accolé au nom de plan — colle au modèle mental « lot 1..5 de ce plan ».
-// Sans epic : « [XXX · #Y] Session Libre · résumé » (pas de plan → pas de « Lot #X »). Sans lot
-// du tout (id null, cas déduit) : « [XXX] Session Libre · résumé » (pas d'id à afficher).
-// Suffixe « (partie N) » quand N>1 sessions ont travaillé ce lot sans le clore (touches ≤1 : rien).
-function titleForLot(trigram, l, touches, rank) {
+// Titre de session pour une US backlog donnée — « [XXX · US#Y] Epic · résumé » (Y = id backlog
+// global, le « #N » de `backlog.js show`) ; sans epic : « [XXX · US#Y] résumé ». Sans id (cas
+// déduit) : « [XXX · HS] résumé ». Suffixe « (partie N) » quand N>1 sessions ont travaillé
+// cette US sans la clore (touches ≤1 : rien).
+function titleForLot(trigram, l, touches) {
   const resume = truncateTitle(stripLotPrefix(l.title));
   const plan = planName(l);
-  const tag = l.id != null ? `${trigram} · #${l.id}` : trigram;
-  const base = plan
-    ? `[${tag}] ${plan} · ${rank ? `Lot #${rank} · ` : ''}${resume}`
-    : `[${tag}] ${SESSION_LIBRE} · ${resume}`;
+  const tag = l.id != null ? `${trigram} · ${US_TAG}${l.id}` : `${trigram} · ${HS_TAG}`;
+  const base = `[${tag}] ${plan ? `${plan} · ` : ''}${resume}`;
   return touches > 1 ? `${base} (partie ${touches})` : base;
 }
 
@@ -140,10 +141,9 @@ function titleForPlanSession(trigram, epic) {
   return `[${trigram} · ${PLAN_TAG}] ${truncateTitle(epic)}`;
 }
 
-// Titre d'une SESSION MAÎTRE (/epicmaster) — « [XXX · Epicmaster] Epic · #a–#b » : elle orchestre
-// plusieurs lots, son titre les nomme tous (jamais le dernier lot seul). Ids triés, plages
+// Titre d'une SESSION MAÎTRE (/epicmaster) — « [XXX · EP#a–#b] <nom de l'epic> » : elle orchestre
+// plusieurs US, son tag les nomme toutes (jamais la dernière seule). Ids triés, plages
 // compressées (« #143–#146, #150 »).
-const MASTER_TAG = 'Epicmaster';
 function idRanges(ids) {
   const xs = [...new Set(ids.map(Number).filter(Number.isFinite))].sort((a, c) => a - c);
   const out = [];
@@ -156,9 +156,8 @@ function idRanges(ids) {
   return out.join(', ');
 }
 function titleForMasterSession(trigram, epic, ids) {
-  const e = truncateTitle(epic || 'epicmaster');
   const r = idRanges(ids || []);
-  return `[${trigram} · ${MASTER_TAG}] ${e}${r ? ` · ${r}` : ''}`;
+  return `[${trigram} · ${MASTER_TAG}${r}] ${epic ? truncateTitle(epic) : 'Epicmaster'}`;
 }
 
 // Thème à afficher pour une session de plan : l'epic du DERNIER lot créé (plus grand id) — ce
@@ -186,7 +185,7 @@ function deduceFromChangelog(root) {
     const m = heading.match(/\(([^)]+)\)\s*$/);
     if (!m) return null;
     const text = m[1].trim();
-    if (!text || /^lot\s*#?\d+(\s*,\s*epic\s+.+)?$/i.test(text)) return null;
+    if (!text || /^(?:lot\s*#?|US\s*#?)\d+(\s*,\s*epic\s+.+)?$/i.test(text)) return null;
     return text;
   } catch (_) {
     return null;
@@ -205,7 +204,7 @@ function deduceTitle(root) {
 
 function suggestedTitle(root) {
   const trigram = trigramLib.readTrigram(root);
-  const libre = `[${trigram}] ${SESSION_LIBRE}`;
+  const libre = `[${trigram} · ${HS_TAG}]`;
   try {
     // require paresseux : backlog.js require lot.js en tête, un require en tête ici
     // créerait un cycle de modules.
@@ -218,8 +217,7 @@ function suggestedTitle(root) {
       // lot ouvert (« (partie N) » si >1, cf. titleForLot) — incrémenté ICI (une fois par
       // vrai démarrage de session, cf. hooks/session-start.js) car c'est le seul point de
       // passage qui décrit la session précédente à la session suivante.
-      // Rang dans le plan calculé au point d'appel (backlog `b` sous la main).
-      const T = (l, touches) => titleForLot(trigram, l, touches, backlog.lotRankInEpic(b, l));
+      const T = (l, touches) => titleForLot(trigram, l, touches);
       const prev = previousSessionMeta(root);
       const prevSid = prev.id;
       // Chemin PRIMAIRE : le lot que la session PRÉCÉDENTE a réellement clos (attribution
@@ -262,10 +260,10 @@ function suggestedTitle(root) {
       // dernier lot clos par id. Un lot clos par une session ANTÉRIEURE à la précédente ne
       // décrit pas le TRAVAIL de cette session-là (ex. release, merge de vague, état des lieux
       // qui n'a rien clos) : dans ce cas on garde de lui ce qui reste VRAI — la position dans le
-      // plan (« [XXX · #Y] Plan · Lot #X », le projet en est bien là) — et on remplace son
+      // plan (« [XXX · US#Y] Epic », le projet en est bien là) — et on remplace son
       // résumé par ce que la session précédente a laissé dans le dépôt (dernière entrée
       // CHANGELOG, sinon dernier commit).
-      // Lot #130 : cette branche rendait « Session Libre » NUE, par prudence d'attribution.
+      // Lot #130 : cette branche rendait « [XXX · HS] » NU, par prudence d'attribution.
       // Sur données réelles (9 des 12 dernières sessions de ce dépôt), c'était le cas NOMINAL —
       // vagues parallèles, réintégrations, releases et sessions courtes ne closent rien dans le
       // backlog principal — et le titre n'aidait plus personne. Un titre positionnel + le
@@ -283,19 +281,19 @@ function suggestedTitle(root) {
       // rendre avec `titleForLot` (même format qu'un lot clos, cf. ci-dessus) affirmerait que
       // la session précédente a fait un travail qui n'a même pas commencé (bug 2026-07-29 :
       // titre affichait le prochain lot todo comme s'il était clos). Plan sans AUCUN lot clos :
-      // même traitement que sans plan — « Session Libre » + résumé déduit (jamais nue quand une
+      // même traitement que sans plan — « [XXX · HS] » + résumé déduit (jamais nue quand une
       // information existe).
       const deducedNoDone = deduceTitle(root);
-      return deducedNoDone ? `${libre} · ${truncateTitle(stripLotPrefix(deducedNoDone))}` : libre;
+      return deducedNoDone ? `${libre} ${truncateTitle(stripLotPrefix(deducedNoDone))}` : libre;
     }
   } catch (_) {
     /* fail-open : on tente quand même la déduction ci-dessous */
   }
-  // Aucun titre dans le plan (backlog absent ou vide) : session sans plan nommé -> « Session
-  // Libre », suffixée d'un résumé déduit des infos disponibles (dernier titre CHANGELOG, sinon
+  // Aucun titre dans le plan (backlog absent ou vide) : session hors US -> « [XXX · HS] »,
+  // suffixée d'un résumé déduit des infos disponibles (dernier titre CHANGELOG, sinon
   // dernier commit) plutôt qu'un titre nu, non descriptif.
   const deduced = deduceTitle(root);
-  return deduced ? `${libre} · ${truncateTitle(stripLotPrefix(deduced))}` : libre;
+  return deduced ? `${libre} ${truncateTitle(stripLotPrefix(deduced))}` : libre;
 }
 
 // Titre de la session COURANTE (renommage « self »). Renvoie { title, compose } ou null :
@@ -303,7 +301,7 @@ function suggestedTitle(root) {
 //     propre titre (epicmaster --session-title), on ne le concurrence pas ;
 //   - session de CONCEPTION (opts.plan : mode plan / /pmz:scope) : « [XXX · Plan] <epic> » ;
 //   - lot en cours attribuable à cette session (le sien, ou l'unique en cours) : titre du lot ;
-//   - sinon « [XXX] Session Libre » avec compose: true — l'assistant complète d'après la demande.
+//   - sinon « [XXX · HS] » avec compose: true — l'assistant complète d'après la demande.
 function currentSessionTitle(root, sid, opts) {
   try {
     const backlog = require('./backlog');
@@ -317,8 +315,8 @@ function currentSessionTitle(root, sid, opts) {
     }
     const mine = sid ? inProg.filter((l) => l.session_owner === sid) : [];
     const l = mine.length === 1 ? mine[0] : (inProg.length === 1 ? inProg[0] : null);
-    if (l) return { title: titleForLot(trigram, l, 0, backlog.lotRankInEpic(b, l)), compose: false };
-    return { title: `[${trigram}] ${SESSION_LIBRE}`, compose: true };
+    if (l) return { title: titleForLot(trigram, l, 0), compose: false };
+    return { title: `[${trigram} · ${HS_TAG}]`, compose: true };
   } catch (_) { return null; }
 }
 

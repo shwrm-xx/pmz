@@ -1,7 +1,7 @@
 <!-- pmz:handoff:manual -->
 ## Handoff session fraîche
 
-Objectif du lot terminé :
+Objectif de l'US terminée :
 - ...
 
 Fichiers modifiés :
@@ -20,7 +20,7 @@ Dette restante :
 - ...
 
 Prochaine action recommandée :
-- ... (lot suivant + son tag modèle/effort, ex. « #N « titre » [modèle : sonnet · effort medium] »)
+- ... (US suivante + son tag modèle/effort, ex. « #N « titre » [modèle : sonnet · effort medium] »)
 
 Contrainte budget :
 - ne pas relire les fichiers suivants sauf changement (format machine, semé au démarrage) :

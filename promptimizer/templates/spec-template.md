@@ -1,11 +1,11 @@
-# US {{ID}} — {{TITRE}}
+# Spec US#{{ID}} — {{TITRE}}
 
-<!-- Gabarit Promptimizer. Posé par `backlog.js us --id {{ID}} --new`, à remplir à la main :
+<!-- Gabarit Promptimizer. Posé par `backlog.js spec --id {{ID}} --new`, à remplir à la main :
      tout ce qui reste entre <…> est à ta charge.
-     Ce fichier est le CONTRAT du lot : ce qui n'y est pas écrit n'est pas dû. Garde-le sous
-     ~60 lignes — au-delà, ce n'est pas une US mal rédigée, c'est un lot à redécouper. -->
+     Ce fichier est le CONTRAT de l'US : ce qui n'y est pas écrit n'est pas dû. Garde-le sous
+     ~60 lignes — au-delà, ce n'est pas une spec mal rédigée, c'est une US à redécouper. -->
 
-- lot : #{{ID}}
+- US : #{{ID}}
 - epic : {{EPIC}}
 
 ## Récit
@@ -31,7 +31,7 @@ Ce qui a été écarté **et pourquoi** — évite de re-litiger la même fronti
 
 ## Preuve de clôture
 
-Commande(s) qui prouvent les critères ci-dessus ; alimente le `--verify` du lot.
+Commande(s) qui prouvent les critères ci-dessus ; alimente le `--verify` de l'US.
 
 - ...
 

@@ -34,7 +34,7 @@ const UNKNOWN = '—';
 // commence par « # » suivi d'une espace, jamais confondu avec une entrée « #NNNN | ».
 const HEADER = [
   '<!-- pmz:archive:index -->',
-  '# Archive PMZ — index des lots clos',
+  '# Archive PMZ — index des US closes',
   '',
   '<!-- Fichier machine : réécrit trié par id à chaque écriture. Format d\'une entrée :',
   '     #NNNN | AAAA-MM-JJ | <sha> | epic:<epic> | verify:<OK|ÉCHEC|timeout|aucune|inconnu> | fiche:<oui|non> | <titre> -->',
@@ -46,7 +46,7 @@ const HEADER = [
 // le contenu d'un dossier exclu), `!archive/**` son contenu, puis `archive/raw/`
 // ré-ignore le tier 2 (brut volumineux, porteur de chemins machine — perte acceptable).
 const GITIGNORE_BLOCK = [
-  '# Archive des lots clos (tier 0/1) : DURABLE, versionnée. Le brut (tier 2) reste ignoré.',
+  '# Archive des US closes (tier 0/1) : DURABLE, versionnée. Le brut (tier 2) reste ignoré.',
   '!archive/',
   '!archive/**',
   'archive/raw/',
@@ -244,16 +244,16 @@ function ficheSkeleton(meta) {
   const commit = cell(m.commit);
   const verifyCmd = m.verifyCmd ? '`' + String(m.verifyCmd).replace(/`/g, "'") + '`' : 'aucune';
   const verify = VERIFY_VALUES.includes(m.verify) ? m.verify : 'inconnu';
-  // Pointeur US (lot #101) : jamais de valeur inventée — un lot sans US ne produit ni
-  // segment d'en-tête, ni ligne « Liens ».
-  const us = m.us ? String(m.us).trim() : '';
+  // Pointeur de spec (ex-`us`, lot #101) : jamais de valeur inventée — une US sans spec ne
+  // produit ni segment d'en-tête, ni ligne « Liens ». `m.us` accepté en lecture (rétrocompat).
+  const spec = (m.spec || m.us) ? String(m.spec || m.us).trim() : '';
   let metaLine = `- epic : ${cell(m.epic)} · clos : ${date} · commit : ${commit} · session : ${cell(m.session, 'inconnue')}`;
-  if (us) metaLine += ` · us : ${us}`;
+  if (spec) metaLine += ` · spec : ${spec}`;
   const liens = [`- commit ${commit} · entrée CHANGELOG du ${date} · brut : archive/raw/lot-${pad4(id)}.md (local)`];
-  if (us) liens.push(`- US : ${us}`);
+  if (spec) liens.push(`- Spec : ${spec}`);
   return [
     ficheMarker(id),
-    `# Lot #${id} — ${cell(m.title, 'sans titre')}`,
+    `# US#${id} — ${cell(m.title, 'sans titre')}`,
     '',
     metaLine,
     `- verify : ${verifyCmd} → ${verify} · coût : non mesuré`,

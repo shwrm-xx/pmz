@@ -18,7 +18,7 @@ Modèle du handoff :
 <!-- pmz:handoff:manual -->
 ## Handoff session fraîche
 
-Objectif du lot terminé :
+Objectif de l'US terminée :
 - ...
 
 Fichiers modifiés :

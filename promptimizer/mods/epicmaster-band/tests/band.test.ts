@@ -230,6 +230,24 @@ describe('bande epicmaster', () => {
     expect(await text(ui, /^ ✓3 ⟳1 ⧗0$/)).toBeDefined()
     await ui.unmount()
   })
+  test('desktop : session démarrée sans surface (app desktop), la bande suit quand même le fichier', async ($, on) => {
+    const box: FileBox = { text: live() }
+    serve(on, box)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    await arm($)
+    await $.session.start({ cwd: '/projet', surface: null, isInteractive: false })
+    const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+    expect(await text(ui, /^ ✓2 ⟳1 ⧗1$/)).toBeDefined()
+    box.text = live({ updated_at: iso(0) }, {
+      135: { id: 135, title: 'Spec', status: 'done' },
+      136: { id: 136, title: 'Fichier live', status: 'done' },
+      137: { id: 137, title: 'Bande', status: 'done' },
+      138: { id: 138, title: 'Install', status: 'running', started_at: iso(0), updated_at: iso(0) },
+    })
+    await mockClock.advance(2500)
+    expect(await text(ui, /^ ✓3 ⟳1 ⧗0$/)).toBeDefined()
+    await ui.unmount()
+  })
   test('lot #142 : fichier du vrai writer — vague, à trancher, verify rouge, tokens', async ($, on) => {
     serve(on, { text: REAL_WRITER })
     await arm($)
@@ -250,6 +268,37 @@ describe('bande epicmaster', () => {
       expect(await ui.find(ENGINE)).toBeDefined()
       await ui.unmount()
     }
+  })
+
+  test('/epicband : force la bande sans /epicmaster, plan semé avant compris ; /epicband off la retire', async ($, on) => {
+    serve(on, { text: live({ seeded_at: iso(30) }) })
+    const out = await $.command.run({ command: 'epicband' })
+    expect(out.text).toMatch(/Bande epicmaster affichée · Bande epicmaster/)
+    let ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+    expect(await ui.find({ key: 'em-line' })).toBeDefined()
+    await ui.unmount()
+    const off = await $.command.run({ command: 'epicband', args: 'off' })
+    expect(off.text).toMatch(/masquée/)
+    ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+    expect(await ui.find({ key: 'em-line' })).toBeUndefined()
+    expect(await ui.find(ENGINE)).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('/epicband : sans fichier local, prend la copie de projet la plus récente ; rien -> message, attente', async ($, on) => {
+    const box: FileBox = { text: null, global: {} }
+    serve(on, box)
+    const none = await $.command.run({ command: 'epicband' })
+    expect(none.text).toMatch(/Aucun plan epicmaster actif/)
+    let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /aucun plan actif, en attente/)).toBeDefined()
+    await ui.unmount()
+    box.global!['vieux-aaaa.json'] = live({ epic: 'Ancien', seeded_at: iso(90) })
+    box.global!['recent-bbbb.json'] = live({ epic: 'Récent', seeded_at: iso(40) })
+    await $.command.run({ command: 'epicband' })
+    ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /◆ Récent/)).toBeDefined()
+    await ui.unmount()
   })
 
   test('plan local semé AVANT le /epicmaster de la session -> ignoré', async ($, on) => {

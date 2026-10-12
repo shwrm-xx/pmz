@@ -60,7 +60,7 @@ function planReintegration(fleet, b) {
   const candidates = ready.filter((l) => {
     const dep = dependsOfLot(byId, l.id).find((d) => inFlightIds.has(d));
     if (dep != null) {
-      blocked.push({ id: l.id, title: l.title, reason: `dépend du lot #${dep} encore en vol` });
+      blocked.push({ id: l.id, title: l.title, reason: `dépend de l'US#${dep} encore en vol` });
       return false;
     }
     return true;
@@ -135,7 +135,7 @@ function aggregateChangelog(merged, opts) {
   const date = o.date || '';
   const wave = o.waveId ? ` « ${o.waveId} »` : '';
   const lines = [];
-  lines.push(`## ${date} — Réintégration de vague${wave} (${done.length} lot${done.length > 1 ? 's' : ''})`);
+  lines.push(`## ${date} — Réintégration de vague${wave} (${done.length} US)`);
   if (o.integrationBranch) lines.push('');
   if (o.integrationBranch) lines.push(`Branche d'intégration : \`${o.integrationBranch}\`.`);
   lines.push('');
@@ -145,7 +145,7 @@ function aggregateChangelog(merged, opts) {
     // Ne JAMAIS revendiquer « gate vert » pour un lot mergé sans gate (lot #97) : avec
     // --allow-no-gate le merge est délibérément non vérifié, le changelog doit le dire.
     const gate = m.gate ? 'gate verify vert' : 'SANS gate (--allow-no-gate)';
-    lines.push(`- Lot #${m.id}${title} réintégré (${gate})${head}.`);
+    lines.push(`- US#${m.id}${title} réintégrée (${gate})${head}.`);
   }
   return lines.join('\n');
 }
@@ -217,7 +217,7 @@ function runPipeline(root, opts) {
     // Vigie « lot prêt à merger » : ce lot fille est prêt, on l'intègre maintenant (D3 §Signal).
     notify.notifyLotReady({ id: step.id, title: step.title }, notifyOpts);
     const before = headSha(root, git);
-    const msg = `pmz: réintègre lot #${step.id}${step.title ? ` — ${step.title}` : ''}`;
+    const msg = `pmz: réintègre US#${step.id}${step.title ? ` — ${step.title}` : ''}`;
     const mg = git(['merge', '--no-ff', step.branch, '-m', msg]);
     if (mg.code !== 0) {
       git(['merge', '--abort']);
@@ -328,7 +328,7 @@ function reintegrateReport(res, opts) {
   L.push(`- Branche d'intégration : \`${r.integrationBranch || '?'}\``);
   L.push(`- Résultat : ${r.ok ? 'OK' : 'ÉCHEC'}${r.reason ? ` (${r.reason})` : ''}`);
   L.push(`- Vague close : ${r.waveClosed ? 'oui' : 'non'}`);
-  if (r.culprit) L.push(`- Coupable nommé : lot #${r.culprit.id}${r.culprit.title ? ` « ${r.culprit.title} »` : ''}`);
+  if (r.culprit) L.push(`- Coupable nommé : US#${r.culprit.id}${r.culprit.title ? ` « ${r.culprit.title} »` : ''}`);
   L.push('');
 
   L.push('## Plan exécuté');
@@ -338,13 +338,13 @@ function reintegrateReport(res, opts) {
       L.push(`- #${s.id} « ${s.title || '?'} »${dep} — branche \`${s.branch || '?'}\` — gate : ${s.verify || '(aucune)'}`);
     }
   } else {
-    L.push('- (aucun lot mergeable)');
+    L.push('- (aucune US mergeable)');
   }
   if (plan.notReady && plan.notReady.length) L.push(`- Encore en vol : ${plan.notReady.map((x) => '#' + x.id).join(', ')}`);
   if (plan.blocked && plan.blocked.length) for (const x of plan.blocked) L.push(`- Bloqué : #${x.id} — ${x.reason}`);
   L.push('');
 
-  L.push('## Statut par lot');
+  L.push('## Statut par US');
   for (const m of merged) {
     L.push(`- #${m.id}${m.title ? ` « ${m.title} »` : ''} — **${m.status}**${m.head ? ` (${String(m.head).slice(0, 7)})` : ''}${m.gate ? ` — gate : \`${m.gate}\`` : ''}${m.reason ? ` — ${m.reason}` : ''}`);
   }

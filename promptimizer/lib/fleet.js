@@ -287,7 +287,7 @@ function fleetLines(root, sessionId) {
     const mine = lotForSession(f, sessionId);
     if (!mine) return [];
     const lines = [];
-    lines.push(`Vague parallèle active : ${f.lots.length} lot(s) en vol${f.wave_id ? ` (${f.wave_id})` : ''}. Tu tiens le lot #${mine.id}${mine.title ? ` « ${mine.title} »` : ''} (état : ${mine.state}).`);
+    lines.push(`Vague parallèle active : ${f.lots.length} US en vol${f.wave_id ? ` (${f.wave_id})` : ''}. Tu tiens l'US#${mine.id}${mine.title ? ` « ${mine.title} »` : ''} (état : ${mine.state}).`);
     if (mine.perimeter.length) {
       lines.push(`Périmètre EXCLUSIF — ne modifie QUE : ${mine.perimeter.join(', ')}.`);
       // Le garde-fou d'écriture (hook PreToolUse) n'attribue le périmètre qu'à TA session :
@@ -300,7 +300,7 @@ function fleetLines(root, sessionId) {
       lines.push(`Tête d'intégration : ${f.integration_branch || '?'}${f.integration_head ? `@${f.integration_head}` : ''} — rebase dessus si elle avance.`);
     }
     const peers = f.lots.length - 1;
-    if (peers > 0) lines.push(`${peers} lot(s) sœur(s) en parallèle : reste dans ton périmètre, ne clôture pas la vague seul.`);
+    if (peers > 0) lines.push(`${peers} US sœur(s) en parallèle : reste dans ton périmètre, ne clôture pas la vague seul.`);
     return lines;
   } catch (_) {
     return [];
@@ -333,7 +333,7 @@ function waveHandoffLines(root) {
     const f = loadFleet(root);
     if (!f.active) return [];
     const ready = f.lots.filter((l) => l.state === 'ready').length;
-    const line = `Vague parallèle en vol${f.wave_id ? ` (${f.wave_id})` : ''} : ${f.lots.length} lot(s)` +
+    const line = `Vague parallèle en vol${f.wave_id ? ` (${f.wave_id})` : ''} : ${f.lots.length} US` +
       `${ready ? `, ${ready} prêt(s) à réintégrer` : ''}. Plan complet : relancer /pmz:parallelize (recalculé depuis le backlog, jamais stocké).`;
     return [line];
   } catch (_) {

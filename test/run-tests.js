@@ -544,10 +544,10 @@ const trigram = require(path.join(PKG, 'lib', 'trigram'));
   ok(lot.getLotCounter(repo) === 3, 'seed depuis CHANGELOG : plus grand (lot N) trouvé = 3');
   // Pas de backlog ici (aucun plan nommé) + rien de déductible (pas de commit, « (lot N) »
   // écarté) -> titre « Session Libre » nu, jamais lié au compteur lot-counter.
-  ok(lot.suggestedTitle(repo) === `[${trg}] Session Libre`, 'sans plan ni déduction : titre = Session Libre');
+  ok(lot.suggestedTitle(repo) === `[${trg} · HS]`, 'sans plan ni déduction : titre = Session Libre');
   ok(lot.incrementLot(repo) === 4, 'incrementLot : 3 → 4');
   ok(lot.getLotCounter(repo) === 4, 'compteur persisté = 4');
-  ok(lot.suggestedTitle(repo) === `[${trg}] Session Libre`, 'titre reste Session Libre, indépendant du compteur');
+  ok(lot.suggestedTitle(repo) === `[${trg} · HS]`, 'titre reste Session Libre, indépendant du compteur');
   fs.writeFileSync(path.join(repo, '.vibe-agent', 'epic'), 'MonEpic\n');
   ok(lot.readEpic(repo) === 'MonEpic', 'epic configurable via .vibe-agent/epic (label de groupement global)');
 }
@@ -599,7 +599,7 @@ section('Trigramme de projet (lot #35)');
   ok(/Refusé/.test(rOrphan.out) && /orphelin/.test(rOrphan.out),
     'CLI add non quoté : rejet explicite (troncature signalée, pas silencieuse)');
   const rShowAfter = runNode(BKLG0, ['show', '--cwd', repoCli]);
-  ok(/Aucun plan de lots/.test(rShowAfter.out), 'CLI add rejeté : aucune mutation du backlog');
+  ok(/Aucun plan d'US/.test(rShowAfter.out), 'CLI add rejeté : aucune mutation du backlog');
 }
 
 section('Garde anti-troncature de champ (#90) : plafonds MAX_* bruyants + --allow-trunc');
@@ -632,12 +632,12 @@ section('Garde anti-troncature de champ (#90) : plafonds MAX_* bruyants + --allo
     'CLI add scope > plafond : refus avec longueur reçue vs plafond');
   ok(/résumé court/.test(rAdd.out) && /fichier du dépôt/.test(rAdd.out) && /--allow-trunc/.test(rAdd.out),
     'CLI add refusé : suggère résumé court + spec dans un fichier du dépôt, et mentionne --allow-trunc');
-  ok(/Aucun plan de lots/.test(runNode(BKLG90, ['show', '--cwd', repo]).out),
+  ok(/Aucun plan d'US/.test(runNode(BKLG90, ['show', '--cwd', repo]).out),
     'CLI add refusé : aucune mutation du backlog');
 
   // add --allow-trunc : accepté, coupe ANNONCÉE ; stocké = pile 400 signes finissant par « … ».
   const rAllow = runNode(BKLG90, ['add', '--cwd', repo, '--model', 'sonnet', '--title', 'Lot spec longue', '--scope', longScope, '--allow-trunc']);
-  ok(/Troncature acceptée \(--allow-trunc\)/.test(rAllow.out) && /Lot #1 .* ajouté/.test(rAllow.out),
+  ok(/Troncature acceptée \(--allow-trunc\)/.test(rAllow.out) && /US#1 .* ajoutée/.test(rAllow.out),
     'CLI add --allow-trunc : lot créé, troncature annoncée');
   const stored = JSON.parse(runNode(BKLG90, ['show', '--cwd', repo, '--json']).out);
   ok(stored.lots[0].scope.length === 400 && stored.lots[0].scope.endsWith('…'),
@@ -675,23 +675,23 @@ section('suggestedTitle : suffixe « (partie N) » quand un lot dépasse une ses
   backlogLib0.startLot(repo, l.id);
 
   // 1er appel (1re session sur ce lot) : pas de suffixe. Lot sans epic -> « Session Libre ».
-  ok(lot.suggestedTitle(repo) === `[${trg} · #${l.id}] Session Libre · Lot qui traîne`,
+  ok(lot.suggestedTitle(repo) === `[${trg} · US#${l.id}] Lot qui traîne`,
     '1er touch : pas de « (partie N) » (cas normal, silence sur la 1re session)');
   // 2e appel (le lot est toujours in_progress -> 2e session dessus) : « (partie 2) ».
-  ok(lot.suggestedTitle(repo) === `[${trg} · #${l.id}] Session Libre · Lot qui traîne (partie 2)`,
+  ok(lot.suggestedTitle(repo) === `[${trg} · US#${l.id}] Lot qui traîne (partie 2)`,
     '2e touch sur un lot toujours ouvert : suffixe « (partie 2) »');
-  ok(lot.suggestedTitle(repo) === `[${trg} · #${l.id}] Session Libre · Lot qui traîne (partie 3)`,
+  ok(lot.suggestedTitle(repo) === `[${trg} · US#${l.id}] Lot qui traîne (partie 3)`,
     '3e touch : « (partie 3) »');
 
   // Clôture : le récap du dernier lot clos ne porte plus de suffixe (le travail est fini).
   backlogLib0.doneLot(repo, l.id);
-  ok(lot.suggestedTitle(repo) === `[${trg} · #${l.id}] Session Libre · Lot qui traîne`,
+  ok(lot.suggestedTitle(repo) === `[${trg} · US#${l.id}] Lot qui traîne`,
     'lot clos : pas de « (partie N) » sur le récap final, peu importe combien de sessions ça a pris');
 
   // Un nouveau lot démarré repart de « partie 1 » (compteur remis à 0 par startLot).
   const l2 = backlogLib0.addLot(repo, 'Lot suivant', null, 'sonnet');
   backlogLib0.startLot(repo, l2.id);
-  ok(lot.suggestedTitle(repo) === `[${trg} · #${l2.id}] Session Libre · Lot suivant`,
+  ok(lot.suggestedTitle(repo) === `[${trg} · US#${l2.id}] Lot suivant`,
     'nouveau lot démarré : compteur de sessions repart à zéro, pas de suffixe hérité');
 }
 {
@@ -985,7 +985,7 @@ section('Archive tier 0 — index.md versionné, filet doneLot, backfill (lot #9
 
   // --- CLI scripts/archive.js : toujours exit 0.
   const cliDry = runNode(ARCHIVE_CLI, ['backfill', '--dry-run', '--cwd', bf]);
-  ok(cliDry.code === 0 && /Backfill tier 0 — 4 lot\(s\) clos · 0 ligne\(s\) à ajouter · 4 déjà indexé\(s\)\./.test(cliDry.out),
+  ok(cliDry.code === 0 && /Backfill tier 0 — 4 US closes · 0 ligne\(s\) à ajouter · 4 déjà indexé\(s\)\./.test(cliDry.out),
     'CLI backfill --dry-run : compte-rendu exact, exit 0');
   ok(runNode(ARCHIVE_CLI, ['fantaisie', '--cwd', bf]).code === 0, 'CLI : commande inconnue → exit 0 (fail-open)');
   ok(runNode(ARCHIVE_CLI, ['backfill', '--cwd', SANDBOX]).code === 0, 'CLI : hors dépôt git → exit 0');
@@ -1033,7 +1033,7 @@ section('Archive tier 1/2 — fiches, CLI à tiroirs, commande, pare-feu canari 
   // --- Squelette tier 1 : marqueur, en-tête, sections vides, résultat verify porté.
   const repo = mkRepo95('repo-archive95');
   const sk = archive.ficheSkeleton({ id: 12, title: 'Titre du lot', epic: 'Archive à tiroirs', date: '2026-07-27', commit: 'abc1234', verifyCmd: 'node test/run-tests.js', verify: 'OK' });
-  ok(sk.startsWith('<!-- pmz:archive:lot 12 -->\n# Lot #12 — Titre du lot'), 'ficheSkeleton : marqueur machine en 1re ligne puis titre');
+  ok(sk.startsWith('<!-- pmz:archive:lot 12 -->\n# US#12 — Titre du lot'), 'ficheSkeleton : marqueur machine en 1re ligne puis titre');
   ok(/- epic : Archive à tiroirs · clos : 2026-07-27 · commit : abc1234 · session : inconnue/.test(sk), 'ficheSkeleton : ligne méta complète (session inconnue par défaut)');
   ok(/- verify : `node test\/run-tests\.js` → OK/.test(sk), 'ficheSkeleton : résultat verify porté (seul endroit où il existe)');
   ok(['## Objectif', '## Décisions (et pourquoi)', '## Vérifié', '## Non vérifié', '## Dette restante', '## Périmètre', '## Liens'].every((h) => sk.includes(h)),
@@ -1042,13 +1042,13 @@ section('Archive tier 1/2 — fiches, CLI à tiroirs, commande, pare-feu canari 
   ok(archive.ficheSkeleton({ id: 3 }).includes('verify : aucune → inconnu'), 'ficheSkeleton : lot sans verify → « aucune → inconnu », jamais de valeur inventée');
 
   // --- Pointeur US (lot #101) : porté en-tête + section Liens quand présent, jamais inventé.
-  const skUs = archive.ficheSkeleton({ id: 13, title: 'Titre', epic: 'Formalisation US', date: '2026-07-28', commit: 'def5678', us: 'docs/us/us-42.md' });
-  ok(/- epic : Formalisation US · clos : 2026-07-28 · commit : def5678 · session : inconnue · us : docs\/us\/us-42\.md/.test(skUs),
-    'ficheSkeleton : en-tête porte us quand présent');
-  ok(/- US : docs\/us\/us-42\.md/.test(skUs), 'ficheSkeleton : section Liens porte la ligne US');
+  const skUs = archive.ficheSkeleton({ id: 13, title: 'Titre', epic: 'Formalisation US', date: '2026-07-28', commit: 'def5678', spec: 'docs/specs/SPEC-42.md' });
+  ok(/- epic : Formalisation US · clos : 2026-07-28 · commit : def5678 · session : inconnue · spec : docs\/specs\/SPEC-42\.md/.test(skUs),
+    'ficheSkeleton : en-tête porte spec quand présente');
+  ok(/- Spec : docs\/specs\/SPEC-42\.md/.test(skUs), 'ficheSkeleton : section Liens porte la ligne Spec');
   const skNoUs = archive.ficheSkeleton({ id: 14, title: 'Titre', date: '2026-07-28', commit: 'def5678' });
-  ok(!/us :/.test(skNoUs) && !/- US :/.test(skNoUs),
-    'ficheSkeleton : lot sans us → AUCUNE ligne (pas de null, pas de valeur inventée)');
+  ok(!/spec :/.test(skNoUs) && !/- Spec :/.test(skNoUs),
+    'ficheSkeleton : US sans spec → AUCUNE ligne (pas de null, pas de valeur inventée)');
 
   // --- Écriture de la fiche : versionnée, stagée, index enrichi en fiche:oui.
   const l1 = backlog.addLot(repo, 'Lot avec fiche', 'fait quand : …', null, 'Archive à tiroirs');
@@ -1097,19 +1097,19 @@ section('Archive tier 1/2 — fiches, CLI à tiroirs, commande, pare-feu canari 
   const cShow = runNode(ARCHIVE_CLI, ['show', '--id', String(l1.id), '--cwd', repo]);
   ok(cShow.code === 0 && /version 3/.test(cShow.out) && !/RETOUR INTÉGRAL/.test(cShow.out), 'CLI show : la fiche seule, jamais le brut');
   const cShowAbsent = runNode(ARCHIVE_CLI, ['show', '--id', '999', '--cwd', repo]);
-  ok(/absent de l'index/.test(cShowAbsent.out) && /Fiche jamais écrite/.test(cShowAbsent.out), 'CLI show : fiche absente → ligne d\'index + mention explicite');
+  ok(/absente de l'index/.test(cShowAbsent.out) && /Fiche jamais écrite/.test(cShowAbsent.out), 'CLI show : fiche absente → ligne d\'index + mention explicite');
   const cRaw = runNode(ARCHIVE_CLI, ['raw', '--id', String(l1.id), '--cwd', repo]);
   ok(cRaw.code === 0 && /octets\. Relance avec --confirm/.test(cRaw.out) && !/RETOUR INTÉGRAL/.test(cRaw.out), 'CLI raw sans --confirm : chemin + taille SEULEMENT (garde-fou tier 2)');
   ok(/RETOUR INTÉGRAL/.test(runNode(ARCHIVE_CLI, ['raw', '--id', String(l1.id), '--confirm', '--cwd', repo]).out), 'CLI raw --confirm : brut affiché');
   ok(/Aucun brut/.test(runNode(ARCHIVE_CLI, ['raw', '--id', '888', '--confirm', '--cwd', repo]).out), 'CLI raw : brut absent → message doux');
   const cW = cliStdin(repo, ['write', '--id', '50'], fiche(50, 'écrit par stdin'));
-  ok(cW.code === 0 && /Fiche du lot #50 écrite/.test(cW.out) && /écrit par stdin/.test(archive.readFiche(repo, 50) || ''), 'CLI write --stdin : fiche écrite depuis le pipe');
+  ok(cW.code === 0 && /Fiche de l'US#50 écrite/.test(cW.out) && /écrit par stdin/.test(archive.readFiche(repo, 50) || ''), 'CLI write --stdin : fiche écrite depuis le pipe');
   ok(/déjà écrite \(immuable\)/.test(cliStdin(repo, ['write', '--id', '50'], fiche(50, 'bis')).out), 'CLI write : refus explicite sur fiche existante (pointe --force)');
   ok(/écrite/.test(cliStdin(repo, ['write', '--id', '50', '--force'], fiche(50, 'ter')).out), 'CLI write --force : remplacement');
   const srcFile = path.join(SANDBOX, 'fiche-51.md');
   fs.writeFileSync(srcFile, fiche(51, 'depuis un fichier'));
-  ok(/Fiche du lot #51 écrite/.test(runNode(ARCHIVE_CLI, ['write', '--id', '51', '--file', srcFile, '--cwd', repo]).out), 'CLI write --file : fiche écrite depuis un chemin');
-  ok(/Brut du lot #52 écrit/.test(cliStdin(repo, ['raw', '--id', '52'], 'collage brut').out), 'CLI raw --stdin : écriture du tier 2');
+  ok(/Fiche de l'US#51 écrite/.test(runNode(ARCHIVE_CLI, ['write', '--id', '51', '--file', srcFile, '--cwd', repo]).out), 'CLI write --file : fiche écrite depuis un chemin');
+  ok(/Brut de l'US#52 écrit/.test(cliStdin(repo, ['raw', '--id', '52'], 'collage brut').out), 'CLI raw --stdin : écriture du tier 2');
   ok(cliStdin(repo, ['write', '--id', '53'], '   ').code === 0 && !fs.existsSync(archive.ficheFile(repo, 53)), 'CLI write : stdin vide → exit 0, rien écrit');
   ok(runNode(ARCHIVE_CLI, ['write', '--cwd', repo]).code === 0 && runNode(ARCHIVE_CLI, ['show', '--cwd', repo]).code === 0, 'CLI : --id manquant → usage, exit 0');
   fs.writeFileSync(archive.indexFile(repo), 'index totalement corrompu\nsans aucune entrée\n');
@@ -1117,7 +1117,7 @@ section('Archive tier 1/2 — fiches, CLI à tiroirs, commande, pare-feu canari 
 
   // --- Commande /pmz:archive : contrat de frontmatter et consigne « un tiroir à la fois ».
   const cmdMd = fs.readFileSync(path.join(PKG, 'commands', 'archive.md'), 'utf8');
-  ok(/^description: Consulte l'archive des lots clos/m.test(cmdMd) && /^allowed-tools: Bash\(node \*\)$/m.test(cmdMd), 'commands/archive.md : frontmatter conforme');
+  ok(/^description: Consulte l'archive des US closes/m.test(cmdMd) && /^allowed-tools: Bash\(node \*\)$/m.test(cmdMd), 'commands/archive.md : frontmatter conforme');
   ok(/N'ouvre AUCUNE fiche sans demande explicite/.test(cmdMd), 'commands/archive.md : consigne explicite contre l\'ouverture spontanée d\'une fiche');
   ok(/question à choix/.test(cmdMd) && /--confirm/.test(cmdMd), 'commands/archive.md : question à choix imposée avant tout --confirm (tier 2)');
   ok(/~\/\.claude\/promptimizer\/scripts\/archive\.js/.test(cmdMd), 'commands/archive.md : chemin exact réécrit en ${CLAUDE_PLUGIN_ROOT} par build-plugin');
@@ -1140,14 +1140,14 @@ section('Archive tier 1/2 — fiches, CLI à tiroirs, commande, pare-feu canari 
   ok(/verify : `node -e "process\.exit\(0\)"` → OK/.test(cbOut), 'close-batch : résultat verify RÉEL injecté dans le squelette');
   ok(/archive\.js raw --id \d+ --file \.vibe-agent\/handoff\.md/.test(cbOut), 'close-batch : archivage du handoff manuel AVANT sa destruction');
 
-  // --- /close-batch : le squelette de fiche porte us du lot en cours (lot #103), jamais inventé.
-  fs.mkdirSync(path.join(cb, 'docs', 'us'), { recursive: true });
-  fs.writeFileSync(path.join(cb, 'docs', 'us', 'us-99.md'), '# US 99\n');
+  // --- /close-batch : le squelette de fiche porte la spec de l'US en cours (lot #103), jamais inventé.
+  fs.mkdirSync(path.join(cb, 'docs', 'specs'), { recursive: true });
+  fs.writeFileSync(path.join(cb, 'docs', 'specs', 'SPEC-99.md'), '# US 99\n');
   const lcbU = backlog.addLot(cb, 'Lot US', 'fait quand : …', 'opus', 'Formalisation US', null, null,
-    null, null, 'docs/us/us-99.md');
+    null, null, 'docs/specs/SPEC-99.md');
   backlog.startLot(cb, lcbU.id);
   const cbOutU = runNode(path.join(PKG, 'scripts', 'close-batch.js'), ['--cwd', cb]).out;
-  ok(/- US : docs\/us\/us-99\.md/.test(cbOutU), 'close-batch : squelette de fiche porte us du lot en cours');
+  ok(/- Spec : docs\/specs\/SPEC-99\.md/.test(cbOutU), 'close-batch : squelette de fiche porte la spec de l\'US en cours');
   backlog.dropLot(cb, lcbU.id);
   const cbMd = fs.readFileSync(path.join(PKG, 'commands', 'close-batch.md'), 'utf8');
   ok(/^6bis\./m.test(cbMd) && /^6ter\./m.test(cbMd), 'close-batch.md : étapes 6bis (fiche) et 6ter (handoff archivé) posées avant le 7');
@@ -1581,7 +1581,7 @@ const BKLG = path.join(PKG, 'scripts', 'backlog.js');
   const p = backlogLib.progress(backlogLib.loadBacklog(repo));
   ok(p.done === 1 && p.total === 3, 'backlog progress : 1/3');
   const sum = backlogLib.summaryLines(repo);
-  ok(sum.length >= 2 && /1\/3 faits/.test(sum[0]) && /#1/.test(sum[0]), 'summaryLines : x/y + lot en cours');
+  ok(sum.length >= 2 && /1\/3 faites/.test(sum[0]) && /#1/.test(sum[0]), 'summaryLines : x/y + lot en cours');
   ok(/Suivants/.test(sum[1]) && /#3/.test(sum[1]), 'summaryLines : lots suivants listés');
 
   // N6. drop : exclu du total
@@ -1605,7 +1605,7 @@ const BKLG = path.join(PKG, 'scripts', 'backlog.js');
   // N9. fichier corrompu → backlog vide valide, jamais de crash
   fs.writeFileSync(path.join(repo, '.vibe-agent', 'backlog.json'), '{pas du json');
   const rShow = runNode(BKLG, ['show', '--cwd', repo]);
-  ok(rShow.code === 0 && /Aucun plan de lots/.test(rShow.out), 'backlog corrompu : show → vide, exit 0');
+  ok(rShow.code === 0 && /Aucun plan d'US/.test(rShow.out), 'backlog corrompu : show → vide, exit 0');
 
   // N10. reconcile : deux in_progress forgés + done sans commit
   fs.writeFileSync(path.join(repo, '.vibe-agent', 'backlog.json'), JSON.stringify({
@@ -1820,14 +1820,14 @@ section('backlog — champ epic optionnel du lot (lot #28)');
   try { fs.rmSync(path.join(repo, '.vibe-agent', 'session-state.json'), { force: true }); } catch (_) {}
   const planLot = backlogLib.addLot(repo, 'Lot E1 — Namespace plugin pmz', null, 'opus', 'Diffusion pmz — marketplace GitHub publique');
   backlogLib.startLot(repo, planLot.id);
-  ok(lot.suggestedTitle(repo) === `[${trgN} · #${planLot.id}] Diffusion pmz · Lot #1 · Namespace plugin pmz`,
+  ok(lot.suggestedTitle(repo) === `[${trgN} · US#${planLot.id}] Diffusion pmz · Namespace plugin pmz`,
     'suggestedTitle : [XXX · #Y] <epic 3 mots> · Lot #X · <focus sans préfixe métier>');
 
   // P8. epic borné à 3 mots quel que soit sa longueur (nom de plan « clair et constant »).
   backlogLib.doneLot(repo, planLot.id);
   const wide = backlogLib.addLot(repo, 'Focus large', null, 'sonnet', 'Un deux trois quatre cinq');
   backlogLib.startLot(repo, wide.id);
-  ok(lot.suggestedTitle(repo) === `[${trgN} · #${wide.id}] Un deux trois · Lot #1 · Focus large`,
+  ok(lot.suggestedTitle(repo) === `[${trgN} · US#${wide.id}] Un deux trois · Focus large`,
     'suggestedTitle : nom de plan tronqué à 3 mots');
 
   // P9. about.js : affiche l'epic du lot en cours (ici `wide`) plutôt que le label global
@@ -2015,7 +2015,7 @@ section('backlog — verify + closed_occupancy (lot #29)');
 
   // V14. backlog.js export --format csv|md : en-tête + lignes, refus doux hors énum
   const rExportCsv = runNode(BKLG, ['export', '--cwd', repo, '--format', 'csv']);
-  ok(/^id,title,status,epic,us,model_hint,effort_hint,verify,closed_verify,cost_tokens,closed_commit,closed_at,closed_session_id,closed_occupancy/.test(rExportCsv.out),
+  ok(/^id,title,status,epic,spec,model_hint,effort_hint,verify,closed_verify,cost_tokens,closed_commit,closed_at,closed_session_id,closed_occupancy/.test(rExportCsv.out),
     'export --format csv : en-tête de colonnes');
   ok(rExportCsv.out.split('\n').length >= backlogLib.loadBacklog(repo).lots.length + 1,
     'export --format csv : une ligne par lot (+ en-tête)');
@@ -2160,7 +2160,7 @@ section('Backlog — auto-clôture au Stop, handoff enrichi, titre de session');
   const trgBf = trigram.deriveTrigram(repo);
 
   // P1. titre de session = focus du lot en cours (1er touch : pas de « (partie N) »)
-  ok(lot.suggestedTitle(repo) === `[${trgBf} · #1] Session Libre · Premier périmètre`, 'suggestedTitle : titre = focus du lot en cours (sans epic -> Session Libre)');
+  ok(lot.suggestedTitle(repo) === `[${trgBf} · US#1] Premier périmètre`, 'suggestedTitle : titre = focus du lot en cours (sans epic -> Session Libre)');
 
   // P2. lot ouvert → rappel de clôture (comportement existant intact)
   fs.writeFileSync(path.join(repo, 'w.txt'), 'x');
@@ -2175,7 +2175,7 @@ section('Backlog — auto-clôture au Stop, handoff enrichi, titre de session');
     ] } });
   runHook('stop.js', { session_id: sid, cwd: repo, transcript_path: empty });
   const hf = fs.readFileSync(path.join(repo, '.vibe-agent', 'handoff.md'), 'utf8');
-  ok(/Plan de lots : 0\/3 faits/.test(hf) && /#1/.test(hf), 'handoff : bloc plan de lots');
+  ok(/Plan des US : 0\/3 faites/.test(hf) && /#1/.test(hf), 'handoff : bloc plan de lots');
   ok(/Tâches en cours \(TodoWrite/.test(hf) && /étape en cours/.test(hf), 'handoff : bloc todos (in_progress d\'abord)');
 
   // P4. commit → auto-clôture du cas univoque + message n/y, sans promotion auto
@@ -2184,20 +2184,20 @@ section('Backlog — auto-clôture au Stop, handoff enrichi, titre de session');
   const r2 = runHook('stop.js', { session_id: sid, cwd: repo, transcript_path: empty });
   let msg = '';
   try { msg = JSON.parse(r2.out).systemMessage || ''; } catch (_) {}
-  ok(/Carte de clôture — lot « Premier périmètre » clos \(1\/3\)/.test(msg), 'auto-clôture : message « clos (n/y) »');
+  ok(/Carte de clôture — US « Premier périmètre » close \(1\/3\)/.test(msg), 'auto-clôture : message « clos (n/y) »');
   ok(/Suivant : « Deuxième périmètre »/.test(msg), 'auto-clôture : lot suivant annoncé');
   const b1 = backlogLib.loadBacklog(repo);
   const done1 = b1.lots.find((l) => l.id === 1);
   ok(done1.status === 'done' && !!done1.closed_commit && Number.isFinite(done1.lot_number),
     'auto-clôture : done + commit + lot_number posés');
   ok(backlogLib.currentLot(b1) === null, 'auto-clôture : pas de promotion automatique du suivant');
-  ok(lot.suggestedTitle(repo) === `[${trgBf} · #1] Session Libre · Premier périmètre`,
+  ok(lot.suggestedTitle(repo) === `[${trgBf} · US#1] Premier périmètre`,
     'suggestedTitle après clôture : titre = dernier lot CLOS (pas « Deuxième périmètre », le suivant à faire)');
 
   // P5. handoff après clôture : avancement à jour
   runHook('stop.js', { session_id: sid, cwd: repo, transcript_path: empty });
   const hf2 = fs.readFileSync(path.join(repo, '.vibe-agent', 'handoff.md'), 'utf8');
-  ok(/1\/3 faits/.test(hf2) && /Suivants : #2/.test(hf2), 'handoff : avancement mis à jour après clôture');
+  ok(/1\/3 faites/.test(hf2) && /Suivants : #2/.test(hf2), 'handoff : avancement mis à jour après clôture');
 
   // P6. cas ambigu (deux in_progress forgés) → aucune clôture auto, backlog intact
   const forged = backlogLib.loadBacklog(repo);
@@ -2240,13 +2240,13 @@ section('suggestedTitle : le numéro affiché suit l\'ID backlog même si lot-co
   lot.incrementLot(repo);
   ok(lot.getLotCounter(repo) === 4, 'précondition : lot-counter a dérivé à 4 (≠ ID backlog 1)');
   const trgDrift = trigram.deriveTrigram(repo);
-  ok(lot.suggestedTitle(repo) === `[${trgDrift} · #1] Session Libre · Huitième périmètre`,
+  ok(lot.suggestedTitle(repo) === `[${trgDrift} · US#1] Huitième périmètre`,
     'lot en cours : titre = focus du lot backlog, jamais lié au compteur lot-counter dérivé');
 
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Neuvième périmètre', '--model', 'sonnet']);
   runNode(BKLG, ['done', '--cwd', repo, '--id', '1']);
   runNode(BKLG, ['start', '--cwd', repo, '--id', '2']);
-  ok(lot.suggestedTitle(repo) === `[${trgDrift} · #2] Session Libre · Neuvième périmètre`,
+  ok(lot.suggestedTitle(repo) === `[${trgDrift} · US#2] Neuvième périmètre`,
     'lot suivant démarré : titre passe au focus du nouveau lot, indépendamment du compteur');
 }
 
@@ -2277,14 +2277,14 @@ section('suggestedTitle : lot_number null/recyclé ne fige plus la sélection su
   });
   backlogLib.saveBacklog(repo, b);
   const trgLdn = trigram.deriveTrigram(repo);
-  ok(lot.suggestedTitle(repo) === `[${trgLdn} · #4] Session Libre · Conformite Liquid Glass`,
+  ok(lot.suggestedTitle(repo) === `[${trgLdn} · US#4] Conformite Liquid Glass`,
     'lastDoneLot : dernier clos = closed_at le plus récent (id 4), PAS le plus grand lot_number (id 1)');
 
   // Clôtures legacy sans closed_at exploitable : l'id monotone tranche, jamais lot_number.
   const b2 = backlogLib.loadBacklog(repo);
   b2.lots.forEach((l) => { l.closed_at = null; });
   backlogLib.saveBacklog(repo, b2);
-  ok(lot.suggestedTitle(repo) === `[${trgLdn} · #4] Session Libre · Conformite Liquid Glass`,
+  ok(lot.suggestedTitle(repo) === `[${trgLdn} · US#4] Conformite Liquid Glass`,
     'lastDoneLot : sans closed_at, le plus grand id tranche (pas le lot_number recyclé)');
 }
 
@@ -2331,9 +2331,9 @@ section('suggestedTitle : chaque session est titrée par LE lot qu\'elle a clos 
   const t3 = lot.suggestedTitle(repo);
   // #1 a le closed_at MAX (23:59) et l'id le plus PETIT : l'attribution le sélectionne pour
   // sess-1 sans dépendre ni du closed_at max, ni du repli id-desc (qui donnerait #3).
-  ok(t1 === `[${trg} · #1] Session Libre · Lot un`, 'sess-1 → lot #1 (attribution, indépendante de closed_at/id)');
-  ok(t2 === `[${trg} · #2] Session Libre · Lot deux`, 'sess-2 → titre du lot #2 clos par sess-2');
-  ok(t3 === `[${trg} · #3] Session Libre · Lot trois`, 'sess-3 → titre du lot #3 clos par sess-3');
+  ok(t1 === `[${trg} · US#1] Lot un`, 'sess-1 → lot #1 (attribution, indépendante de closed_at/id)');
+  ok(t2 === `[${trg} · US#2] Lot deux`, 'sess-2 → titre du lot #2 clos par sess-2');
+  ok(t3 === `[${trg} · US#3] Lot trois`, 'sess-3 → titre du lot #3 clos par sess-3');
   ok(t1 !== t2 && t2 !== t3, '3 sessions successives → 3 titres DISTINCTS (plus de titre figé)');
 }
 
@@ -2352,7 +2352,7 @@ section('suggestedTitle : plan entièrement clos (aucun in_progress ni todo)');
   const b = backlogLib.loadBacklog(repo);
   ok(backlogLib.currentLot(b) === null && backlogLib.nextLot(b) === null,
     'plan sans lot in_progress/todo (précondition du test)');
-  ok(lot.suggestedTitle(repo) === `[${trigram.deriveTrigram(repo)} · #1] Session Libre · Correctifs socle`,
+  ok(lot.suggestedTitle(repo) === `[${trigram.deriveTrigram(repo)} · US#1] Correctifs socle`,
     'suggestedTitle : titre = dernier lot clos même sans lot en cours/à faire (avant le fix : titre nu)');
 }
 
@@ -2381,7 +2381,7 @@ section('suggestedTitle : un lot clos par une session plus ancienne ne doit pas 
   ok(bA.lots.find((l) => l.id === 1).closed_session_id === 'sess-A',
     'doneLot (auto-clôture) : closed_session_id posé au sid de la session qui clôt');
   const trgMismatch = trigram.deriveTrigram(repo);
-  ok(lot.suggestedTitle(repo) === `[${trgMismatch} · #1] Session Libre · Travail session A`,
+  ok(lot.suggestedTitle(repo) === `[${trgMismatch} · US#1] Travail session A`,
     'juste après clôture par sess-A : titre visible (session précédente = sess-A, ça matche)');
 
   // Session B (no-op, ne clôt rien) démarre : session-start.js estampille son propre id
@@ -2390,12 +2390,12 @@ section('suggestedTitle : un lot clos par une session plus ancienne ne doit pas 
 
   // "Session C" (ce test) : la session précédente est désormais sess-B, qui n'a rien
   // clos -> le lot fermé par sess-A ne doit plus être suggéré (clôture plus ancienne).
-  ok(lot.suggestedTitle(repo) !== `[${trgMismatch} · #1] Session Libre · Travail session A`,
+  ok(lot.suggestedTitle(repo) !== `[${trgMismatch} · US#1] Travail session A`,
     'après une session B sans activité de lot : le focus du lot de sess-A n\'est plus suggéré (mismatch détecté)');
   // Lot #130 : le titre ne se TAIT plus (forme nue « Session Libre », inutilisable et devenue
   // le cas nominal). Il garde du lot clos ce qui reste vrai — la position dans le plan, numéro
   // compris — et remplace son résumé par le dernier travail enregistré dans le dépôt.
-  ok(lot.suggestedTitle(repo) === `[${trgMismatch} · #1] Session Libre · lot 1 fini`,
+  ok(lot.suggestedTitle(repo) === `[${trgMismatch} · US#1] lot 1 fini`,
     'mismatch : position dans le plan conservée (#1) + résumé déduit du dépôt, jamais de titre nu');
 }
 
@@ -2411,7 +2411,7 @@ section('suggestedTitle : déduction depuis CHANGELOG/git quand le plan n\'a auc
     '# Changelog\n\n## 2026-07-11 (chore — /pmz/ ignoré)\n\ntexte\n\n## 2026-07-10 (ancien)\n');
   execFileSync('git', ['-C', repo, 'add', '.']);
   execFileSync('git', ['-C', repo, 'commit', '-q', '-m', 'init']);
-  ok(/^\[.{3}\] Session Libre · chore — \/pmz\/ ignoré$/.test(lot.suggestedTitle(repo)),
+  ok(/^\[.{3} · HS\] chore — \/pmz\/ ignoré$/.test(lot.suggestedTitle(repo)),
     'pas de backlog : « Session Libre » + résumé déduit du dernier CHANGELOG');
 }
 {
@@ -2423,7 +2423,7 @@ section('suggestedTitle : déduction depuis CHANGELOG/git quand le plan n\'a auc
   fs.writeFileSync(path.join(repo, 'CHANGELOG.md'), '## 2026-07-11 (lot 3)\n');
   execFileSync('git', ['-C', repo, 'add', '.']);
   execFileSync('git', ['-C', repo, 'commit', '-q', '-m', 'fix: corrige le calcul du quota']);
-  ok(/^\[.{3}\] Session Libre · fix: corrige le calcul du quota$/.test(lot.suggestedTitle(repo)),
+  ok(/^\[.{3} · HS\] fix: corrige le calcul du quota$/.test(lot.suggestedTitle(repo)),
     '« (lot N) » écarté (non descriptif) : résumé déduit du sujet du dernier commit');
 }
 {
@@ -2440,7 +2440,7 @@ section('suggestedTitle : déduction depuis CHANGELOG/git quand le plan n\'a auc
   const t = lot.suggestedTitle(repo);
   ok(!/epic Titre de session/.test(t) && !/lot #130, epic/.test(t),
     '« (lot #N, epic X) » écarté (métadonnée, pas descriptif) : ne fuite plus dans le titre');
-  ok(/^\[.{3}\] Session Libre · fix\(titre\): lot #130 — numéro de lot retrouvé$/.test(t),
+  ok(/^\[.{3} · HS\] fix\(titre\): lot #130 — numéro de lot retrouvé$/.test(t),
     'résumé déduit du sujet du dernier commit à la place');
 }
 {
@@ -2448,7 +2448,7 @@ section('suggestedTitle : déduction depuis CHANGELOG/git quand le plan n\'a auc
   const repo = path.join(SANDBOX, 'repo-deduce-none');
   fs.mkdirSync(repo, { recursive: true });
   execFileSync('git', ['init', '-q', repo]);
-  ok(lot.suggestedTitle(repo) === `[${trigram.deriveTrigram(repo)}] Session Libre`,
+  ok(lot.suggestedTitle(repo) === `[${trigram.deriveTrigram(repo)} · HS]`,
     'aucune info disponible : « Session Libre » nu (pas de déduction possible)');
 }
 {
@@ -2460,7 +2460,7 @@ section('suggestedTitle : déduction depuis CHANGELOG/git quand le plan n\'a auc
     JSON.stringify({ version: 1, next_id: 1, lots: [] }));
   execFileSync('git', ['-C', repo, 'add', '.']);
   execFileSync('git', ['-C', repo, 'commit', '-q', '-m', 'chore: mise en place du socle']);
-  ok(/^\[.{3}\] Session Libre · chore: mise en place du socle$/.test(lot.suggestedTitle(repo)),
+  ok(/^\[.{3} · HS\] chore: mise en place du socle$/.test(lot.suggestedTitle(repo)),
     'backlog.json avec lots:[] traité comme « pas de titre dans le plan » -> déduction');
 }
 {
@@ -2484,7 +2484,7 @@ section('suggestedTitle : déduction depuis CHANGELOG/git quand le plan n\'a auc
   runHook('stop.js', { session_id: 'sess-A2', cwd: repo, transcript_path: empty });
   runHook('session-start.js', { source: 'startup', session_id: 'sess-B2', cwd: repo, transcript_path: empty });
   const t = lot.suggestedTitle(repo);
-  ok(t === `[${trigram.deriveTrigram(repo)} · #1] Session Libre · chore: release de la vague`,
+  ok(t === `[${trigram.deriveTrigram(repo)} · US#1] chore: release de la vague`,
     'lot clos périmé sans lot suivant : numéro du lot conservé + résumé déduit du dépôt');
   ok(!/Travail session A/.test(t),
     'lot clos périmé : son focus n\'est PAS réutilisé (il décrit le travail d\'une autre session)');
@@ -2517,7 +2517,7 @@ section('Continuité — PreCompact sauve le handoff, compact réinjecte le lot,
   const rPc = runHook('pre-compact.js', { cwd: repo, session_id: 's-q1' });
   ok(rPc.code === 0 && fs.existsSync(hf), 'PreCompact → handoff écrit');
   const c = fs.readFileSync(hf, 'utf8');
-  ok(/Plan de lots : 0\/2 faits/.test(c) && /étape active/.test(c), 'PreCompact : handoff porte plan + todos');
+  ok(/Plan des US : 0\/2 faites/.test(c) && /étape active/.test(c), 'PreCompact : handoff porte plan + todos');
 
   // Q2. PreCompact ne touche jamais un handoff manuel non consommé
   fs.writeFileSync(hf, handoff.MANUAL_MARKER + '\nRICHE-Q');
@@ -2573,7 +2573,7 @@ section('Continuité — PreCompact sauve le handoff, compact réinjecte le lot,
   const rS = runHook('session-start.js', { source: 'startup', cwd: repo, session_id: 's-q4' });
   let ctxS = '';
   try { ctxS = JSON.parse(rS.out).hookSpecificOutput.additionalContext || ''; } catch (_) {}
-  ok(/Plan de lots : 1\/2 faits/.test(ctxS) && /Prochain lot : « Lot suivant »/.test(ctxS),
+  ok(/Plan des US : 1\/2 faites/.test(ctxS) && /Prochaine US : « Lot suivant »/.test(ctxS),
     'fallback : plan injecté quand aucun handoff (prochain lot + start --id)');
 
   // Q6. compact hors repo git → passThrough
@@ -2589,7 +2589,7 @@ section('Continuité — PreCompact sauve le handoff, compact réinjecte le lot,
   const rClear = runHook('session-start.js', { source: 'clear', cwd: repo, session_id: 's-q7' });
   let ctxClear = '';
   try { ctxClear = JSON.parse(rClear.out).hookSpecificOutput.additionalContext || ''; } catch (_) {}
-  ok(/Handoff de la session précédente/.test(ctxClear) && /Plan de lots/.test(ctxClear),
+  ok(/Handoff de la session précédente/.test(ctxClear) && /Plan des US/.test(ctxClear),
     'clear : handoff (plan compris) réinjecté après /clear');
 }
 
@@ -2607,7 +2607,7 @@ section('Couche explicite — MSG_LARGE v2, audit/close-batch avec plan de lots'
   const r1 = runHook('user-prompt-submit.js', { cwd: repo, prompt: 'refactor complet du projet', session_id: 's-r1' });
   let m1 = '';
   try { m1 = JSON.parse(r1.out).hookSpecificOutput.additionalContext || ''; } catch (_) {}
-  ok(/2 à 5 lots/.test(m1) && /backlog\.js add/.test(m1), 'broad sans plan : consigne de découpage persisté');
+  ok(/2 à 5 US/.test(m1) && /backlog\.js add/.test(m1), 'broad sans plan : consigne de découpage persisté');
 
   // R2. broad avec plan → rattacher au lot en cours, pas de redécoupage
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot R', '--model', 'sonnet']);
@@ -2615,7 +2615,7 @@ section('Couche explicite — MSG_LARGE v2, audit/close-batch avec plan de lots'
   const r2 = runHook('user-prompt-submit.js', { cwd: repo, prompt: 'refactor complet du projet', session_id: 's-r2' });
   let m2 = '';
   try { m2 = JSON.parse(r2.out).hookSpecificOutput.additionalContext || ''; } catch (_) {}
-  ok(/plan de lots existe déjà/.test(m2) && /Lot R/.test(m2), 'broad avec plan : rattachement au lot en cours');
+  ok(/plan d'US existe déjà/.test(m2) && /Lot R/.test(m2), 'broad avec plan : rattachement au lot en cours');
 
   // R3. audit-batch --json expose le plan (null-safe)
   let jA = {};
@@ -2626,7 +2626,7 @@ section('Couche explicite — MSG_LARGE v2, audit/close-batch avec plan de lots'
   // R4. close-batch : bloc plan + étape done --id pré-remplie
   const CLOSE = path.join(PKG, 'scripts', 'close-batch.js');
   const rC = runNode(CLOSE, ['--cwd', repo]);
-  ok(/Plan de lots/.test(rC.out) && /done --id 1/.test(rC.out), 'close-batch : bloc plan + done --id pré-rempli');
+  ok(/Plan des US/.test(rC.out) && /done --id 1/.test(rC.out), 'close-batch : bloc plan + done --id pré-rempli');
 
   // R5. close-batch sans plan : sortie historique inchangée
   const repo2 = path.join(SANDBOX, 'repo-explicite-vide');
@@ -2636,7 +2636,7 @@ section('Couche explicite — MSG_LARGE v2, audit/close-batch avec plan de lots'
   execFileSync('git', ['-C', repo2, 'add', '.']);
   execFileSync('git', ['-C', repo2, 'commit', '-q', '-m', 'init']);
   const rC2 = runNode(CLOSE, ['--cwd', repo2]);
-  ok(!/Plan de lots/.test(rC2.out) && /Clôture du lot/.test(rC2.out), 'close-batch sans plan : sortie historique');
+  ok(!/Plan des US/.test(rC2.out) && /Clôture de l'US/.test(rC2.out), 'close-batch sans plan : sortie historique');
 }
 
 // ============================ S. COÛT PAR FICHIER + GASPILLAGE RÉEL (B1) ============================
@@ -3143,12 +3143,12 @@ section('Trim injection SessionStart (titre compressé + slim si règles dans CL
   };
 
   // -- selfTitleMessage : la session COURANTE se titre (self), jamais une autre ; dialogue seulement pour poser la nomenclature --
-  const t = messages.selfTitleMessage('[COC · #25] Plan · Lot #1 · Nudge anti-compaction chiffré');
+  const t = messages.selfTitleMessage('[COC · US#25] Plan · Nudge anti-compaction chiffré');
   ok(Buffer.byteLength(t, 'utf8') <= 400, 'T2 : selfTitleMessage <= 400 o (titre réaliste)');
   ok(/CETTE session/.test(t) && /"self"/.test(t) && !/PRÉCÉDENTE/.test(t), 'T2 : cible la session COURANTE (self), jamais la précédente');
   ok(/en silence, sans question ni annonce/.test(t) && !/question à choix/.test(t), 'T2 : nomenclature posée -> renommage transparent, aucun dialogue');
-  const tc = messages.selfTitleMessage('[COC] Session Libre', { compose: true });
-  ok(/Session Libre · <objet de la demande/.test(tc), 'T2 : sans lot -> l\'assistant complète le résumé d\'après la demande');
+  const tc = messages.selfTitleMessage('[COC · HS]', { compose: true });
+  ok(/\[COC · HS\] <objet de la demande/.test(tc), 'T2 : sans lot -> l\'assistant complète le résumé d\'après la demande');
   const tn = messages.selfTitleMessage('[COC · #1] X', { nomenclature: true });
   ok(Buffer.byteLength(tn, 'utf8') <= 520, 'T2 : variante nomenclature <= 520 o');
   ok(/question à choix IMMÉDIATE/.test(tn) && /AVANT la demande/.test(tn) && /jamais en fin de tour/.test(tn),
@@ -3335,13 +3335,13 @@ section('Version PMZ historisée + commande about');
   backlog.addLot(repoAbout, 'Premier lot', 'scope test', null);
   const aPlan = runNode(ABOUT, ['--cwd', repoAbout]);
   ok(/Epic : mon-epic-test/.test(aPlan.out), 'about : affiche l\'epic du projet');
-  ok(/Progression : 0\/1 lots faits/.test(aPlan.out), 'about : affiche la progression du backlog');
-  ok(/Prochain lot : #\d+ Premier lot/.test(aPlan.out), 'about : affiche le prochain lot todo');
+  ok(/Progression : 0\/1 US faites/.test(aPlan.out), 'about : affiche la progression du backlog');
+  ok(/Prochaine US : #\d+ Premier lot/.test(aPlan.out), 'about : affiche le prochain lot todo');
 
   const b = backlog.loadBacklog(repoAbout);
   backlog.startLot(repoAbout, b.lots[0].id);
   const aInProgress = runNode(ABOUT, ['--cwd', repoAbout]);
-  ok(/Lot en cours : #\d+ Premier lot/.test(aInProgress.out), 'about : affiche le lot in_progress');
+  ok(/US en cours : #\d+ Premier lot/.test(aInProgress.out), 'about : affiche le lot in_progress');
 
   // Fail-open : dossier hors-git -> jamais de throw, exit 0.
   const outside = path.join(SANDBOX, 'no-git-about');
@@ -3999,7 +3999,7 @@ section('Titre de session : la session COURANTE se renomme elle-même, jamais la
 
   // Q2. Nomenclature non posée, aucun lot : question au 1er prompt, titre de CETTE session à compléter.
   const ctxP1 = upsQ('sess-q1', 'fais-moi une présentation');
-  ok(/Titre de CETTE session : « \[[A-Z]{3}\] Session Libre · <objet/.test(ctxP1) && /question à choix IMMÉDIATE/.test(ctxP1)
+  ok(/Titre de CETTE session : « \[[A-Z]{3} · HS\] <objet/.test(ctxP1) && /question à choix IMMÉDIATE/.test(ctxP1)
     && /"self"/.test(ctxP1) && !/PRÉCÉDENTE/.test(ctxP1), 'Q2 : 1er prompt sans trigramme -> question + renommage de CETTE session');
   ok(!/Titre de CETTE session/.test(upsQ('sess-q1', 'et ensuite ?')), 'Q3 : 2e prompt -> anti-spam');
 
@@ -4012,7 +4012,7 @@ section('Titre de session : la session COURANTE se renomme elle-même, jamais la
   trigramLibQ.writeTrigram(repo, 'RTR');
   runHook('session-start.js', { source: 'startup', cwd: repo, session_id: 'sess-q5' });
   const ctxP5 = upsQ('sess-q5', 'go');
-  ok(/Titre de CETTE session : « \[RTR · #\d+\][^»]*Lot du rappel doublé/.test(ctxP5) && /"self"/.test(ctxP5)
+  ok(/Titre de CETTE session : « \[RTR · US#\d+\][^»]*Lot du rappel doublé/.test(ctxP5) && /"self"/.test(ctxP5)
     && /en silence/.test(ctxP5) && !/question à choix/.test(ctxP5), 'Q5 : 1er prompt -> la session courante se renomme (self) d\'après son lot');
   ok(!/Titre de CETTE session/.test(upsQ('sess-q5', 'suite')), 'Q5 : titre inchangé -> pas de réinjection');
 
@@ -4020,7 +4020,7 @@ section('Titre de session : la session COURANTE se renomme elle-même, jamais la
   backlogLib.dropLot(repo, addedQ.id);
   ok(!backlogLib.loadBacklog(repo).lots.some((l) => l.status === 'in_progress'), 'Q6 : pré-requis, aucun lot en cours');
   const ctxP6 = upsQ('sess-q6', 'autre chose');
-  ok(/« \[RTR\] Session Libre · <objet/.test(ctxP6) && /en silence/.test(ctxP6), 'Q6 : aucun lot en cours -> titre composé d\'après la demande');
+  ok(/« \[RTR · HS\] <objet/.test(ctxP6) && /en silence/.test(ctxP6), 'Q6 : aucun lot en cours -> titre composé d\'après la demande');
 
   // Q7. Session maître : /epicmaster se titre lui-même, le hook se tait.
   ok(!/Titre de CETTE session/.test(upsQ('sess-q7', '/pmz:epicmaster')), 'Q7 : /epicmaster -> aucun titre injecté par le hook');
@@ -4218,7 +4218,7 @@ section('Bilan d\'epic auto + hitRate visible (lot #58)');
   // messages.epicBilanMessage — grammaire de sévérité (glyphe INFO) + chiffres lisibles.
   const msgLib = require(path.join(PKG, 'lib', 'messages'));
   const txt = msgLib.epicBilanMessage(bilan);
-  ok(/Epic « Mon Epic » terminée/.test(txt) && /2 lot\(s\)/.test(txt) && /14k tokens/.test(txt),
+  ok(/Epic « Mon Epic » terminée/.test(txt) && /2 US/.test(txt) && /14k tokens/.test(txt),
     'epicBilanMessage : texte nomme l\'epic, le nombre de lots et le coût total');
 
   // messages.lotClosureCardMessage (lot #59) — coût, durée, relectures évitées.
@@ -4226,7 +4226,7 @@ section('Bilan d\'epic auto + hitRate visible (lot #58)');
     { title: 'Mon lot', cost_tokens: 14000, started_at: '2026-01-01T00:00:00.000Z', closed_at: '2026-01-01T02:00:00.000Z' },
     3,
   );
-  ok(/Carte de clôture — lot « Mon lot »/.test(cardTxt) && /14k tokens/.test(cardTxt) && /2 h/.test(cardTxt) && /3 relecture\(s\) évitée\(s\)/.test(cardTxt),
+  ok(/Carte de clôture — US « Mon lot »/.test(cardTxt) && /14k tokens/.test(cardTxt) && /2 h/.test(cardTxt) && /3 relecture\(s\) évitée\(s\)/.test(cardTxt),
     'lotClosureCardMessage : coût + durée + relectures évitées, tous chiffrés');
   const cardNoDates = msgLib.lotClosureCardMessage({ title: 'Vieux lot', cost_tokens: 500 }, 0);
   ok(/~500 tokens/.test(cardNoDates) && /0 relecture\(s\) évitée\(s\)/.test(cardNoDates) && !/\d+ [hj]\b/.test(cardNoDates),
@@ -4255,7 +4255,7 @@ section('Bilan d\'epic auto + hitRate visible (lot #58)');
   const r1 = runHook('stop.js', { session_id: 't58-s1', cwd: repo58, transcript_path: empty58 });
   ok(backlogLib.loadBacklog(repo58).lots[0].status === 'done', 't58 : lot A auto-clos');
   ok(!/Epic « Epic E2E » terminée/.test(sysMsg58(r1)), 't58 : lot A clos mais lot B todo -> pas de bilan d\'epic');
-  ok(/Carte de clôture — lot « Lot A »/.test(sysMsg58(r1)), 't59 : carte de clôture émise à CHAQUE auto-clôture (pas seulement en fin d\'epic)');
+  ok(/Carte de clôture — US « Lot A »/.test(sysMsg58(r1)), 't59 : carte de clôture émise à CHAQUE auto-clôture (pas seulement en fin d\'epic)');
 
   // e2e stop.js — auto-clôture du DERNIER lot de l'epic : bilan émis dans le systemMessage.
   backlogLib.startLot(repo58, f2.id);
@@ -4315,14 +4315,14 @@ section('Clôture prouvée : verify à l\'auto-clôture + garde-fou CHANGELOG (l
   ok(vTimeout.ok === false && vTimeout.timedOut === true, 'runVerify : dépassement du délai court -> timedOut (pas un échec)');
 
   // T2. closureProofMessage — unités : chaque branche + null quand rien à dire.
-  ok(/Verify du lot \(`x`\) : OK\./.test(messages.closureProofMessage({ cmd: 'x', ok: true }, false)), 'closureProofMessage : verify OK');
+  ok(/Verify de l'US \(`x`\) : OK\./.test(messages.closureProofMessage({ cmd: 'x', ok: true }, false)), 'closureProofMessage : verify OK');
   ok(/non terminée dans le délai court/.test(messages.closureProofMessage({ cmd: 'x', ok: false, timedOut: true }, false)), 'closureProofMessage : verify timeout -> pas « ÉCHEC »');
   ok(/ÉCHEC.*à corriger/s.test(messages.closureProofMessage({ cmd: 'x', ok: false, timedOut: false, tail: 'zut' }, false)), 'closureProofMessage : verify échec');
   ok(/Rappel doux.*CHANGELOG\.md/s.test(messages.closureProofMessage(null, true)), 'closureProofMessage : garde-fou CHANGELOG seul');
   ok(messages.closureProofMessage(null, false) === null, 'closureProofMessage : rien à dire -> null');
   // noVerify (lot #55) : lot clos sans commande verify -> ligne « Clos sans preuve ».
-  ok(/Clos sans preuve.*--verify/s.test(messages.closureProofMessage(null, false, true)), 'closureProofMessage : lot sans verify -> « Clos sans preuve »');
-  ok(!/Verify du lot/.test(messages.closureProofMessage(null, false, true)), 'closureProofMessage : « clos sans preuve » ne prétend pas avoir joué une verify');
+  ok(/Close sans preuve.*--verify/s.test(messages.closureProofMessage(null, false, true)), 'closureProofMessage : lot sans verify -> « Clos sans preuve »');
+  ok(!/Verify de l'US/.test(messages.closureProofMessage(null, false, true)), 'closureProofMessage : « clos sans preuve » ne prétend pas avoir joué une verify');
   ok(!/Clos sans preuve/.test(messages.closureProofMessage({ cmd: 'x', ok: true }, false, false)), 'closureProofMessage : lot AVEC verify -> pas de « clos sans preuve »');
 
   // Fabrique un repo bootstrappé (ledgers ignorés) + helper d'auto-clôture (dirty -> arme le
@@ -4354,8 +4354,8 @@ section('Clôture prouvée : verify à l\'auto-clôture + garde-fou CHANGELOG (l
     const r = runHook('stop.js', { session_id: sid, cwd: repo, transcript_path: empT });
     const m = sysMsg(r);
     ok(backlogLib.loadBacklog(repo).lots[0].status === 'done', 'e2e : lot auto-clôturé');
-    ok(/Carte de clôture — lot « Lot prouvé » clos/.test(m), 'e2e : message de clôture présent');
-    ok(/Verify du lot \(`node -e "process\.exit\(0\)"`\) : OK\./.test(m), 'e2e : verify exécutée à l\'auto-clôture, résultat OK visible');
+    ok(/Carte de clôture — US « Lot prouvé » close/.test(m), 'e2e : message de clôture présent');
+    ok(/Verify de l'US \(`node -e "process\.exit\(0\)"`\) : OK\./.test(m), 'e2e : verify exécutée à l\'auto-clôture, résultat OK visible');
     ok(/Rappel doux.*CHANGELOG\.md/s.test(m), 'e2e : commit de clôture sans CHANGELOG -> rappel doux');
     ok(backlogLib.loadBacklog(repo).lots[0].closed_verify === 'ok', 'e2e : closed_verify persisté = ok (lot #96)');
   }
@@ -4374,7 +4374,7 @@ section('Clôture prouvée : verify à l\'auto-clôture + garde-fou CHANGELOG (l
     const r = runHook('stop.js', { session_id: sid, cwd: repo, transcript_path: empT });
     const m = sysMsg(r);
     ok(!/Rappel doux/.test(m), 'e2e : commit de clôture touchant CHANGELOG -> aucun rappel doux');
-    ok(/Verify du lot.*ÉCHEC/s.test(m), 'e2e : verify en échec -> visible (clôture non bloquée)');
+    ok(/Verify de l'US.*ÉCHEC/s.test(m), 'e2e : verify en échec -> visible (clôture non bloquée)');
     ok(backlogLib.loadBacklog(repo).lots[0].status === 'done', 'e2e : verify en échec ne bloque pas la clôture');
     ok(backlogLib.loadBacklog(repo).lots[0].closed_verify === 'failed', 'e2e : closed_verify persisté = failed (lot #96)');
   }
@@ -4392,8 +4392,8 @@ section('Clôture prouvée : verify à l\'auto-clôture + garde-fou CHANGELOG (l
     execFileSync('git', ['-C', repo, 'commit', '-q', '-m', 'lot fini']);
     const r = runHook('stop.js', { session_id: sid, cwd: repo, transcript_path: empT });
     ok(r.code === 0, 'e2e : lot sans verify -> exit 0 (fail-open)');
-    ok(!/Verify du lot/.test(sysMsg(r)), 'e2e : lot sans verify -> aucune ligne verify');
-    ok(/Clos sans preuve/.test(sysMsg(r)), 'e2e : lot sans verify -> « clos sans preuve » à la clôture (lot #55)');
+    ok(!/Verify de l'US/.test(sysMsg(r)), 'e2e : lot sans verify -> aucune ligne verify');
+    ok(/Close sans preuve/.test(sysMsg(r)), 'e2e : lot sans verify -> « clos sans preuve » à la clôture (lot #55)');
     ok(backlogLib.loadBacklog(repo).lots[0].status === 'done', 'e2e : lot sans verify auto-clôturé');
     ok(backlogLib.loadBacklog(repo).lots[0].closed_verify === 'none', 'e2e : lot sans verify -> closed_verify = none (lot #96)');
   }
@@ -4433,7 +4433,7 @@ section('Transitions de lot : backlogResumeMessage — verify prescrit + /model 
   const cur = { title: 'Lot transition', scope: 'fait quand : vert', model_hint: 'sonnet', effort_hint: 'medium', verify: null };
   const mCur = brm(cur, null, prog);
   ok(/\[modèle : sonnet · effort medium\]/.test(mCur), 'resume : tag modèle/effort poussé');
-  ok(/pas de commande verify.*clos sans preuve/s.test(mCur), 'resume : lot sans verify -> rappel « clos sans preuve »');
+  ok(/pas de commande verify.*close sans preuve/s.test(mCur), 'resume : lot sans verify -> rappel « clos sans preuve »');
   ok(/\/model/.test(mCur), 'resume : hint Claude -> suggestion /model');
 
   // TR2. Lot AVEC verify -> pas de rappel verify (mais tag + /model restent).
@@ -4460,7 +4460,7 @@ section('Transitions de lot : backlogResumeMessage — verify prescrit + /model 
   const worst = { title: 'W'.repeat(80), scope: 'z'.repeat(400), model_hint: 'z'.repeat(40) + 'sonnet', effort_hint: 'xhigh', verify: null };
   const mWorst = brm(worst, null, { done: 999, total: 999 });
   ok(mWorst.length <= CAP, `resume : cap ${CAP}c respecté au pire cas (len=${mWorst.length})`);
-  ok(/Lot en cours/.test(mWorst), 'resume : au pire cas, l\'identité du lot survit à la troncature');
+  ok(/US en cours/.test(mWorst), 'resume : au pire cas, l\'identité du lot survit à la troncature');
 
   // TR6. Plan terminé (ni cur ni next) -> null (rien à rappeler).
   ok(brm(null, null, { done: 5, total: 5 }) === null, 'resume : plan terminé -> null');
@@ -4482,7 +4482,7 @@ section('Statusline opt-in : rendu + merge-settings (préserve tierce, retrait p
 
   // U1. statusLineText — pure : assemblage complet, saut des parties absentes, toujours « PMZ ».
   ok(messages.statusLineText({ version: '9.9.9', epic: 'E', lot: { id: 7, title: 'T' }, done: 2, total: 5, occ: 320000 })
-    === 'PMZ v9.9.9 · E · lot #7 T · 2/5 · ctx 320k', 'statusLineText : ligne complète assemblée');
+    === 'PMZ v9.9.9 · E · US#7 T · 2/5 · ctx 320k', 'statusLineText : ligne complète assemblée');
   ok(messages.statusLineText({ version: '1.0.0' }) === 'PMZ v1.0.0', 'statusLineText : version seule (aucun séparateur orphelin)');
   ok(messages.statusLineText({}) === 'PMZ', 'statusLineText : vide -> « PMZ »');
   ok(messages.statusLineText({ version: '1.0.0', occ: 0 }) === 'PMZ v1.0.0', 'statusLineText : occ 0 -> pas de ctx');
@@ -4629,7 +4629,7 @@ section('Brouillon CHANGELOG servi à la proposition de clôture (lot #68)');
   };
   const m = messages.closureWithDraftMessage(lot68, ['a.js', 'lib/b.js'], '2026-07-19');
   ok(m.startsWith(messages.MSG_CLOTURE), 'V68 : le brouillon est soudé au rappel de clôture (nudge atomique)');
-  ok(/## 2026-07-19 \(lot #7 — epic « Mon Epic » : Titre du lot\)/.test(m),
+  ok(/## 2026-07-19 \(US#7 — epic « Mon Epic » : Titre du lot\)/.test(m),
     'V68 : en-tête daté au format CHANGELOG (lot + epic + titre)');
   ok(/- la chose est faite et prouvée/.test(m) && !/fait quand/.test(m),
     'V68 : scope servi SANS le préfixe « fait quand : » (se lit comme du changelog)');
@@ -4661,7 +4661,7 @@ section('Brouillon CHANGELOG servi à la proposition de clôture (lot #68)');
   const empT = path.join(SANDBOX, 'empty.jsonl');
   const rStop = runHook('stop.js', { session_id: 'sess-v68', cwd: repo, transcript_path: empT });
   ok(rStop.code === 0, 'V68 : stop.js exit 0 avec brouillon');
-  ok(/Brouillon d'entrée CHANGELOG/.test(rStop.out) && /lot #1 — epic « E » : Lot de test/.test(rStop.out),
+  ok(/Brouillon d'entrée CHANGELOG/.test(rStop.out) && /US#1 — epic « E » : Lot de test/.test(rStop.out),
     'V68 : la proposition de clôture sert l\'entrée pré-mâchée (titre/epic du lot en cours)');
   ok(/`touche\.js`/.test(rStop.out) && /- x marche/.test(rStop.out),
     'V68 : le brouillon reprend les fichiers modifiés et le scope nettoyé');
@@ -4787,10 +4787,10 @@ section('Estimation prédictive du coût d\'un lot : famille modèle+effort > mo
   backlogLib.addCost(repo2, 1, 90000);
   backlogLib.doneLot(repo2, 1, 'ccc0003');
   const addOut = runNode(BKLG, ['add', '--cwd', repo2, '--title', 'Suivant', '--model', 'sonnet', '--effort', 'medium']);
-  ok(/Estimation \(1 lot comparable par modèle\+effort\) : ~90k tokens\./.test(addOut.out),
+  ok(/Estimation \(1 US comparable par modèle\+effort\) : ~90k tokens\./.test(addOut.out),
     'CLI add : estimation affichée en texte (~90k, famille modèle+effort)');
   const startOut = runNode(BKLG, ['start', '--cwd', repo2, '--id', '2']);
-  ok(/Estimation \(1 lot comparable par modèle\+effort\) : ~90k tokens\./.test(startOut.out),
+  ok(/Estimation \(1 US comparable par modèle\+effort\) : ~90k tokens\./.test(startOut.out),
     'CLI start : même estimation réaffichée au démarrage');
 
   // Sans aucune famille comparable -> pas de suffixe "Estimation" du tout (silence, pas de bruit).
@@ -5222,11 +5222,11 @@ section('Notifications OS opt-in : zone rouge / clôture de lot -> notification 
   // -- Vigies de vague (lot #80) : lot prêt à merger + vague close --
   calls.length = 0;
   notify.notifyLotReady({ id: 80, title: 'pmz:reintegrate' }, { platform: 'linux', spawn: stubSpawn });
-  ok(calls.length === 1 && /prêt à merger/.test(calls[0].args[0]) && /#80 — pmz:reintegrate/.test(calls[0].args[1]),
+  ok(calls.length === 1 && /prête à merger/.test(calls[0].args[0]) && /#80 — pmz:reintegrate/.test(calls[0].args[1]),
     'V80 : notifyLotReady -> titre « prêt à merger », corps = #id — titre');
   calls.length = 0;
   notify.notifyWaveClosed({ count: 3, branch: 'integration' }, { platform: 'linux', spawn: stubSpawn });
-  ok(calls.length === 1 && /vague close/.test(calls[0].args[0]) && /3 lot\(s\) réintégré\(s\) sur integration/.test(calls[0].args[1]),
+  ok(calls.length === 1 && /vague close/.test(calls[0].args[0]) && /3 US réintégrée\(s\) sur integration/.test(calls[0].args[1]),
     'V80 : notifyWaveClosed -> titre « vague close », corps = compte + branche');
 
   // -- Repli : sans env, PMZ_NOTIFY non défini -> stop.js reste inchangé (régression V71/V74
@@ -5440,7 +5440,7 @@ section('fleet — registre de vague fleet.json + injection SessionStart (lib/fl
   fleet.saveFleet(repoF, { ...fleet.loadFleet(repoF), wave_id: 'vague-2' });
   const wl = fleet.waveHandoffLines(repoF);
   ok(wl.length === 1, 'fleet.waveHandoffLines : une ligne unique (pas le plan complet)');
-  ok(/vague-2/.test(wl[0]) && /2 lot/.test(wl[0]), 'fleet.waveHandoffLines : wave_id + décompte des lots en vol');
+  ok(/vague-2/.test(wl[0]) && /2 US/.test(wl[0]), 'fleet.waveHandoffLines : wave_id + décompte des lots en vol');
   ok(/1 prêt.*réintégrer/.test(wl[0]), 'fleet.waveHandoffLines : lots à l\'état ready comptés');
   ok(/\/pmz:parallelize/.test(wl[0]), 'fleet.waveHandoffLines : pointeur vers /pmz:parallelize (pas de plan stocké)');
 
@@ -5762,8 +5762,8 @@ section('reintegrate — planner topologique + changelog agrégé (pur, lib/rein
   const cl = reint.aggregateChangelog(
     [{ id: 1, title: 'A', status: 'reintegrated', head: 'abcdef1234' }, { id: 2, status: 'gate-failed' }],
     { waveId: 'vague-x', date: '2026-07-20', integrationBranch: 'integration' });
-  ok(/## 2026-07-20 — Réintégration de vague « vague-x » \(1 lot\)/.test(cl), 'R5 : entête daté + compte (1 lot mergé)');
-  ok(/Branche d'intégration : `integration`/.test(cl) && /Lot #1 « A » réintégré .*abcdef1/.test(cl), 'R5 : branche + ligne du lot mergé');
+  ok(/## 2026-07-20 — Réintégration de vague « vague-x » \(1 US\)/.test(cl), 'R5 : entête daté + compte (1 lot mergé)');
+  ok(/Branche d'intégration : `integration`/.test(cl) && /US#1 « A » réintégrée .*abcdef1/.test(cl), 'R5 : branche + ligne du lot mergé');
   ok(!/#2/.test(cl), 'R5 : lot non réintégré exclu du changelog agrégé');
 }
 
@@ -5930,7 +5930,7 @@ section('backlog — CLI reintegrate : plan proposé (défaut) + exécution (--e
   ok(!!rpt, 'CR3 : chemin du rapport de réintégration référencé dans la sortie');
   if (rpt) {
     const body = fs.readFileSync(path.join(repo, rpt[1]), 'utf8');
-    ok(/# Réintégration de vague/.test(body) && /## Statut par lot/.test(body)
+    ok(/# Réintégration de vague/.test(body) && /## Statut par US/.test(body)
       && /## Bloc changelog agrégé/.test(body) && /#1[^\n]*reintegrated/.test(body),
       'CR3 : rapport persisté -> plan, statut par lot, bloc changelog');
     ok(/## Composition de la vague \(snapshot avant purge/.test(body) && /session s1/.test(body),
@@ -5995,7 +5995,7 @@ section('messages — marqueur de blocage dans les 3 surfaces d\'annonce (lib/me
     'M1 : rien d\'affiché quand rien ne bloque (aucun bruit)');
   const res = messages.backlogResumeMessage(null, { id: 7, title: 'Suivant' }, prog, [3, 4]);
   ok(/Bloqué par #3, #4/.test(res) && !/Démarre-le/.test(res), 'M2 : backlogResumeMessage remplace « Démarre-le » par l\'avertissement');
-  ok(/Démarre-le/.test(messages.backlogResumeMessage(null, { id: 7, title: 'Suivant' }, prog, [])),
+  ok(/Démarre-la/.test(messages.backlogResumeMessage(null, { id: 7, title: 'Suivant' }, prog, [])),
     'M2 : « Démarre-le » conservé quand le lot est démarrable');
   ok(/⚠/.test(messages.statusLineText({ version: '1', lot: { id: 7, title: 'S', blocked: true } })) &&
     !/⚠/.test(messages.statusLineText({ version: '1', lot: { id: 7, title: 'S', blocked: false } })),
@@ -6018,7 +6018,7 @@ section('backlog — CLI next + about : prochain lot débloqué et blocage signa
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Socle', '--model', 'opus']);
 
   const nx = runNode(BKLG, ['next', '--cwd', repo]);
-  ok(/Prochain lot : #2/.test(nx.out) && !/Bloqué par/.test(nx.out), 'N1 : CLI next propose #2 (débloqué), sans avertissement');
+  ok(/Prochaine US : #2/.test(nx.out) && !/Bloqué par/.test(nx.out), 'N1 : CLI next propose #2 (débloqué), sans avertissement');
   const nj = runNode(BKLG, ['next', '--cwd', repo, '--json']);
   let pj = null; try { pj = JSON.parse(nj.out); } catch (_) { /* null */ }
   ok(pj && pj.id === 2 && Array.isArray(pj.blockedBy) && pj.blockedBy.length === 0, 'N1 : --json porte blockedBy (copie, jamais persisté)');
@@ -6029,9 +6029,9 @@ section('backlog — CLI next + about : prochain lot débloqué et blocage signa
   // sous-commande CLI — on pose la dépendance par la lib, le chemin testé reste nextLot/CLI next).
   backlogLib.setDepends(repo, 2, [1]);
   const nc = runNode(BKLG, ['next', '--cwd', repo]);
-  ok(/Prochain lot : #1/.test(nc.out) && /Bloqué par #2 encore ouvert/.test(nc.out), 'N2 : cycle -> premier todo + ⚠️ bloqué par #2');
+  ok(/Prochaine US : #1/.test(nc.out) && /Bloqué par #2 encore ouvert/.test(nc.out), 'N2 : cycle -> premier todo + ⚠️ bloqué par #2');
   const ab = runNode(path.join(PKG, 'scripts', 'about.js'), ['--cwd', repo]);
-  ok(/Prochain lot : #1/.test(ab.out) && /bloqué par #2/.test(ab.out), 'N2 : /pmz:about signale aussi le blocage');
+  ok(/Prochaine US : #1/.test(ab.out) && /bloqué par #2/.test(ab.out), 'N2 : /pmz:about signale aussi le blocage');
 }
 
 section('reintegrate — gates : union de vague + steps sans gate (pur, lib/reintegrate.js, lot #97)');
@@ -6195,7 +6195,7 @@ section('backlog — CLI reintegrate : refus sans gate + restitution du gate fin
 
   // CG1. Plan : ⚠️ signalé + consigne de trancher.
   const rp = runNode(BKLG, ['reintegrate', '--cwd', repo]);
-  ok(/gate : ⚠️ \(aucune\)/.test(rp.out) && /1 lot\(s\) sans gate \(#1\)/.test(rp.out), 'CG1 : plan marque ⚠️ les étapes sans gate');
+  ok(/gate : ⚠️ \(aucune\)/.test(rp.out) && /1 US sans gate \(#1\)/.test(rp.out), 'CG1 : plan marque ⚠️ les étapes sans gate');
   ok(/--allow-no-gate/.test(rp.out) && /--gate/.test(rp.out), 'CG1 : plan annonce le refus et les deux issues');
   ok(/Gate FINAL de vague/.test(rp.out), 'CG1 : plan annonce le gate final de vague');
   let pj = null; try { pj = JSON.parse(runNode(BKLG, ['reintegrate', '--cwd', repo, '--json']).out); } catch (_) { /* null */ }
@@ -6203,7 +6203,7 @@ section('backlog — CLI reintegrate : refus sans gate + restitution du gate fin
 
   // CG2. --execute REFUSE, rien n'est mergé (sortie texte ET --json structurée).
   const re = runNode(BKLG, ['reintegrate', '--cwd', repo, '--execute']);
-  ok(/Refusé : 1 lot\(s\) sans gate \(#1\)/.test(re.out) && /--allow-no-gate/.test(re.out), 'CG2 : --execute refuse (texte)');
+  ok(/Refusé : 1 US sans gate \(#1\)/.test(re.out) && /--allow-no-gate/.test(re.out), 'CG2 : --execute refuse (texte)');
   ok(execFileSync('git', ['-C', repo, 'log', '--merges', '--oneline'], { encoding: 'utf8' }).trim() === '', 'CG2 : aucun merge');
   let ej = null; try { ej = JSON.parse(runNode(BKLG, ['reintegrate', '--cwd', repo, '--execute', '--json']).out); } catch (_) { /* null */ }
   ok(ej && ej.executed === true && ej.reason === 'no-gate' && ej.noGate.length === 1, 'CG2 : --json -> reason:"no-gate" (sortie machine préservée)');
@@ -6232,7 +6232,7 @@ section('backlog — CLI depends corrigeable + reopen d\'un lot clos (lot #98)')
 
   // D1. lecture sans --depends (aucune écriture)
   const rd0 = runNode(BKLG, ['depends', '--cwd', repo, '--id', '2']);
-  ok(/Dépendances du lot #2 : \(aucune\)/.test(rd0.out), 'D1 : depends sans --depends -> lecture');
+  ok(/Dépendances de l'US#2 : \(aucune\)/.test(rd0.out), 'D1 : depends sans --depends -> lecture');
 
   // D2. écriture + avertissement sur id inexistant (jamais un refus : tolérance hors-plan)
   const rd1 = runNode(BKLG, ['depends', '--cwd', repo, '--id', '2', '--depends', '1,42']);
@@ -6244,7 +6244,7 @@ section('backlog — CLI depends corrigeable + reopen d\'un lot clos (lot #98)')
   ok(lotOf(2).depends_on.length === 0, 'D3 : --depends "" vide la liste');
 
   // D4. refus explicites : id inconnu, valeur non numérique
-  ok(/Lot #99 introuvable/.test(runNode(BKLG, ['depends', '--cwd', repo, '--id', '99', '--depends', '1']).out),
+  ok(/US#99 introuvable/.test(runNode(BKLG, ['depends', '--cwd', repo, '--id', '99', '--depends', '1']).out),
     'D4 : --id inconnu -> refus explicite');
   const rdBad = runNode(BKLG, ['depends', '--cwd', repo, '--id', '2', '--depends', 'abc']);
   ok(/Refusé/.test(rdBad.out) && /« abc »/.test(rdBad.out) && lotOf(2).depends_on.length === 0,
@@ -6261,7 +6261,7 @@ section('backlog — CLI depends corrigeable + reopen d\'un lot clos (lot #98)')
   // R2. reopen refusé sur un lot abandonné (statut distinct, hors périmètre)
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot C98', '--model', 'sonnet']);
   runNode(BKLG, ['drop', '--cwd', repo, '--id', '3', '--note', 'hors périmètre']);
-  ok(/abandonné, pas clos/.test(runNode(BKLG, ['reopen', '--cwd', repo, '--id', '3', '--note', 'x']).out),
+  ok(/abandonnée, pas close/.test(runNode(BKLG, ['reopen', '--cwd', repo, '--id', '3', '--note', 'x']).out),
     'R2 : reopen sur lot dropped -> refus explicite');
 
   // R3. --note obligatoire : sans elle, le lot reste clos
@@ -6277,7 +6277,7 @@ section('backlog — CLI depends corrigeable + reopen d\'un lot clos (lot #98)')
   const sk = archive.ficheSkeleton({ id: 1, title: 'Lot A98', date: '2026-07-27', commit: 'aaa1111', verify: 'OK' });
   archive.writeFiche(repo, 1, sk, { title: 'Lot A98', date: '2026-07-27', commit: 'aaa1111', verify: 'OK' });
   const rr = runNode(BKLG, ['reopen', '--cwd', repo, '--id', '1', '--note', 'régression sur X']);
-  ok(/rouvert \(à faire\)/.test(rr.out) && /réouverture n°1/.test(rr.out), 'R4 : reopen -> lot rouvert, sortie explicite');
+  ok(/rouverte \(à faire\)/.test(rr.out) && /réouverture n°1/.test(rr.out), 'R4 : reopen -> lot rouvert, sortie explicite');
   const fiche = archive.readFiche(repo, 1);
   ok(/## Objectif/.test(fiche) && /> Rouvert le \d{4}-\d{2}-\d{2} — régression sur X/.test(fiche),
     'R4 : fiche complétée en pied, sections d\'origine intactes');
@@ -6411,21 +6411,21 @@ section('fleet/handoff — handoff par lot, purge de vague, CLI fleet, rapport d
     'R99-c : fleet join sans propriétaire -> refus EXPLICITE (normalizeLot le rejetterait en silence)');
   runNode(BKLG, ['add', '--cwd', wrepo, '--title', 'Lot un', '--model', 'opus']);
   const j1 = runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '1', '--session', 'sx', '--perimeter', 'lib/a/**']);
-  ok(/Lot #1 inscrit dans la vague/.test(j1.out) && !/⚠️ Aucun lot #1/.test(j1.out), 'R99-c : fleet join inscrit le lot');
+  ok(/US#1 inscrite dans la vague/.test(j1.out) && !/⚠️ Aucune US#1/.test(j1.out), 'R99-c : fleet join inscrit le lot');
   const fj = fleet.loadFleet(wrepo);
   ok(fj.active && fj.lots.length === 1 && fj.lots[0].session_owner === 'sx'
     && fj.lots[0].perimeter.length === 1 && fj.lots[0].title === 'Lot un' && fj.lots[0].state === 'in_flight',
     'R99-c : entrée normalisée (session, périmètre, titre repris du plan, état par défaut)');
-  ok(/⚠️ Aucun lot #77 au plan/.test(runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '77', '--session', 'sy']).out),
+  ok(/⚠️ Aucune US#77 au plan/.test(runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '77', '--session', 'sy']).out),
     'R99-c : id hors plan -> AVERTI (pas refusé)');
   ok(/ne bride RIEN pour cette session/.test(runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '77', '--session', 'sy']).out),
     'R99-c : inscription sans périmètre -> avertissement (la garde ne bride rien)');
   ok(/Refusé : --state invalide/.test(runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '1', '--session', 'sx', '--state', 'wat']).out),
     'R99-c : --state hors STATES -> refus explicite');
   ok(/Refusé : --id manquant/.test(runNode(BKLG, ['fleet', 'ready', '--cwd', wrepo]).out), 'R99-c : fleet ready sans --id -> refus');
-  ok(/Refusé : lot #404 absent du registre/.test(runNode(BKLG, ['fleet', 'ready', '--cwd', wrepo, '--id', '404']).out),
+  ok(/Refusé : US#404 absente du registre/.test(runNode(BKLG, ['fleet', 'ready', '--cwd', wrepo, '--id', '404']).out),
     'R99-c : fleet ready sur un lot non inscrit -> refus explicite');
-  ok(/passé « prêt à merger »/.test(runNode(BKLG, ['fleet', 'ready', '--cwd', wrepo, '--id', '1']).out)
+  ok(/passée « prêt à merger »/.test(runNode(BKLG, ['fleet', 'ready', '--cwd', wrepo, '--id', '1']).out)
     && fleet.loadFleet(wrepo).lots.find((l) => l.id === 1).state === 'ready',
     'R99-c : fleet ready -> transition in_flight -> ready outillée');
   const sh = runNode(BKLG, ['fleet', 'show', '--cwd', wrepo]);
@@ -6467,7 +6467,7 @@ section('fleet/handoff — handoff par lot, purge de vague, CLI fleet, rapport d
   if (m) {
     const body = fs.readFileSync(path.join(grepo, m[1]), 'utf8');
     ok(/BOOM-DIAGNOSTIC/.test(body), 'R99-d : le rapport porte la SORTIE INTÉGRALE du gate rouge');
-    ok(/Résultat : ÉCHEC \(gate-failed\)/.test(body) && /Coupable nommé : lot #1/.test(body),
+    ok(/Résultat : ÉCHEC \(gate-failed\)/.test(body) && /Coupable nommé : US#1/.test(body),
       'R99-d : le rapport nomme le coupable et la raison');
   }
   // Deux runs successifs -> deux rapports distincts (pas d'écrasement le même jour).
@@ -6557,23 +6557,23 @@ section('backlog/fleet — dette #98/#99 : export reopened, reset au reopen, --d
   ok(!/Session DÉDUITE/.test(runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '1', '--session', 's-persistee']).out),
     'R100-d : --session explicite -> pas d\'avertissement de déduction');
   const jc = runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '2']);
-  ok(/Refusé/.test(jc.out) && /tient déjà le lot #1/.test(jc.out) && fleet.loadFleet(wrepo).lots.length === 1,
+  ok(/Refusé/.test(jc.out) && /tient déjà l'US#1/.test(jc.out) && fleet.loadFleet(wrepo).lots.length === 1,
     'R100-d : repli désignant une session déjà propriétaire -> refus (symptôme de l\'id périmé)');
-  ok(/Lot #2 inscrit/.test(runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '2', '--session', 's-autre']).out),
+  ok(/US#2 inscrite/.test(runNode(BKLG, ['fleet', 'join', '--cwd', wrepo, '--id', '2', '--session', 's-autre']).out),
     'R100-d : la garde ne vise QUE le repli — --session explicite passe');
 
   // ---- E6. fleet leave : désinscription outillée + purge du handoff de lot ----
   const h1 = handoff.lotHandoffFile(wrepo, 1);
   fs.writeFileSync(h1, '<!-- pmz:handoff:auto -->\nétat fille\n');
   fs.writeFileSync(path.join(vd, 'handoff.md'), '<!-- pmz:handoff:auto -->\nbase\n');
-  ok(/Refusé : lot #404 absent du registre/.test(runNode(BKLG, ['fleet', 'leave', '--cwd', wrepo, '--id', '404']).out),
+  ok(/Refusé : US#404 absente du registre/.test(runNode(BKLG, ['fleet', 'leave', '--cwd', wrepo, '--id', '404']).out),
     'R100-e : leave sur un lot non inscrit -> refus explicite');
   fleet.setLotState(wrepo, 1, 'ready');
   const lv = runNode(BKLG, ['fleet', 'leave', '--cwd', wrepo, '--id', '1']);
-  ok(/Lot #1 retiré de la vague/.test(lv.out) && /redevient autonome/.test(lv.out), 'R100-e : leave désinscrit le lot');
-  ok(/⚠️ Ce lot était « prêt à merger »/.test(lv.out),
+  ok(/US#1 retirée de la vague/.test(lv.out) && /redevient autonome/.test(lv.out), 'R100-e : leave désinscrit le lot');
+  ok(/⚠️ Cette US était « prêt à merger »/.test(lv.out),
     'R100-e : quitter en état `ready` -> averti (le lot sort du plan de réintégration)');
-  ok(!fs.existsSync(h1) && /handoff de lot purgé/.test(lv.out),
+  ok(!fs.existsSync(h1) && /handoff d'US purgé/.test(lv.out),
     'R100-e : le handoff de lot part avec l\'inscription (plus d\'orphelin jusqu\'à la clôture de vague)');
   ok(fs.existsSync(path.join(vd, 'handoff.md')), 'R100-e : handoff.md épargné');
   ok(!fleet.loadFleet(wrepo).lots.some((l) => l.id === 1), 'R100-e : l\'entrée a bien disparu de fleet.json');
@@ -7277,7 +7277,7 @@ section('FIA-23 — atomicité, corruption, concurrence : trous de couverture co
   }
 }
 
-section('backlog — champ us : garde d\'existence, show, export (epic « US & Jira », backlog #101)');
+section('backlog — champ spec (ex-us) : garde d\'existence, show, export (epic « US & Jira », backlog #101)');
 {
   const repo = path.join(SANDBOX, 'repo-us');
   fs.mkdirSync(repo, { recursive: true });
@@ -7288,47 +7288,47 @@ section('backlog — champ us : garde d\'existence, show, export (epic « US & J
   const lotOf = (id) => backlogLib.loadBacklog(repo).lots.find((l) => l.id === id);
 
   // U1. --us pointant vers un chemin inexistant -> refus explicite, rien de persisté.
-  const rMissing = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--us', 'docs/us/US-42.md']);
-  ok(/Refusé/.test(rMissing.out) && /chemin inexistant/.test(rMissing.out) && /docs\/us\/US-42\.md/.test(rMissing.out),
-    'U1 : add --us <chemin inexistant> -> refus explicite (message nomme le chemin)');
+  const rMissing = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--spec', 'docs/specs/SPEC-42.md']);
+  ok(/Refusé/.test(rMissing.out) && /chemin inexistant/.test(rMissing.out) && /docs\/specs\/SPEC-42\.md/.test(rMissing.out),
+    'U1 : add --spec <chemin inexistant> -> refus explicite (message nomme le chemin)');
   ok(!backlogLib.loadBacklog(repo).lots.length, 'U1 : aucun lot persisté (refus AVANT toute écriture)');
 
   // U2. --us pointant vers un fichier réel -> persisté, réaffiché par show et add.
-  fs.mkdirSync(path.join(repo, 'docs', 'us'), { recursive: true });
-  fs.writeFileSync(path.join(repo, 'docs', 'us', 'US-42.md'), '# US — test\n');
-  const rOk = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--us', 'docs/us/US-42.md']);
-  ok(/\[US : docs\/us\/US-42\.md\]/.test(rOk.out), 'U2 : add --us <chemin existant> -> accepté, tag [US : …] dans la sortie');
-  ok(lotOf(1).us === 'docs/us/US-42.md', 'U2 : champ us persisté sur le lot');
+  fs.mkdirSync(path.join(repo, 'docs', 'specs'), { recursive: true });
+  fs.writeFileSync(path.join(repo, 'docs', 'specs', 'SPEC-42.md'), '# US — test\n');
+  const rOk = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--spec', 'docs/specs/SPEC-42.md']);
+  ok(/\[Spec : docs\/specs\/SPEC-42\.md\]/.test(rOk.out), 'U2 : add --spec <chemin existant> -> accepté, tag [Spec : …] dans la sortie');
+  ok(lotOf(1).spec === 'docs/specs/SPEC-42.md', 'U2 : champ spec persisté sur le lot');
   const rShow = runNode(BKLG, ['show', '--cwd', repo]);
-  ok(/\[US : docs\/us\/US-42\.md\]/.test(rShow.out), 'U2 : show réaffiche le pointeur US');
+  ok(/\[Spec : docs\/specs\/SPEC-42\.md\]/.test(rShow.out), 'U2 : show réaffiche le pointeur US');
 
-  // U3. lot posé SANS --us : champ absent, aucune ligne [US : …] (pas de valeur inventée).
+  // U3. lot posé SANS --us : champ absent, aucune ligne [Spec : …] (pas de valeur inventée).
   const rNoUs = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US B', '--model', 'sonnet']);
-  ok(!/\[US :/.test(rNoUs.out), 'U3 : add sans --us -> aucun tag [US : …]');
-  ok(lotOf(2).us === null, 'U3 : champ us absent (null) sur un lot sans US');
+  ok(!/\[Spec :/.test(rNoUs.out), 'U3 : add sans --spec -> aucun tag [Spec : …]');
+  ok(lotOf(2).spec === null, 'U3 : champ spec absent (null) sur un lot sans US');
 
   // U4. export CSV/Markdown expose la colonne us — vide pour le lot sans US.
   const csv = backlogLib.exportCsv(backlogLib.loadBacklog(repo));
   const header = csv.split('\n')[0].split(',');
-  ok(header.includes('us'), 'U4 : colonne us présente dans l\'export CSV');
+  ok(header.includes('spec'), 'U4 : colonne spec présente dans l\'export CSV');
   const rows = csv.split('\n').slice(1);
-  const usCol = header.indexOf('us');
-  ok(rows[0].split(',')[usCol] === 'docs/us/US-42.md', 'U4 : export CSV — lot #1 porte son chemin US');
+  const usCol = header.indexOf('spec');
+  ok(rows[0].split(',')[usCol] === 'docs/specs/SPEC-42.md', 'U4 : export CSV — lot #1 porte son chemin US');
   ok(rows[1].split(',')[usCol] === '', 'U4 : export CSV — lot #2 (sans US) -> cellule vide, rien d\'inventé');
 
-  // U5. garde anti-troncature (#90) partagée : --us au-delà de MAX_US -> refus, jamais tronqué.
-  const tooLong = 'docs/' + 'x'.repeat(backlogLib.MAX_US) + '.md';
-  const rLong = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US C', '--model', 'sonnet', '--us', tooLong]);
-  ok(/Refusé/.test(rLong.out) && /--us/.test(rLong.out), 'U5 : --us au-delà du plafond MAX_US -> refus explicite (truncGuard)');
+  // U5. garde anti-troncature (#90) partagée : --us au-delà de MAX_SPEC -> refus, jamais tronqué.
+  const tooLong = 'docs/' + 'x'.repeat(backlogLib.MAX_SPEC) + '.md';
+  const rLong = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US C', '--model', 'sonnet', '--spec', tooLong]);
+  ok(/Refusé/.test(rLong.out) && /--spec/.test(rLong.out), 'U5 : --spec au-delà du plafond MAX_SPEC -> refus explicite (truncGuard)');
 
   // U6. défense en profondeur côté lib : addLot() direct refuse aussi un chemin inexistant
   // (pas seulement le CLI) — un appelant qui contournerait le CLI ne doit pas pouvoir stocker
   // un pointeur mort.
   const direct = backlogLib.addLot(repo, 'Lot direct', null, 'sonnet', null, null, null, [], [], 'chemin/mort.md');
-  ok(direct === null, 'U6 : lib.addLot() refuse aussi directement un chemin --us inexistant (garde doublée)');
+  ok(direct === null, 'U6 : lib.addLot() refuse aussi directement un chemin --spec inexistant (garde doublée)');
 }
 
-section('backlog — commande `us` : lecture, --new (gabarit), --set (epic « Formalisation US », backlog #106)');
+section('backlog — commande `spec` (alias `us`) : lecture, --new (gabarit), --set (epic « Formalisation US », backlog #106)');
 {
   const repo = path.join(SANDBOX, 'repo-us-new');
   fs.mkdirSync(repo, { recursive: true });
@@ -7342,79 +7342,82 @@ section('backlog — commande `us` : lecture, --new (gabarit), --set (epic « Fo
 
   // N1. lecture sans flag : aucun pointeur -> le dit, et donne la porte d'entrée. Coût zéro :
   // la commande ne lit JAMAIS le fichier US, seulement le pointeur.
-  const rRead = runNode(BKLG, ['us', '--cwd', repo, '--id', '1']);
+  const rRead = runNode(BKLG, ['spec', '--cwd', repo, '--id', '1']);
   ok(/\(aucune\)/.test(rRead.out) && /--new/.test(rRead.out),
-    'N1 : `us --id N` sans pointeur -> « (aucune) » + suggestion --new');
-  ok(/introuvable/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '99']).out),
-    'N1 : `us` sur un id inconnu -> lot introuvable, rien d\'écrit');
+    'N1 : `spec --id N` sans pointeur -> « (aucune) » + suggestion --new');
+  ok(/introuvable/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '99']).out),
+    'N1 : `spec` sur un id inconnu -> lot introuvable, rien d\'écrit');
 
   // N2. --new : pose le fichier au chemin conventionnel ET rattache le pointeur (indissociable).
-  const rNew = runNode(BKLG, ['us', '--cwd', repo, '--id', '1', '--new']);
-  ok(/docs\/us\/US-1\.md/.test(rNew.out) && /créée/.test(rNew.out), 'N2 : `us --new` annonce le fichier créé');
-  const usAbs = path.join(repo, 'docs', 'us', 'US-1.md');
-  ok(fs.existsSync(usAbs), 'N2 : fichier US réellement posé sous docs/us/');
-  ok(lotOf(1).us === 'docs/us/US-1.md', 'N2 : pointeur us rattaché au lot dans le même geste');
-  ok(backlogLib.usPathFor(7) === 'docs/us/US-7.md', 'N2 : usPathFor — chemin conventionnel sans slug de titre');
+  const rNew = runNode(BKLG, ['spec', '--cwd', repo, '--id', '1', '--new']);
+  ok(/docs\/specs\/SPEC-1\.md/.test(rNew.out) && /créée/.test(rNew.out), 'N2 : `spec --new` annonce le fichier créé');
+  const usAbs = path.join(repo, 'docs', 'specs', 'SPEC-1.md');
+  ok(fs.existsSync(usAbs), 'N2 : fichier US réellement posé sous docs/specs/');
+  ok(lotOf(1).spec === 'docs/specs/SPEC-1.md', 'N2 : pointeur spec rattaché au lot dans le même geste');
+  ok(backlogLib.specPathFor(7) === 'docs/specs/SPEC-7.md', 'N2 : specPathFor — chemin conventionnel sans slug de titre');
 
   // N3. gabarit rendu : jetons substitués (id, titre, epic), aucun {{…}} résiduel, sections tenues.
   const body = fs.readFileSync(usAbs, 'utf8');
-  ok(/^# US 1 — Gabarit US enrichi$/m.test(body), 'N3 : gabarit — titre substitué');
-  ok(/- lot : #1/.test(body) && /- epic : Formalisation US/.test(body), 'N3 : gabarit — lot et epic substitués');
+  ok(/^# Spec US#1 — Gabarit US enrichi$/m.test(body), 'N3 : gabarit — titre substitué');
+  ok(/- US : #1/.test(body) && /- epic : Formalisation US/.test(body), 'N3 : gabarit — lot et epic substitués');
   ok(!/\{\{/.test(body), 'N3 : gabarit — aucun jeton {{…}} résiduel après rendu');
   for (const s of ['## Récit', '## Critères d\'acceptation', '## Hors périmètre', '## Preuve de clôture', '## Notes']) {
     ok(body.includes(s), `N3 : gabarit — section « ${s} » présente`);
   }
   ok(body.split('\n').length < 60, 'N3 : gabarit sobre — sous 60 lignes (au-delà, le lot est à redécouper)');
-  ok(/- epic : —/.test(backlogLib.renderUsTemplate({ id: 5, title: 'T', epic: null })),
+  ok(/- epic : —/.test(backlogLib.renderSpecTemplate({ id: 5, title: 'T', epic: null })),
     'N3 : lot sans epic -> tiret cadratin, jamais « null »');
 
   // N4. refus doux si le fichier existe : cette commande GÉNÈRE, elle n'écrase pas une US rédigée.
   fs.writeFileSync(usAbs, '# US rédigée à la main\n');
-  const rAgain = runNode(BKLG, ['us', '--cwd', repo, '--id', '1', '--new']);
-  ok(/Refusé/.test(rAgain.out) && /existe déjà/.test(rAgain.out), 'N4 : `us --new` sur un fichier existant -> refus doux');
+  const rAgain = runNode(BKLG, ['spec', '--cwd', repo, '--id', '1', '--new']);
+  ok(/Refusé/.test(rAgain.out) && /existe déjà/.test(rAgain.out), 'N4 : `spec --new` sur un fichier existant -> refus doux');
   ok(fs.readFileSync(usAbs, 'utf8') === '# US rédigée à la main\n', 'N4 : contenu existant INTACT (aucun écrasement)');
-  ok(/déjà le pointeur US/.test(rAgain.out), 'N4 : le refus dit que le fichier est déjà rattaché (rien à faire)');
+  ok(/déjà le pointeur de spec/.test(rAgain.out), 'N4 : le refus dit que le fichier est déjà rattaché (rien à faire)');
 
   // N5. --set : rattache une US écrite ailleurs (issue du refus N4 quand le lot ne pointe nulle part).
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot deux', '--model', 'sonnet']);
-  fs.writeFileSync(path.join(repo, 'docs', 'us', 'US-2.md'), '# US 2\n');
-  const rExists2 = runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--new']);
-  ok(/ne pointe vers aucune US/.test(rExists2.out) && /--set docs\/us\/US-2\.md/.test(rExists2.out),
+  fs.writeFileSync(path.join(repo, 'docs', 'specs', 'SPEC-2.md'), '# US 2\n');
+  const rExists2 = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new']);
+  ok(/ne pointe vers aucune spec/.test(rExists2.out) && /--set docs\/specs\/SPEC-2\.md/.test(rExists2.out),
     'N5 : refus doux -> propose --set comme issue quand le lot ne pointe nulle part');
-  const rSet = runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--set', 'docs/us/US-2.md']);
-  ok(/rattachée/.test(rSet.out) && lotOf(2).us === 'docs/us/US-2.md', 'N5 : `us --set <existant>` rattache le pointeur');
-  const rSetDead = runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--set', 'docs/us/mort.md']);
+  const rSet = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/specs/SPEC-2.md']);
+  ok(/rattachée/.test(rSet.out) && lotOf(2).spec === 'docs/specs/SPEC-2.md', 'N5 : `spec --set <existant>` rattache le pointeur');
+  const rSetDead = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/specs/mort.md']);
   ok(/Refusé/.test(rSetDead.out) && /chemin inexistant/.test(rSetDead.out),
-    'N5 : `us --set <inexistant>` refusé (même garde qu\'add --us : pas de pointeur mort)');
-  ok(lotOf(2).us === 'docs/us/US-2.md', 'N5 : pointeur précédent préservé après un --set refusé');
-  ok(/s'excluent/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--new', '--set', 'docs/us/US-2.md']).out),
+    'N5 : `spec --set <inexistant>` refusé (même garde qu\'add --spec : pas de pointeur mort)');
+  ok(lotOf(2).spec === 'docs/specs/SPEC-2.md', 'N5 : pointeur précédent préservé après un --set refusé');
+  ok(/s'excluent/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new', '--set', 'docs/specs/SPEC-2.md']).out),
     'N5 : --new et --set ensemble -> refus (intentions contradictoires)');
-  const tooLongUs = 'docs/' + 'x'.repeat(backlogLib.MAX_US) + '.md';
-  ok(/Refusé/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--set', tooLongUs]).out),
-    'N5 : --set au-delà de MAX_US -> refus (truncGuard partagé)');
+  const tooLongUs = 'docs/' + 'x'.repeat(backlogLib.MAX_SPEC) + '.md';
+  ok(/Refusé/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', tooLongUs]).out),
+    'N5 : --set au-delà de MAX_SPEC -> refus (truncGuard partagé)');
 
   // N6. lot clos : ni gabarit ni rattachement — une US écrite après coup ne gouverne plus rien.
   // La LECTURE reste ouverte (consulter l'US d'un lot clos est légitime).
   backlogLib.startLot(repo, 2);
   backlogLib.doneLot(repo, 2, 'abc1234');
-  ok(/docs\/us\/US-2\.md/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '2']).out),
+  ok(/docs\/specs\/SPEC-2\.md/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2']).out),
     'N6 : lecture du pointeur d\'un lot clos -> toujours autorisée');
-  ok(/Refusé/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--new']).out),
-    'N6 : `us --new` sur un lot clos -> refus');
-  ok(/Refusé/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--set', 'docs/us/US-1.md']).out),
-    'N6 : `us --set` sur un lot clos -> refus');
-  ok(lotOf(2).us === 'docs/us/US-2.md', 'N6 : pointeur du lot clos inchangé');
+  ok(/Refusé/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new']).out),
+    'N6 : `spec --new` sur un lot clos -> refus');
+  ok(/Refusé/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/specs/SPEC-1.md']).out),
+    'N6 : `spec --set` sur un lot clos -> refus');
+  ok(lotOf(2).spec === 'docs/specs/SPEC-2.md', 'N6 : pointeur du lot clos inchangé');
 
   // N7. défense en profondeur côté lib : setUs refuse un chemin mort et un lot clos, comme addLot.
-  ok(backlogLib.setUs(repo, 1, 'chemin/mort.md') === null, 'N7 : lib.setUs() refuse un chemin inexistant');
-  ok(backlogLib.setUs(repo, 1, '') === null, 'N7 : lib.setUs() refuse un chemin vide');
-  ok(backlogLib.setUs(repo, 2, 'docs/us/US-1.md') === null, 'N7 : lib.setUs() refuse un lot clos');
-  ok(backlogLib.createUsFile(repo, 404).reason === 'nolot', 'N7 : lib.createUsFile() sur un lot inconnu -> reason nolot');
+  ok(backlogLib.setSpec(repo, 1, 'chemin/mort.md') === null, 'N7 : lib.setSpec() refuse un chemin inexistant');
+  ok(backlogLib.setSpec(repo, 1, '') === null, 'N7 : lib.setSpec() refuse un chemin vide');
+  ok(backlogLib.setSpec(repo, 2, 'docs/specs/SPEC-1.md') === null, 'N7 : lib.setSpec() refuse un lot clos');
+  ok(backlogLib.createSpecFile(repo, 404).reason === 'nolot', 'N7 : lib.createSpecFile() sur un lot inconnu -> reason nolot');
+  // N8. sous-commande `us` gardée en alias déprécié de `spec`.
+  ok(/docs\/specs\/SPEC-1\.md/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '1']).out),
+    'N8 : `us --id N` (alias déprécié) -> lit le pointeur de spec');
   ok(backlogLib.BOOL_FLAGS.includes('new'), 'N7 : --new déclaré booléen (sinon avalé comme valeur par la garde d\'orphelins)');
-  ok(/\| us \|/.test(runNode(BKLG, ['zzz', '--cwd', repo]).out), 'N7 : `us` listée dans les commandes de l\'aide');
+  ok(/\| spec \|/.test(runNode(BKLG, ['zzz', '--cwd', repo]).out), 'N7 : `spec` listée dans les commandes de l\'aide');
 }
 
-section('backlog — validation de structure de l\'US à la clôture (epic « Formalisation US », backlog #107)');
+section('backlog — validation de structure de la spec à la clôture (epic « Formalisation US », backlog #107)');
 {
   const repo = path.join(SANDBOX, 'repo-us-structure');
   fs.mkdirSync(repo, { recursive: true });
@@ -7424,14 +7427,14 @@ section('backlog — validation de structure de l\'US à la clôture (epic « Fo
   execFileSync('git', ['-C', repo, 'commit', '-q', '-m', 'init']);
   const lotOf = (id) => backlogLib.loadBacklog(repo).lots.find((l) => l.id === id);
 
-  // O1. lib.checkUsStructure : défense en profondeur — null si pas de pointeur / fichier illisible.
-  ok(backlogLib.checkUsStructure(repo, null) === null, 'O1 : checkUsStructure(null) -> null (pas de pointeur)');
-  ok(backlogLib.checkUsStructure(repo, 'docs/us/inexistant.md') === null, 'O1 : checkUsStructure(chemin mort) -> null');
+  // O1. lib.checkSpecStructure : défense en profondeur — null si pas de pointeur / fichier illisible.
+  ok(backlogLib.checkSpecStructure(repo, null) === null, 'O1 : checkSpecStructure(null) -> null (pas de pointeur)');
+  ok(backlogLib.checkSpecStructure(repo, 'docs/specs/inexistant.md') === null, 'O1 : checkSpecStructure(chemin mort) -> null');
 
-  // O2. US complète (gabarit tel que posé par `us --new`) : aucune section manquante.
+  // O2. US complète (gabarit tel que posé par `spec --new`) : aucune section manquante.
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US complète', '--model', 'sonnet']);
-  runNode(BKLG, ['us', '--cwd', repo, '--id', '1', '--new']);
-  ok(backlogLib.checkUsStructure(repo, 'docs/us/US-1.md').missing.length === 0,
+  runNode(BKLG, ['spec', '--cwd', repo, '--id', '1', '--new']);
+  ok(backlogLib.checkSpecStructure(repo, 'docs/specs/SPEC-1.md').missing.length === 0,
     'O2 : gabarit frais -> aucune section obligatoire manquante');
   backlogLib.startLot(repo, 1);
   const rDoneOk = runNode(BKLG, ['done', '--cwd', repo, '--id', '1', '--no-session', '--no-occupancy']);
@@ -7440,25 +7443,25 @@ section('backlog — validation de structure de l\'US à la clôture (epic « Fo
 
   // O3. US aux sections manquantes (fichier tronqué à la main) : `done` refuse en refus doux.
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US tronquée', '--model', 'sonnet']);
-  runNode(BKLG, ['us', '--cwd', repo, '--id', '2', '--new']);
-  const usAbs2 = path.join(repo, 'docs', 'us', 'US-2.md');
+  runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new']);
+  const usAbs2 = path.join(repo, 'docs', 'specs', 'SPEC-2.md');
   fs.writeFileSync(usAbs2, '# US 2\n\n## Récit\n\nEn tant que designer, je veux X, afin de Y.\n');
-  ok(backlogLib.checkUsStructure(repo, 'docs/us/US-2.md').missing.join(', ')
+  ok(backlogLib.checkSpecStructure(repo, 'docs/specs/SPEC-2.md').missing.join(', ')
     === 'Critères d\'acceptation, Hors périmètre, Preuve de clôture, Notes',
-    'O3 : checkUsStructure -> liste exacte des 4 sections manquantes');
+    'O3 : checkSpecStructure -> liste exacte des 4 sections manquantes');
   backlogLib.startLot(repo, 2);
   const rDoneRefused = runNode(BKLG, ['done', '--cwd', repo, '--id', '2', '--no-session', '--no-occupancy']);
   ok(/Refusé/.test(rDoneRefused.out) && /sections obligatoires/.test(rDoneRefused.out),
     'O3 : `done` sur une US aux sections manquantes -> refus doux (message actionnable)');
   ok(/Critères d'acceptation, Hors périmètre, Preuve de clôture, Notes/.test(rDoneRefused.out),
     'O3 : le refus liste les sections manquantes');
-  ok(/--allow-incomplete-us/.test(rDoneRefused.out), 'O3 : le refus mentionne l\'issue --allow-incomplete-us');
+  ok(/--allow-incomplete-spec/.test(rDoneRefused.out), 'O3 : le refus mentionne l\'issue --allow-incomplete-spec');
   ok(lotOf(2).status === 'in_progress', 'O3 : lot NON clos — le refus doux n\'a rien changé au backlog');
 
   // O4. --allow-incomplete-us : débloque la clôture malgré la structure incomplète.
-  const rDoneForced = runNode(BKLG, ['done', '--cwd', repo, '--id', '2', '--no-session', '--no-occupancy', '--allow-incomplete-us']);
+  const rDoneForced = runNode(BKLG, ['done', '--cwd', repo, '--id', '2', '--no-session', '--no-occupancy', '--allow-incomplete-spec']);
   ok(/clos/.test(rDoneForced.out) && !/Refusé/.test(rDoneForced.out),
-    'O4 : `done --allow-incomplete-us` -> clôture forcée malgré la structure incomplète');
+    'O4 : `done --allow-incomplete-spec` -> clôture forcée malgré la structure incomplète');
   ok(lotOf(2).status === 'done', 'O4 : lot bien clos après override');
 
   // O5. lot sans pointeur US : `done` ne vérifie rien (pas de régression sur le cas majoritaire).
@@ -7470,11 +7473,19 @@ section('backlog — validation de structure de l\'US à la clôture (epic « Fo
   // O6. le contenu d'un critère (« ... » resté en l'état) n'est PAS du ressort de cette garde —
   // seule la présence des TITRES de section est vérifiée (portée littérale du lot #107).
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot critères vides', '--model', 'sonnet']);
-  runNode(BKLG, ['us', '--cwd', repo, '--id', '4', '--new']);
-  ok(backlogLib.checkUsStructure(repo, 'docs/us/US-4.md').missing.length === 0,
+  runNode(BKLG, ['spec', '--cwd', repo, '--id', '4', '--new']);
+  ok(backlogLib.checkSpecStructure(repo, 'docs/specs/SPEC-4.md').missing.length === 0,
     'O6 : gabarit avec critères encore « ... » -> structure jugée complète (portée = titres de section)');
 
-  ok(backlogLib.BOOL_FLAGS.includes('allow-incomplete-us'),
+  // O8. alias --allow-incomplete-us toujours honoré.
+  runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot alias incomplet', '--model', 'sonnet']);
+  runNode(BKLG, ['spec', '--cwd', repo, '--id', '5', '--new']);
+  fs.writeFileSync(path.join(repo, 'docs', 'specs', 'SPEC-5.md'), '# Spec 5\n');
+  backlogLib.startLot(repo, 5);
+  ok(!/Refusé/.test(runNode(BKLG, ['done', '--cwd', repo, '--id', '5', '--no-session', '--no-occupancy', '--allow-incomplete-us']).out)
+    && lotOf(5).status === 'done', 'O8 : --allow-incomplete-us (alias déprécié) débloque encore la clôture');
+
+  ok(backlogLib.BOOL_FLAGS.includes('allow-incomplete-spec') && backlogLib.BOOL_FLAGS.includes('allow-incomplete-us'),
     'O7 : --allow-incomplete-us déclaré booléen (sinon avalé comme valeur par la garde d\'orphelins)');
 }
 
@@ -7500,16 +7511,16 @@ section('Carte de clôture unique + coda de session fraîche hors arbitre (epic 
   const card = messages.closureCardMessage(doneLotFixture, { title: 'Suivant', scope: 'y' }, { done: 1, total: 2 }, [], { rereadsAvoided: 3, bilan: bilanFixture });
   ok((card.match(new RegExp(sev108.GLYPH.info, 'g')) || []).length === 1,
     'P1 : un seul glyphe -> un seul nudge, donc UNE seule place d\'arbitre pour tout le tour de clôture');
-  ok(/Carte de clôture — lot « Mon lot » clos \(1\/2\)/.test(card) && /14k tokens/.test(card) && /2 h/.test(card) && /3 relecture\(s\) évitée\(s\)/.test(card),
+  ok(/Carte de clôture — US « Mon lot » close \(1\/2\)/.test(card) && /14k tokens/.test(card) && /2 h/.test(card) && /3 relecture\(s\) évitée\(s\)/.test(card),
     'P1 : la carte porte le lot clos, l\'avancement et les chiffres (#59 + #97 fusionnés)');
-  ok(/Epic « Mon Epic » terminée : 2 lot\(s\), 14k tokens/.test(card), 'P1 : le bilan d\'epic (#58) est une LIGNE de la carte, plus un nudge concurrent');
+  ok(/Epic « Mon Epic » terminée : 2 US, 14k tokens/.test(card), 'P1 : le bilan d\'epic (#58) est une LIGNE de la carte, plus un nudge concurrent');
   ok(/Suivant : « Suivant » — y\./.test(card), 'P1 : le lot suivant est annoncé dans la même carte');
 
   // P2. Cas courant (pas de fin d'epic) + plan terminé : aucune ligne fantôme.
   const cardPlain = messages.closureCardMessage(doneLotFixture, { title: 'Suivant' }, { done: 1, total: 2 }, [], { rereadsAvoided: 0 });
   ok(!/Epic «/.test(cardPlain), 'P2 : pas de bilan (lot au milieu d\'une epic) -> aucune ligne d\'epic');
   const cardEnd = messages.closureCardMessage(doneLotFixture, null, { done: 2, total: 2 }, null, {});
-  ok(/Plan de lots terminé\./.test(cardEnd) && !/Suivant :/.test(cardEnd), 'P2 : plus de lot suivant -> « Plan de lots terminé. »');
+  ok(/Plan des US terminé\./.test(cardEnd) && !/Suivant :/.test(cardEnd), 'P2 : plus d\'US suivante -> « Plan des US terminé. »');
 
   // P3. La reco de session fraîche a QUITTÉ la carte (elle est devenue une coda hors arbitre).
   ok(!/session/i.test(cardPlain), 'P3 : la carte ne porte plus la reco « nouvelle session » (prescription sortie de la carte)');
@@ -7536,7 +7547,7 @@ section('Carte de clôture unique + coda de session fraîche hors arbitre (epic 
     execFileSync('git', ['-C', repo, 'add', '.']);
     execFileSync('git', ['-C', repo, 'commit', '-q', '-m', 'lot carte fini']);
     const m = sysMsg108(runHook('stop.js', { session_id: 's108-a', cwd: repo, transcript_path: empty108 }));
-    ok(/Carte de clôture — lot « Lot carte » clos \(1\/2\)/.test(m), 'P5 : e2e -> carte unique émise à l\'auto-clôture');
+    ok(/Carte de clôture — US « Lot carte » close \(1\/2\)/.test(m), 'P5 : e2e -> carte unique émise à l\'auto-clôture');
     ok((m.match(/Carte de clôture/g) || []).length === 1, 'P5 : une seule carte (pas de doublon avec l\'ancien « Lot … clos »)');
     ok(/\/pmz:fresh-session/.test(m), 'P5 : e2e -> coda de session fraîche émise');
     ok(m.lastIndexOf('/pmz:fresh-session') > m.indexOf('Carte de clôture'), 'P5 : la coda arrive en DERNIER (elle clôt le bloc)');
@@ -7580,7 +7591,7 @@ section('Carte de clôture unique + coda de session fraîche hors arbitre (epic 
     const m = sysMsg108(runHook('stop.js', { session_id: 's108-fraiche', cwd: repo, transcript_path: empty108b }));
     ok(backlogLib.loadBacklog(repo).lots[0].status === 'done',
       'P7 : arbre propre + un seul in_progress + commit depuis le démarrage -> auto-clôture, sans flag de session');
-    ok(/Carte de clôture — lot « Lot orphelin »/.test(m) && /\/pmz:fresh-session/.test(m),
+    ok(/Carte de clôture — US « Lot orphelin »/.test(m) && /\/pmz:fresh-session/.test(m),
       'P7 : la clôture réparée émet la carte ET la coda comme une clôture normale');
   }
 
@@ -8099,7 +8110,7 @@ section('Tableau de bord — HTML autonome, thémable, sans requête réseau');
   const dInside = H.slice(iMore, H.indexOf('</details>', iMore));
   ok(['Occupation du contexte', 'Décomposition du coût', 'Où part la lecture de cache',
     'Accrétion (tokens/tour)', 'Loi d\'échelle', '3 recommandations chiffrées',
-    'Sessions les plus chères', 'Gain RTK par lot'].every((t) => dInside.indexOf(t) !== -1),
+    'Sessions les plus chères', 'Gain RTK par US'].every((t) => dInside.indexOf(t) !== -1),
     'D122-3 : les huit blocs techniques sont dans le pli — aucun bloc perdu dans la refonte');
 
   // Fenêtre dégradée : le déclassement en plafonds remonte comme point d'attention, jamais tu.
@@ -8357,7 +8368,7 @@ section('Borne d\'occupation : lecteur de scalaires rules.yaml + seuil zone-roug
 
   const mWin = messages.redZonePrescriptionMessage(
     { occ: 180000, model: 'claude-haiku-4-5', threshold: 170000, window: 200000, source: 'window' });
-  ok(/ZONE ROUGE/.test(mWin) && /auto-compact/.test(mWin) && /Lot fini → \/close-batch/.test(mWin),
+  ok(/ZONE ROUGE/.test(mWin) && /auto-compact/.test(mWin) && /US finie → \/close-batch/.test(mWin),
     'B112-5 : régime historique sans lot -> message d\'origine intact (non-régression #71)');
 
   // --- B112-6. Bout-en-bout stop.js : la borne du projet change le comportement live ---
@@ -8702,9 +8713,9 @@ section('Coût par lot en mode vague — tours délégués, imputation nominativ
   runNode(BKLG, ['add', '--cwd', repoP, '--title', 'A', '--model', 'opus', '--perimeter', 'lib/a/**,test/**']);
   runNode(BKLG, ['add', '--cwd', repoP, '--title', 'B', '--model', 'opus', '--perimeter', 'lib/b/**,test/**']);
   const rPar = runNode(BKLG, ['parallelize', '--cwd', repoP]);
-  ok(/2 lot\(s\) parallélisable\(s\) sur 1 vague\(s\)/.test(rPar.out),
+  ok(/2 US parallélisable\(s\) sur 1 vague\(s\)/.test(rPar.out),
     'V6 : /pmz:parallelize -> une seule vague pour deux lots qui partagent test/**');
-  ok(/Zone partagée entre ces lots.*test\/\*\*/.test(rPar.out) && /conflit de merge y est normal/.test(rPar.out),
+  ok(/Zone partagée entre ces US.*test\/\*\*/.test(rPar.out) && /conflit de merge y est normal/.test(rPar.out),
     'V6 : la zone partagée est ANNONCÉE (conflit attendu, arbitré par la réintégration)');
 
   // --- V7. clôture CLI : closed_verify enfin écrit ----------------------------------------------
@@ -9357,7 +9368,7 @@ process.stdout.write(JSON.stringify({ offenders, produced,
     // Les deux occurrences corrigées, nommément : absence du mauvais chemin ET présence du bon.
     ok(probeOut.large.indexOf(ROOT_PROBE + '/scripts/backlog.js') !== -1,
       'B128-4 : MSG_LARGE pointe vers ${CLAUDE_PLUGIN_ROOT}/scripts/backlog.js');
-    ok(/Démarre-le \(node \/pmz-probe\/plugins\/pmz\/scripts\/backlog\.js start --id 7\)/.test(probeOut.resume),
+    ok(/Démarre-la \(node \/pmz-probe\/plugins\/pmz\/scripts\/backlog\.js start --id 7\)/.test(probeOut.resume),
       'B128-5 : backlogResumeMessage (« Démarre-le ») pointe vers ${CLAUDE_PLUGIN_ROOT}/scripts/backlog.js');
   }
 
@@ -9418,7 +9429,7 @@ process.stdout.write(JSON.stringify({ offenders, produced,
   } catch (e) { manualOut = null; }
   ok(manualOut && manualOut.large.indexOf('node ~/.claude/promptimizer/scripts/backlog.js') !== -1,
     'B128-6 : sans CLAUDE_PLUGIN_ROOT, MSG_LARGE garde le chemin de l\'install manuelle');
-  ok(manualOut && /Démarre-le \(node ~\/\.claude\/promptimizer\/scripts\/backlog\.js/.test(manualOut.resume),
+  ok(manualOut && /Démarre-la \(node ~\/\.claude\/promptimizer\/scripts\/backlog\.js/.test(manualOut.resume),
     'B128-7 : sans CLAUDE_PLUGIN_ROOT, backlogResumeMessage garde le chemin de l\'install manuelle');
 }
 
@@ -9451,15 +9462,15 @@ section('B130 — titre de session : jamais nu quand un plan existe, sessions de
   const trg1 = trigram.deriveTrigram(repo1);
   runHook('session-start.js', { source: 'startup', session_id: 'sess-release', cwd: repo1, transcript_path: empty });
   const t1 = lot.suggestedTitle(repo1);
-  ok(t1 === `[${trg1} · #1] Diffusion plugin · Lot #1 · chore(release): version 2.5.0`,
+  ok(t1 === `[${trg1} · US#1] Diffusion plugin · chore(release): version 2.5.0`,
     `B130-1 : session sans clôture -> numéro + plan conservés, résumé déduit (${t1})`);
-  ok(t1 !== `[${trg1}] Session Libre`, 'B130-2 : plus jamais la forme nue quand un plan existe');
+  ok(t1 !== `[${trg1} · HS]`, 'B130-2 : plus jamais la forme nue quand un plan existe');
 
   // B130-3. Attribution normale intacte : la session qui a clos le lot est décrite par son lot.
   const repo3 = mk('repo-b130-attrib', 'fix: chemins plugin', 'sess-closer');
   const trg3 = trigram.deriveTrigram(repo3);
   runHook('session-start.js', { source: 'startup', session_id: 'sess-closer', cwd: repo3, transcript_path: empty });
-  ok(lot.suggestedTitle(repo3) === `[${trg3} · #1] Diffusion plugin · Lot #1 · Chemins plugin`,
+  ok(lot.suggestedTitle(repo3) === `[${trg3} · US#1] Diffusion plugin · Chemins plugin`,
     'B130-3 : non-régression — le lot clos par la session précédente reste prioritaire');
 
   // B130-4/5. Session de CONCEPTION marquée par `epic --set` (/pmz:scope étape 3) :
@@ -9508,7 +9519,7 @@ section('B130 — titre de session : jamais nu quand un plan existe, sessions de
   const trg12 = trigram.deriveTrigram(repo12);
   runHook('session-start.js', { source: 'startup', session_id: 'sess-both', cwd: repo12, transcript_path: empty });
   runNode(BKLG, ['epic', '--set', 'Autre plan', '--cwd', repo12]);
-  ok(lot.suggestedTitle(repo12) === `[${trg12} · #1] Diffusion plugin · Lot #1 · Chemins plugin`,
+  ok(lot.suggestedTitle(repo12) === `[${trg12} · US#1] Diffusion plugin · Chemins plugin`,
     'B130-12 : lot clos par la session précédente > marque « Plan »');
 
   // B130-13. Session de plan SANS aucun epic nulle part : pas de thème à annoncer -> on ne rend
@@ -9536,7 +9547,7 @@ section('B130 — titre de session : jamais nu quand un plan existe, sessions de
   execFileSync('git', ['-C', repo14, 'add', '.']);
   execFileSync('git', ['-C', repo14, 'commit', '-q', '-m', 'chore: socle du plan']);
   runNode(BKLG, ['add', '--cwd', repo14, '--title', 'Rien commencé', '--model', 'sonnet']);
-  ok(lot.suggestedTitle(repo14) === `[${trigram.deriveTrigram(repo14)}] Session Libre · chore: socle du plan`,
+  ok(lot.suggestedTitle(repo14) === `[${trigram.deriveTrigram(repo14)} · HS] chore: socle du plan`,
     'B130-14 : plan sans lot clos ni en cours -> Session Libre + résumé déduit (jamais nue)');
 
   // B130-15/16. Les DEUX canaux d'install doivent router les outils de mode plan vers
@@ -9639,8 +9650,8 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   ok(/### Epic « Auth »/.test(rh.out) && /### Epic « UI »/.test(rh.out) && rh.out.indexOf('Epic « ' + em.NO_EPIC) !== -1, 'CLI epicmaster : classés par epic');
   ok(/Vague 1 — 2 en parallèle : #1 \[opus · high\], #2 \[sonnet · medium\]/.test(rh.out), 'CLI epicmaster : vague 1 avec modèle·effort par lot');
   ok(/sans périmètre → série/.test(rh.out) && /série \(seul en vol\) : #4/.test(rh.out), 'CLI epicmaster : lot sans périmètre seul en vol');
-  ok(/modèle préconisé : opus · effort medium/.test(rh.out) && /lot\(s\) par session maître/.test(rh.out), 'CLI epicmaster : modèle maître + budget affichés');
-  ok(/rien n'est lancé/.test(rh.out) && /aucun lot démarré, aucun sous-agent lancé/.test(rh.out), 'CLI epicmaster : garde-fou « rien lancé »');
+  ok(/modèle préconisé : opus · effort medium/.test(rh.out) && /US par session maître/.test(rh.out), 'CLI epicmaster : modèle maître + budget affichés');
+  ok(/rien n'est lancé/.test(rh.out) && /aucune US démarrée, aucun sous-agent lancé/.test(rh.out), 'CLI epicmaster : garde-fou « rien lancé »');
   b = backlogLib.loadBacklog(repoEm);
   ok(b.lots.filter((l) => l.id !== 6).every((l) => l.status === 'todo' && l.session_owner === null), 'CLI epicmaster : n\'a rien démarré');
   const rj = runNode(BKLG, ['epicmaster', '--cwd', repoEm, '--json', '--skip', '2']);
@@ -9670,14 +9681,14 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   // EM-10. --brief --id : brief autonome (modèle/effort, fait quand, verify, périmètre exclusif,
   // règles « ne commite jamais », rapport borné) + commandes maître (start avant, commit/done après).
   const rb = runNode(BKLG, ['epicmaster', '--cwd', repoEm, '--brief', '--id', '1']);
-  ok(/# Lot #1 « Auth core » — brief/.test(rb.out) && /model=opus, effort=high/.test(rb.out), 'brief : en-tête + modèle/effort pour l\'outil Agent');
+  ok(/# US#1 « Auth core » — brief/.test(rb.out) && /model=opus, effort=high/.test(rb.out), 'brief : en-tête + modèle/effort pour l\'outil Agent');
   ok(/Verify .*: npm test/.test(rb.out) && /Périmètre EXCLUSIF[^\n]*lib\/a\/\*\*/.test(rb.out), 'brief : verify + périmètre exclusif');
   ok(/Ne commite JAMAIS/.test(rb.out) && new RegExp('≤ ' + em.REPORT_MAX_WORDS + ' mots').test(rb.out), 'brief : règles de contrat (pas de commit, rapport borné)');
   ok(/start --id 1 --owner "master\/lot-1"/.test(rb.out) && /git add -- ':\(glob\)lib\/a\/\*\*'/.test(rb.out) && /done --id 1 --commit/.test(rb.out),
     'brief : commandes maître — start (owner distinct), commit borné au périmètre, done');
   const rb4 = runNode(BKLG, ['epicmaster', '--cwd', repoEm, '--brief', '--id', '4']);
   ok(/Périmètre : aucun — tu es seul en vol/.test(rb4.out) && /git add -A/.test(rb4.out), 'brief : lot sans périmètre -> seul en vol, git add -A');
-  ok(/Refusé : le lot #6 est fait/.test(runNode(BKLG, ['epicmaster', '--cwd', repoEm, '--brief', '--id', '6']).out), 'brief : lot clos refusé');
+  ok(/Refusé : l'US#6 est faite/.test(runNode(BKLG, ['epicmaster', '--cwd', repoEm, '--brief', '--id', '6']).out), 'brief : lot clos refusé');
   ok(/Refusé : --brief exige --id/.test(runNode(BKLG, ['epicmaster', '--cwd', repoEm, '--brief']).out), 'brief : --id manquant refusé');
 
   // EM-11. Owner distinct par lot : deux `start` consécutifs gardent les deux lots en cours
@@ -9695,11 +9706,11 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   const cmdEm = fs.readFileSync(path.join(PKG, 'commands', 'epicmaster.md'), 'utf8');
   ok(/^description: Session maître/m.test(cmdEm) && /Agent/.test(cmdEm.split('\n')[2]) && /--skip/.test(cmdEm) && /--brief --id/.test(cmdEm),
     'commands/epicmaster.md : description, outil Agent autorisé, décochage, brief');
-  ok(/\*\*UNE\*\* fois/.test(cmdEm) && /précochées/.test(cmdEm) && /show_pane/.test(cmdEm) && /en lecture seule/.test(cmdEm) && /jamais interpréter un silence/.test(cmdEm) && /jamais plus de lots en vol/i.test(cmdEm) && /Arrête-toi/.test(cmdEm) && /Jamais de syntaxe de tâche/.test(cmdEm), 'commands/epicmaster.md : une question à cases précochées, plan sans `- [x]`, parallélisme borné, arrêt à la borne');
+  ok(/\*\*UNE\*\* fois/.test(cmdEm) && /précochées/.test(cmdEm) && /show_pane/.test(cmdEm) && /en lecture seule/.test(cmdEm) && /jamais interpréter un silence/.test(cmdEm) && /jamais plus d'US en vol/i.test(cmdEm) && /Arrête-toi/.test(cmdEm) && /Jamais de syntaxe de tâche/.test(cmdEm), 'commands/epicmaster.md : une question à cases précochées, plan sans `- [x]`, parallélisme borné, arrêt à la borne');
   ok(/\[x\] #1   Auth core {2,}opus · high {2,}← vague 1/.test(rh.out) && /\n {8}verify : npm test · périmètre : lib\/a\/\*\*/.test(rh.out), 'CLI epicmaster : ligne alignée + détail indenté (lot #134)');
   ok(/'epicmaster\.md'/.test(fs.readFileSync(path.join(PKG, 'install', 'build-plugin.js'), 'utf8')), 'build-plugin : epicmaster.md requise au plugin');
   const cmdScope = fs.readFileSync(path.join(PKG, 'commands', 'scope.md'), 'utf8');
-  ok(/epicmaster --epic "Nom de l'epic" --write-handoff/.test(cmdScope) && /Ne démarrer aucun lot dans cette session/.test(cmdScope),
+  ok(/epicmaster --epic "Nom de l'epic" --write-handoff/.test(cmdScope) && /Ne démarrer aucune US dans cette session/.test(cmdScope),
     'commands/scope.md : prépare la session maître (handoff écrit) et ne démarre plus de lot d\'office');
   ok(!/3 choix/.test(cmdScope), 'commands/scope.md : l\'ancienne question à 3 choix a disparu (vagues calculées par epicmaster)');
   ok(/## 2ter\. Session maître/.test(fs.readFileSync(path.join(REPO, 'skills', 'promptimizer', 'SKILL.md'), 'utf8')), 'SKILL.md : section session maître');
@@ -9777,7 +9788,7 @@ section('État live epicmaster — lib/epicmaster-live + CLI start/done/note + h
   const rc = runNode(BKLG, ['epicmaster', '--cwd', repoLv, '--live']);
   ok(rc.code === 0 && /Epicmaster live : 1 en cours \(#1\) · 1 fait · 1 sous-agent actif/.test(rc.out) && rc.out.trim().split('\n').length === 1, 'LV-4 : --live compact = 1 ligne (1 en cours, 1 fait, 1 sous-agent)');
   const rd = runNode(BKLG, ['epicmaster', '--cwd', repoLv, '--live', '--detailed']);
-  ok(/En cours :[\s\S]*▶ #1 Lot un — master\/lot-1/.test(rd.out) && /note : migration à moitié/.test(rd.out) && /Faits :[\s\S]*✔ #2 Lot deux/.test(rd.out) && /Sous-agents actifs :[\s\S]*Explore ag-2[\s\S]*lot non rattaché/.test(rd.out),
+  ok(/En cours :[\s\S]*▶ #1 Lot un — master\/lot-1/.test(rd.out) && /note : migration à moitié/.test(rd.out) && /Faits :[\s\S]*✔ #2 Lot deux/.test(rd.out) && /Sous-agents actifs :[\s\S]*Explore ag-2[\s\S]*US non rattachée/.test(rd.out),
     'LV-4 : --live --detailed : lots, note, faits, sous-agents');
   const rj = JSON.parse(runNode(BKLG, ['epicmaster', '--cwd', repoLv, '--live', '--json']).out);
   ok(rj.running.length === 1 && rj.done.length === 1 && rj.agents_active.length === 1 && rj.agents_stopped === 1, 'LV-4 : --live --json : résumé machine');
@@ -9835,7 +9846,7 @@ section('Plan complet dans le fichier live — epicmaster --live-seed + vague/fi
   // SD-1. --live-seed : plan complet, rien démarré, backlog intact.
   const bkBefore = fs.readFileSync(path.join(repoSd, '.vibe-agent', 'backlog.json'), 'utf8');
   const rs = runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live-seed', '--epic', 'Plan']);
-  ok(rs.code === 0 && /État live semé : epic « Plan », 2 vagues, 3 lots en attente/.test(rs.out), 'SD-1 : --live-seed annonce epic, vagues, lots');
+  ok(rs.code === 0 && /État live semé : epic « Plan », 2 vagues, 3 US en attente/.test(rs.out), 'SD-1 : --live-seed annonce epic, vagues, lots');
   let st = readLive();
   ok(st.v === 1 && st.epic === 'Plan' && st.wave.current === 1 && st.wave.total === 2 && st.finished === false, 'SD-1 : racine = epic, wave {current:1,total:2}, finished:false');
   ok(Object.keys(st.lots).length === 3 && Object.values(st.lots).every((l) => l.status === 'pending' && l.started_at === null), 'SD-1 : 3 lots, tous pending, aucun démarré');
@@ -9851,7 +9862,7 @@ section('Plan complet dans le fichier live — epicmaster --live-seed + vague/fi
   const repoNone = path.join(SANDBOX, 'repo-live-seed-none');
   fs.mkdirSync(repoNone, { recursive: true });
   execFileSync('git', ['init', '-q', repoNone]);
-  ok(/Aucun lot à semer/.test(runNode(BKLG, ['epicmaster', '--cwd', repoNone, '--live-seed']).out) && !fs.existsSync(path.join(repoNone, '.vibe-agent', 'epicmaster-live.json')), 'SD-1 : plan vide -> rien écrit, annoncé');
+  ok(/Aucune US à semer/.test(runNode(BKLG, ['epicmaster', '--cwd', repoNone, '--live-seed']).out) && !fs.existsSync(path.join(repoNone, '.vibe-agent', 'epicmaster-live.json')), 'SD-1 : plan vide -> rien écrit, annoncé');
 
   // SD-2. Schéma lu par le live.ts du mod (sans le modifier) — Node ≥ 22.6, sinon vérification structurelle seule.
   {
@@ -9966,11 +9977,11 @@ section('À trancher et tokens réels dans le fichier live — note --decide, do
   ok(/--live-seed/.test(em) && /note[^\n]*--decide/.test(em) && /--verify-verdict failed/.test(em) && /--tokens/.test(em), 'TK-3 : epicmaster.md appelle --live-seed, note --decide, done failed, --tokens');
 }
 
-section('Titre de session maître — « [XXX · Epicmaster] Epic · #a–#b »');
+section('Titre de session maître — « [XXX · EP#a–#b] <nom de l\'epic> »');
 {
   const lotLib = require(path.join(PKG, 'lib', 'lot'));
   ok(lotLib.idRanges([146, 143, 144, 145, 150, 152, 153]) === '#143–#146, #150, #152, #153', 'TM-1 : ids triés, plages compressées (≥ 3 consécutifs)');
-  ok(lotLib.titleForMasterSession('PMZ', 'Install sans couture', [143, 144, 145, 146]) === '[PMZ · Epicmaster] Install sans couture · #143–#146', 'TM-1 : format du titre maître');
+  ok(lotLib.titleForMasterSession('PMZ', 'Install sans couture', [143, 144, 145, 146]) === '[PMZ · EP#143–#146] Install sans couture', 'TM-1 : format du titre maître');
   const repoTm = path.join(SANDBOX, 'repo-master-title');
   fs.mkdirSync(repoTm, { recursive: true });
   execFileSync('git', ['init', '-q', repoTm]);
@@ -9980,7 +9991,7 @@ section('Titre de session maître — « [XXX · Epicmaster] Epic · #a–#b »'
   runNode(BKLG, ['add', '--cwd', repoTm, '--title', 'Un', '--model', 'sonnet', '--effort', 'low', '--epic', 'Install']);
   runNode(BKLG, ['add', '--cwd', repoTm, '--title', 'Deux', '--model', 'sonnet', '--effort', 'low', '--epic', 'Install']);
   const t = runNode(BKLG, ['epicmaster', '--cwd', repoTm, '--session-title']).out.trim();
-  ok(/^\[[A-Z0-9]{3} · Epicmaster\] Install · #1, #2$/.test(t), 'TM-2 : epicmaster --session-title -> titre de la session maître (' + t + ')');
+  ok(/^\[[A-Z0-9]{3} · EP#1, #2\] Install$/.test(t), 'TM-2 : epicmaster --session-title -> titre de la session maître (' + t + ')');
   const em = fs.readFileSync(path.join(PKG, 'commands', 'epicmaster.md'), 'utf8');
   ok(/--session-title/.test(em) && /"self"/.test(em), 'TM-3 : epicmaster.md renomme la session maître elle-même (session_id "self")');
 }
@@ -10012,7 +10023,7 @@ section('Bande par session/projet — copie globale par projet, seeded_at, ancie
     const b3 = { lots: [{ id: 1, scope: 'fait quand : socle vert' }, { id: 2 }, { id: 3 }] };
     live.seedFromPlan(rA, plan3, b3, {}, T0);
     let wp = JSON.parse(fs.readFileSync(gA, 'utf8'));
-    ok(wp.wave_plan.length === 2 && wp.wave_plan[0].label === 'Socle' && wp.wave_plan[1].label === '2 lots en parallèle' && wp.wave_plan[1].parallel === true,
+    ok(wp.wave_plan.length === 2 && wp.wave_plan[0].label === 'Socle' && wp.wave_plan[1].label === '2 US en parallèle' && wp.wave_plan[1].parallel === true,
       'BS-6 : wave_plan semé (libellé dérivé : titre du lot seul / « N lots en parallèle »)');
     ok(wp.lots['1'].scope === 'socle vert' && wp.lots['2'].scope === null, 'BS-6 : « fait quand » du lot semé (préfixe retiré)');
     live.seedFromPlan(rA, plan3, b3, { waveLabels: '2=Providers; x=ignoré' }, T0);

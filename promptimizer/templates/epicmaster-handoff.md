@@ -1,10 +1,10 @@
 <!-- pmz:handoff:manual -->
 ## Handoff session maître — consolidation
 
-Lots livrés (id · titre · commit) :
+US livrées (id · titre · commit) :
 - #N « … » — abc1234
 
-Lots restés ouverts (et pourquoi) :
+US restées ouvertes (et pourquoi) :
 - #N « … » — verify rouge : … / non lancé : budget de session atteint après la vague K
 
 Non vérifié (agrégé) :
@@ -17,7 +17,7 @@ Dette consolidée :
 - … (#N)
 
 Prochaine action recommandée :
-- /epicmaster — reprend les lots restés ouverts (ou : « plan terminé, rien à relancer »)
+- /epicmaster — reprend les US restées ouvertes (ou : « plan terminé, rien à relancer »)
 
 Contrainte budget :
 - ne jamais relire la sortie brute des sous-agents ; rapports ≤ 250 mots, sections fixes

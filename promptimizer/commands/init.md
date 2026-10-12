@@ -24,6 +24,6 @@ qui a déjà son `CLAUDE.md`/`AGENTS.md`.
    `node ~/.claude/promptimizer/scripts/backlog.js trigram --suggest` liste 3 propositions.
    Une fois validé : `node ~/.claude/promptimizer/scripts/backlog.js trigram --set XXX`
    (écrit `.vibe-agent/trigram`, préfixe désormais les titres de session : `[XXX] …`).
-7. Propose ensuite un premier lot court.
+7. Propose ensuite une première US courte.
 
 Ne crée ni ne modifie rien sans confirmation explicite de l'utilisateur.

@@ -19,6 +19,8 @@ const { previousSessionId, markPlanSession } = require('../lib/state');
 const { loadContextLedger } = require('../lib/ledger');
 
 const LABELS = { todo: 'à faire', in_progress: 'en cours', done: 'fait', dropped: 'abandonné' };
+// Accord au féminin quand le statut qualifie « l'US » dans une phrase (les tags [à faire]/[fait] restent neutres).
+const LABELS_F = { todo: 'à faire', in_progress: 'en cours', done: 'faite', dropped: 'abandonnée' };
 
 function flag(name) {
   const i = process.argv.indexOf('--' + name);
@@ -36,6 +38,10 @@ function flagList(name) {
   }
   return out;
 }
+// Pointeur de spec détaillée : `--spec` (canonique) ; `--us` reste accepté comme alias
+// DÉPRÉCIÉ (le champ s'appelait `us` avant que « US » ne devienne le nom de l'item du backlog).
+function specFlag() { return flag('spec') != null ? flag('spec') : flag('us'); }
+function specFlagName() { return flag('spec') == null && flag('us') != null ? '--us' : '--spec'; }
 function out(s) { process.stdout.write(s + '\n'); }
 // État live de la session maître (lot #136) : best-effort, jamais bloquant — n'écrit que si le
 // lot appartient à une session « master/lot-* » (lib/epicmaster-live.js).
@@ -52,7 +58,7 @@ function liveRecord(root, kind, lot, owner, verdict, extra) {
 function estimateSuffix(b, l) {
   const est = backlog.estimateCost(b, l);
   if (!est) return '';
-  return ` Estimation (${est.count} lot${est.count > 1 ? 's' : ''} comparable${est.count > 1 ? 's' : ''} par ${est.basis}) : ~${fmtK(est.avg)} tokens.`;
+  return ` Estimation (${est.count} US comparable${est.count > 1 ? 's' : ''} par ${est.basis}) : ~${fmtK(est.avg)} tokens.`;
 }
 // Base des chemins d'aide affichés : racine du plugin en mode plugin (substituée par
 // Claude Code / exportée aux hooks), sinon l'emplacement de l'install manuelle.
@@ -85,7 +91,7 @@ function parseDepends() {
   const raw = flagList('depends');
   const bad = raw.filter((s) => !Number.isFinite(Number(s)));
   if (bad.length) {
-    out(`Refusé : --depends attend des ids de lots — ${bad.map((s) => `« ${s} »`).join(', ')} n'en sont pas. `
+    out(`Refusé : --depends attend des ids d'US — ${bad.map((s) => `« ${s} »`).join(', ')} n'en sont pas. `
       + 'Ex. --depends "2,3" ; pour vider : --depends "".');
     return { ok: false, ids: [] };
   }
@@ -97,20 +103,20 @@ function show(root, json, epicFilter) {
   const lots = epicFilter ? b.lots.filter((l) => l.epic === epicFilter) : b.lots;
   if (json) return out(JSON.stringify(epicFilter ? { ...b, lots } : b, null, 2));
   if (!lots.length) {
-    out(epicFilter ? `Aucun lot pour l'epic « ${epicFilter} ».` : 'Aucun plan de lots.');
+    out(epicFilter ? `Aucune US pour l'epic « ${epicFilter} ».` : 'Aucun plan d\'US.');
     if (!epicFilter) out(`Créer : node ${PMZ_BASE}/scripts/backlog.js add --title "…" --scope "fait quand : …"`);
     return;
   }
   const p = epicFilter ? { done: lots.filter((l) => l.status === 'done').length, total: lots.length } : backlog.progress(b);
-  out('## Plan de lots');
-  out(`${p.done}/${p.total} faits.`);
+  out('## Plan des US');
+  out(`${p.done}/${p.total} faites.`);
   out('');
   for (const l of lots) {
     let line = `- [${LABELS[l.status]}] #${l.id} « ${l.title} »`;
     if (l.epic) line += ` [epic : ${l.epic}]`;
     line += backlog.modelEffortTag(l);
     if (l.verify) line += ` [verify : ${l.verify}]`;
-    if (l.us) line += ` [US : ${l.us}]`;
+    if (l.spec) line += ` [Spec : ${l.spec}]`;
     if (l.perimeter && l.perimeter.length) line += ` [périmètre : ${l.perimeter.join(', ')}]`;
     if (l.depends_on && l.depends_on.length) line += ` [dépend de : ${l.depends_on.map((d) => '#' + d).join(', ')}]`;
     if (l.status === 'done' && l.closed_commit) line += ` — commit ${l.closed_commit}`;
@@ -124,7 +130,7 @@ function show(root, json, epicFilter) {
     const cut = [
       ['title', l.title, backlog.MAX_TITLE], ['scope', l.scope, backlog.MAX_SCOPE],
       ['epic', l.epic, backlog.MAX_EPIC], ['verify', l.verify, backlog.MAX_VERIFY],
-      ['us', l.us, backlog.MAX_US], ['note', l.note, backlog.MAX_NOTE],
+      ['spec', l.spec, backlog.MAX_SPEC], ['note', l.note, backlog.MAX_NOTE],
     ].filter(([, v, max]) => v && backlog.isTruncated(v, max)).map(([name]) => name);
     if (cut.length) line += ` [⚠️ tronqué en donnée : ${cut.join(', ')}]`;
     out(line);
@@ -153,13 +159,13 @@ function parallelize(root, json, epicFilter) {
   const nParallel = plan.waves.reduce((s, w) => s + w.length, 0);
   out('## Plan de vagues (proposition — rien n\'est lancé)');
   if (!nParallel && !plan.unplannable.length && !plan.blocked.length) {
-    return out(epicFilter ? `Aucun lot « à faire » pour l'epic « ${epicFilter} » — rien à paralléliser.`
-      : 'Aucun lot « à faire » — rien à paralléliser.');
+    return out(epicFilter ? `Aucune US « à faire » pour l'epic « ${epicFilter} » — rien à paralléliser.`
+      : 'Aucune US « à faire » — rien à paralléliser.');
   }
-  out(`${nParallel} lot(s) parallélisable(s) sur ${plan.waves.length} vague(s).`);
+  out(`${nParallel} US parallélisable(s) sur ${plan.waves.length} vague(s).`);
   out('');
   plan.waves.forEach((w, i) => {
-    out(`### Vague ${i + 1} — ${w.length} lot(s) en parallèle`);
+    out(`### Vague ${i + 1} — ${w.length} US en parallèle`);
     for (const l of w) {
       const dep = l.depends_on.length ? ` (dépend de ${l.depends_on.map((d) => '#' + d).join(', ')})` : '';
       out(`- #${l.id} « ${l.title} »${dep} — branche \`${backlog.waveBranch(l)}\` — périmètre : ${l.perimeter.join(', ')}`);
@@ -169,8 +175,8 @@ function parallelize(root, json, epicFilter) {
     // pas un accident, et c'est la réintégration en pipeline qui l'arbitre.
     const shared = Array.from(new Set(w.flatMap((l) => l.perimeter.filter((g) => perimeter.isShared(g)))));
     if (w.length > 1 && shared.length) {
-      out(`Zone partagée entre ces lots (hors test de disjonction) : ${shared.join(', ')} — chaque lot y AJOUTE ses cas.`);
-      out('Un conflit de merge y est normal : la réintégration en pipeline l\'annule et nomme le lot coupable.');
+      out(`Zone partagée entre ces US (hors test de disjonction) : ${shared.join(', ')} — chaque US y AJOUTE ses cas.`);
+      out('Un conflit de merge y est normal : la réintégration en pipeline l\'annule et nomme l\'US coupable.');
     }
     out('');
   });
@@ -182,7 +188,7 @@ function parallelize(root, json, epicFilter) {
   }
   out('');
   out('⚠️ Proposition seule : aucune branche, worktree ni session fille n\'a été créé.');
-  out(`Pour lancer une vague, valide le plan puis démarre chaque lot manuellement : node ${PMZ_BASE}/scripts/backlog.js start --id <id> --owner <session>.`);
+  out(`Pour lancer une vague, valide le plan puis démarre chaque US manuellement : node ${PMZ_BASE}/scripts/backlog.js start --id <id> --owner <session>.`);
 }
 
 // pmz:reintegrate — réintègre une vague parallèle EN PIPELINE (D3, P3) : merge séquentiel dans
@@ -217,13 +223,13 @@ function reintegrate(root, json, execute, into, gates) {
     }
     out('## Plan de réintégration (proposition — rien n\'est mergé)');
     if (!plan.steps.length && !plan.notReady.length && !plan.blocked.length) {
-      return out('Aucune vague active à réintégrer (aucun lot « prêt à merger » dans fleet.json).');
+      return out('Aucune vague active à réintégrer (aucune US « prêt à merger » dans fleet.json).');
     }
     const ib = into || fleet.integration_branch;
     out(ib ? `Branche d'intégration : \`${ib}\`.` : 'Branche d\'intégration : (courante au moment du --execute).');
     out('');
     if (plan.steps.length) {
-      out(`${plan.steps.length} lot(s) à merger, dans l'ordre du graphe :`);
+      out(`${plan.steps.length} US à merger, dans l'ordre du graphe :`);
       plan.steps.forEach((s, i) => {
         const dep = s.depends_on.length ? ` (dépend de ${s.depends_on.map((d) => '#' + d).join(', ')})` : '';
         const gate = s.verify || g.gate || null;
@@ -234,11 +240,11 @@ function reintegrate(root, json, execute, into, gates) {
       const ng = reint.noGateSteps(plan, g.gate);
       if (ng.length) {
         out('');
-        out(`⚠️ ${ng.length} lot(s) sans gate (${ng.map((x) => '#' + x.id).join(', ')}) : mergé(s) sans aucune vérification.`);
+        out(`⚠️ ${ng.length} US sans gate (${ng.map((x) => '#' + x.id).join(', ')}) : mergée(s) sans aucune vérification.`);
         out('Le --execute REFUSERA tant que tu n\'auras pas tranché : --gate "<cmd>" (gate de repli) ou --allow-no-gate (merge assumé sans filet).');
       }
     } else {
-      out('Aucun lot « prêt à merger ».');
+      out('Aucune US « prêt à merger ».');
     }
     if (plan.notReady.length) {
       out('');
@@ -261,7 +267,7 @@ function reintegrate(root, json, execute, into, gates) {
     const wg = reint.waveGateCommands(fleet, b);
     out(wg.length
       ? `Gate FINAL de vague (après le dernier merge, sur la branche d'intégration) : ${wg.join(' && ')} — ou --final-gate "<cmd>" pour une commande dédiée (typecheck + tests + build).`
-      : 'Gate FINAL de vague : aucun lot ne porte de verify — la vague se clôturerait sans preuve (pose --final-gate "<cmd>").');
+      : 'Gate FINAL de vague : aucune US ne porte de verify — la vague se clôturerait sans preuve (pose --final-gate "<cmd>").');
     return;
   }
 
@@ -278,12 +284,12 @@ function reintegrate(root, json, execute, into, gates) {
     return out(JSON.stringify({ executed: true, report, ...res }, null, 2));
   }
   if (res.reason === 'no-integration-branch') return out('Refusé : aucune branche d\'intégration (ni fleet.integration_branch, ni --into, ni branche courante).');
-  if (res.reason === 'nothing-ready') return out('Rien à réintégrer : aucun lot « prêt à merger ».');
+  if (res.reason === 'nothing-ready') return out('Rien à réintégrer : aucune US « prêt à merger ».');
   if (res.reason === 'checkout-failed') return out(`Refusé : checkout de \`${res.integrationBranch}\` impossible (arbre sale ?).\n${(res.out || '').trim()}`);
   if (res.reason === 'no-gate') {
-    out(`Refusé : ${res.noGate.length} lot(s) sans gate (${res.noGate.map((x) => '#' + x.id).join(', ')}) — rien n'a été mergé.`);
-    out('Un merge non vérifié fait rougir le gate du lot SUIVANT et nomme le mauvais coupable.');
-    return out('Tranche : --gate "<cmd>" (gate de repli pour ces lots) ou --allow-no-gate (merge assumé sans filet).');
+    out(`Refusé : ${res.noGate.length} US sans gate (${res.noGate.map((x) => '#' + x.id).join(', ')}) — rien n'a été mergé.`);
+    out('Un merge non vérifié fait rougir le gate de l\'US SUIVANTE et nomme le mauvais coupable.');
+    return out('Tranche : --gate "<cmd>" (gate de repli pour ces US) ou --allow-no-gate (merge assumé sans filet).');
   }
 
   out('## Réintégration de vague');
@@ -292,15 +298,15 @@ function reintegrate(root, json, execute, into, gates) {
   for (const m of res.merged) {
     const t = m.title ? ` « ${m.title} »` : '';
     if (m.status === 'reintegrated') out(`✅ #${m.id}${t} — mergé + gate vert (${String(m.head || '').slice(0, 7)}).`);
-    else if (m.status === 'conflict') out(`❌ #${m.id}${t} — CONFLIT de merge, annulé. Pipeline stoppé (le coupable est ce lot).`);
-    else if (m.status === 'gate-failed') out(`❌ #${m.id}${t} — merge OK mais GATE ROUGE, merge annulé. Pipeline stoppé (le coupable est ce lot).`);
+    else if (m.status === 'conflict') out(`❌ #${m.id}${t} — CONFLIT de merge, annulé. Pipeline stoppé (le coupable est cette US).`);
+    else if (m.status === 'gate-failed') out(`❌ #${m.id}${t} — merge OK mais GATE ROUGE, merge annulé. Pipeline stoppé (le coupable est cette US).`);
     else out(`⏭️ #${m.id}${t} — sauté (${m.reason || 'raison inconnue'}).`);
   }
   if (!res.ok && res.culprit) {
     out('');
     // La sortie brute du conflit/gate rouge n'est PAS affichée ici (elle noierait le message) :
     // elle est intégralement dans le rapport persisté, référencé par chemin.
-    out(`⛔ Vague NON close : corrige le lot #${res.culprit.id}, remets-le « prêt », puis relance --execute.`);
+    out(`⛔ Vague NON close : corrige l'US#${res.culprit.id}, remets-la « prêt », puis relance --execute.`);
     if (reportLine) out(reportLine);
     return;
   }
@@ -312,8 +318,8 @@ function reintegrate(root, json, execute, into, gates) {
   if (fg) {
     if (fg.ran && fg.ok) out(`✅ Gate final de vague vert sur \`${res.integrationBranch}\` : ${fg.commands.join(' && ')}.`);
     else if (fg.ran) out(`❌ Gate final de vague ROUGE : \`${fg.failed}\`.\n${(fg.out || '').trim().slice(-1500)}`);
-    else if (fg.reason === 'already-green') out('✅ Gate final de vague : déjà couvert (le gate du dernier lot a tourné vert sur l\'état final).');
-    else out('⚠️ Gate final de vague : AUCUN lot de la vague ne porte de verify — vague close sans preuve (pose --final-gate "<cmd>").');
+    else if (fg.reason === 'already-green') out('✅ Gate final de vague : déjà couvert (le gate de la dernière US a tourné vert sur l\'état final).');
+    else out('⚠️ Gate final de vague : AUCUNE US de la vague ne porte de verify — vague close sans preuve (pose --final-gate "<cmd>").');
     out('');
   }
   if (res.reason === 'final-gate-failed') {
@@ -323,12 +329,12 @@ function reintegrate(root, json, execute, into, gates) {
   }
   out(res.waveClosed
     ? '🎉 Vague entièrement réintégrée et close. Colle le bloc ci-dessus dans CHANGELOG.md, puis commit.'
-    : 'Lots prêts réintégrés. La vague reste ouverte (des lots sont encore en vol).');
+    : 'US prêtes réintégrées. La vague reste ouverte (des US sont encore en vol).');
   // Rangement de fin de vague (FIA-19/FIA-20) : annoncé, jamais silencieux — l'orchestrateur
   // doit savoir que fleet.json est vidé (la vague redevient inerte) et que les handoffs de lot
   // ont disparu. Le snapshot de la vague reste dans le rapport.
   if (res.waveClosed && (res.wavePurged || res.handoffsPurged)) {
-    out(`Rangement : fleet.json vidé (vague inerte)${res.handoffsPurged ? `, ${res.handoffsPurged} handoff(s) de lot purgé(s)` : ''}.`);
+    out(`Rangement : fleet.json vidé (vague inerte)${res.handoffsPurged ? `, ${res.handoffsPurged} handoff(s) d'US purgé(s)` : ''}.`);
   }
   if (reportLine) out(reportLine);
 }
@@ -367,7 +373,7 @@ function fleetCmd(root, sub, json) {
       if (json) return out(JSON.stringify({ active: false, diagnostic: 'invalid', why: d.why }, null, 2));
       out(`⚠️ Vague DÉSACTIVÉE : ${rel} existe mais son JSON est illisible (${d.why}).`);
       out('Les hooks échouent en silence (contrat fail-open) : garde de périmètre ET injection de vague sont éteintes SANS avertissement.');
-      return out('Répare le fichier à la main, ou supprime-le et réinscris les lots avec `fleet join`.');
+      return out('Répare le fichier à la main, ou supprime-le et réinscris les US avec `fleet join`.');
     }
     if (d.state === 'absent') {
       if (json) return out(JSON.stringify({ active: false, diagnostic: d.quarantined ? 'quarantined' : 'absent' }, null, 2));
@@ -376,8 +382,8 @@ function fleetCmd(root, sub, json) {
     }
     const f = fleetLib.loadFleet(root);
     if (json) return out(JSON.stringify(f, null, 2));
-    if (!f.active) return out(`Vague inerte : ${rel} présent mais aucun lot en vol (vague close ou purgée).`);
-    out(`Vague${f.wave_id ? ` « ${f.wave_id} »` : ''} : ${f.lots.length} lot(s).`);
+    if (!f.active) return out(`Vague inerte : ${rel} présent mais aucune US en vol (vague close ou purgée).`);
+    out(`Vague${f.wave_id ? ` « ${f.wave_id} »` : ''} : ${f.lots.length} US.`);
     if (f.integration_branch || f.integration_head) {
       out(`Tête d'intégration : ${f.integration_branch || '?'}${f.integration_head ? `@${String(f.integration_head).slice(0, 7)}` : ''}.`);
     }
@@ -398,7 +404,7 @@ function fleetCmd(root, sub, json) {
   }
   const d = diagnose();
   if (d.state === 'invalid') {
-    return out(`Refusé : ${rel} est illisible (${d.why}) — l'écrire par-dessus perdrait les autres lots de la vague. Répare-le (ou supprime-le) d'abord, puis relance.`);
+    return out(`Refusé : ${rel} est illisible (${d.why}) — l'écrire par-dessus perdrait les autres US de la vague. Répare-le (ou supprime-le) d'abord, puis relance.`);
   }
 
   if (sub === 'join') {
@@ -418,13 +424,13 @@ function fleetCmd(root, sub, json) {
     const session = explicitSession || previousSessionId(root);
     if (!session) {
       return out('Refusé : --session manquante et aucun id de session persisté dans .vibe-agent/session-state.json. '
-        + 'Sans propriétaire, le lot ne peut être attribué à personne (ni garde de périmètre, ni injection).');
+        + 'Sans propriétaire, l\'US ne peut être attribuée à personne (ni garde de périmètre, ni injection).');
     }
     if (!explicitSession) {
       const held = fleetLib.lotForSession(root, session);
       if (held && held.id !== idn) {
-        return out(`Refusé : --session absente, et l'id déduit de .vibe-agent/session-state.json (${session}) tient déjà le lot #${held.id}. `
-          + 'Une session ne tient qu\'un lot par vague : soit ce fichier porte encore l\'id de la session précédente '
+        return out(`Refusé : --session absente, et l'id déduit de .vibe-agent/session-state.json (${session}) tient déjà l'US#${held.id}. `
+          + 'Une session ne tient qu\'une US par vague : soit ce fichier porte encore l\'id de la session précédente '
           + `(il n'est à jour qu'après le 1er SessionStart), soit l'inscription est en double. Relance avec \`--session <id réel>\`.`);
       }
     }
@@ -450,20 +456,20 @@ function fleetCmd(root, sub, json) {
       state,
       title: flag('title') || (known ? known.title : null),
     });
-    if (!okw) return out(`Refusé : inscription du lot #${idn} impossible (écriture de ${rel} en échec).`);
-    const warn = known ? '' : ` ⚠️ Aucun lot #${idn} au plan (backlog.json) — vérifie l'id.`;
+    if (!okw) return out(`Refusé : inscription de l'US#${idn} impossible (écriture de ${rel} en échec).`);
+    const warn = known ? '' : ` ⚠️ Aucune US#${idn} au plan (backlog.json) — vérifie l'id.`;
     const noPer = perimeter.length ? '' : ' ⚠️ Sans --perimeter, la garde d\'écriture ne bride RIEN pour cette session.';
     const deduced = explicitSession ? '' : ' ⚠️ Session DÉDUITE de .vibe-agent/session-state.json (à jour seulement après le 1er SessionStart)'
       + ' — si ce n\'est pas la tienne, refais l\'inscription avec `--session <id réel>`.';
-    out(`Lot #${idn} inscrit dans la vague (session ${session}, état ${state}).${warn}${noPer}${deduced}`);
+    out(`US#${idn} inscrite dans la vague (session ${session}, état ${state}).${warn}${noPer}${deduced}`);
     return;
   }
 
   if (sub === 'ready') {
     if (!fleetLib.setLotState(root, idn, 'ready')) {
-      return out(`Refusé : lot #${idn} absent du registre de vague (inscris-le d'abord : \`fleet join --id ${idn}\`).`);
+      return out(`Refusé : US#${idn} absente du registre de vague (inscris-la d'abord : \`fleet join --id ${idn}\`).`);
     }
-    return out(`Lot #${idn} passé « prêt à merger ». L'orchestrateur peut le réintégrer (\`reintegrate --execute\`).`);
+    return out(`US#${idn} passée « prêt à merger ». L'orchestrateur peut la réintégrer (\`reintegrate --execute\`).`);
   }
 
   // Dette #99 soldée (lot #100) : `join` n'avait pas de réciproque. Une fille inscrite à tort
@@ -476,16 +482,16 @@ function fleetCmd(root, sub, json) {
     if (d.state === 'absent') return out('Refusé : aucune vague active (pas de fleet.json) — rien à quitter.');
     const before = fleetLib.loadFleet(root).lots.find((l) => l.id === idn);
     if (!fleetLib.removeLot(root, idn)) {
-      return out(`Refusé : lot #${idn} absent du registre de vague (rien à désinscrire).`);
+      return out(`Refusé : US#${idn} absente du registre de vague (rien à désinscrire).`);
     }
     let purged = 0;
     try { purged = require('../lib/handoff').purgeLotHandoffs(root, [idn]); } catch (_) { /* best-effort */ }
     const wasReady = before && before.state === 'ready';
     const rest = fleetLib.loadFleet(root);
-    out(`Lot #${idn} retiré de la vague${purged ? ` (handoff de lot purgé)` : ''}. `
+    out(`US#${idn} retirée de la vague${purged ? ` (handoff d'US purgé)` : ''}. `
       + 'La session redevient autonome : plus de garde de périmètre, plus d\'injection de vague.');
-    if (wasReady) out('⚠️ Ce lot était « prêt à merger » : il sort du plan de réintégration — sa branche ne sera plus mergée automatiquement.');
-    if (!rest.active) out(`Plus aucun lot en vol : la vague est inerte (${rel} vidé de ses lots).`);
+    if (wasReady) out('⚠️ Cette US était « prêt à merger » : elle sort du plan de réintégration — sa branche ne sera plus mergée automatiquement.');
+    if (!rest.active) out(`Plus aucune US en vol : la vague est inerte (${rel} vidé de ses US).`);
     return;
   }
 
@@ -505,7 +511,7 @@ function fleetCmd(root, sub, json) {
 //   --live-seed           sème le plan COMPLET dans .vibe-agent/epicmaster-live.json (lot #141) : epic,
 //                         vagues, lots pending (modèle·effort, depends_on, tokens est.) — mêmes filtres que le plan
 //                         [--wave-labels "1=Socle;2=Providers"] : libellé de chaque vague affiché par la bande
-//   --session-title       titre de la session maître (« [XXX · Epicmaster] Epic · #a–#b »)
+//   --session-title       titre de la session maître (« [XXX · EP#a–#b] <nom de l'epic> »)
 function epicmaster(root, json) {
   // --live [--detailed] (lot #136) : état LIVE de la session maître (.vibe-agent/epicmaster-live.json),
   // lecture seule — ne calcule ni plan ni handoff. Compact par défaut ; --detailed : une ligne par lot/agent.
@@ -525,8 +531,8 @@ function epicmaster(root, json) {
   if (process.argv.includes('--brief')) {
     const rawId = flag('id');
     const l = b.lots.find((x) => x.id === Number(rawId));
-    if (rawId == null || !l) return out(`Refusé : --brief exige --id d'un lot existant (reçu : ${rawId == null ? 'aucun' : rawId}).`);
-    if (!(l.status === 'todo' || l.status === 'in_progress')) return out(`Refusé : le lot #${l.id} est ${LABELS[l.status]} — pas de brief pour un lot fermé.`);
+    if (rawId == null || !l) return out(`Refusé : --brief exige --id d'une US existante (reçu : ${rawId == null ? 'aucun' : rawId}).`);
+    if (!(l.status === 'todo' || l.status === 'in_progress')) return out(`Refusé : l'US#${l.id} est ${LABELS_F[l.status]} — pas de brief pour une US fermée.`);
     out(em.renderBrief(l, b, PMZ_BASE));
     out('');
     out('Côté maître, AVANT de lancer le sous-agent :');
@@ -536,10 +542,10 @@ function epicmaster(root, json) {
     return;
   }
   const plan = em.planMaster(root, b, opts);
-  // --session-title : titre de la session maître courante (« [XXX · Epicmaster] Epic · #a–#b »), mêmes
+  // --session-title : titre de la session maître courante (« [XXX · EP#a–#b] <nom de l'epic> »), mêmes
   // filtres que le plan ; le maître renomme SA session avec, dès le plan confirmé.
   if (process.argv.includes('--session-title')) {
-    if (!plan.lots.length) return out('Aucun lot à embarquer : pas de titre.');
+    if (!plan.lots.length) return out('Aucune US à embarquer : pas de titre.');
     const epics = [...new Set(plan.lots.map((l) => l.epic).filter(Boolean))];
     return out(require('../lib/lot').titleForMasterSession(trigram.readTrigram(root), opts.epic || epics.join(' + '), plan.lots.map((l) => l.id)));
   }
@@ -548,15 +554,15 @@ function epicmaster(root, json) {
   if (process.argv.includes('--live-seed')) {
     const r = require('../lib/epicmaster-live').seedFromPlan(root, plan, b, { epic: opts.epic, waveLabels: flag('wave-labels') });
     if (json) return out(JSON.stringify({ seeded: r.ok, epic: r.epic, waves: r.waves, lots: r.lots, file: '.vibe-agent/epicmaster-live.json' }, null, 2));
-    if (!plan.lots.length) return out('Aucun lot à semer : état live NON écrit (rien à embarquer).');
+    if (!plan.lots.length) return out('Aucune US à semer : état live NON écrit (rien à embarquer).');
     return out(r.ok
-      ? `État live semé : epic « ${r.epic} », ${r.waves} vague${r.waves > 1 ? 's' : ''}, ${r.lots} lot${r.lots > 1 ? 's' : ''} en attente — .vibe-agent/epicmaster-live.json (aucun lot démarré).`
+      ? `État live semé : epic « ${r.epic} », ${r.waves} vague${r.waves > 1 ? 's' : ''}, ${r.lots} US en attente — .vibe-agent/epicmaster-live.json (aucune US démarrée).`
       : 'Refusé : écriture de l\'état live impossible (droits ? .vibe-agent absent ?).');
   }
   let handoffPath = null;
   if (process.argv.includes('--write-handoff')) {
     if (!plan.lots.length) {
-      if (!json) out('Aucun lot à embarquer : handoff maître NON écrit (rien à préparer).');
+      if (!json) out('Aucune US à embarquer : handoff maître NON écrit (rien à préparer).');
     } else {
       const text = em.renderMasterHandoff(plan, { epic: opts.epic, pmzBase: PMZ_BASE });
       const target = flag('handoff-file') ? path.resolve(root, flag('handoff-file')) : null;
@@ -622,7 +628,7 @@ function main() {
   if (cmd === 'add') {
     const model = flag('model');
     if (!model) {
-      return out('Refusé : --model manquant. Une préconisation de modèle par lot est obligatoire (ex. --model sonnet ou --model opus).');
+      return out('Refusé : --model manquant. Une préconisation de modèle par US est obligatoire (ex. --model sonnet ou --model opus).');
     }
     const effort = flag('effort');
     if (effort && !backlog.EFFORT_LEVELS.includes(effort)) {
@@ -634,24 +640,25 @@ function main() {
       { name: '--model', value: model, max: backlog.MAX_MODEL_HINT },
       { name: '--epic', value: flag('epic'), max: backlog.MAX_EPIC },
       { name: '--verify', value: flag('verify'), max: backlog.MAX_VERIFY },
-      { name: '--us', value: flag('us'), max: backlog.MAX_US },
+      { name: specFlagName(), value: specFlag(), max: backlog.MAX_SPEC },
     ])) return;
     const dep = parseDepends();
     if (!dep.ok) return;
-    // Garde d'existence (fait quand du lot « Pointeur US vérifié ») : un chemin --us qui ne
-    // pointe vers rien est REFUSÉ, jamais avalé — un pointeur mort serait pire qu'aucune US.
+    // Garde d'existence (fait quand du lot « Pointeur US vérifié ») : un chemin --spec (ex --us,
+    // alias déprécié) qui ne pointe vers rien est REFUSÉ, jamais avalé — un pointeur mort serait
+    // pire qu'aucune spec.
     // addLot revalide en interne (défense en profondeur) ; on refuse ici en premier pour un
     // message explicite, distinct du refus générique --title/plafond ci-dessous.
-    const usPath = flag('us');
-    if (usPath && !fs.existsSync(path.join(root, usPath))) {
-      return out(`Refusé : --us pointe vers un chemin inexistant (« ${usPath} », relatif à la racine du dépôt « ${root} »). `
-        + 'Crée le fichier d\'abord (cf. templates/us-template.md), ou omets --us si l\'US n\'est pas encore rédigée.');
+    const specPath = specFlag();
+    if (specPath && !fs.existsSync(path.join(root, specPath))) {
+      return out(`Refusé : ${specFlagName()} pointe vers un chemin inexistant (« ${specPath} », relatif à la racine du dépôt « ${root} »). `
+        + `Crée le fichier d'abord (cf. templates/spec-template.md, ex. docs/specs/SPEC-42.md), ou omets ${specFlagName()} si la spec n'est pas encore rédigée.`);
     }
-    const newLot = backlog.addLot(root, flag('title'), flag('scope'), model, flag('epic'), flag('verify'), effort, flagList('perimeter'), dep.ids, usPath);
+    const newLot = backlog.addLot(root, flag('title'), flag('scope'), model, flag('epic'), flag('verify'), effort, flagList('perimeter'), dep.ids, specPath);
     if (!newLot) {
       const b = backlog.loadBacklog(root);
       if (b.lots.filter((l) => l.status === 'todo' || l.status === 'in_progress').length >= backlog.MAX_LOTS_OPEN) {
-        return out(`Refusé : ${backlog.MAX_LOTS_OPEN} lots ouverts au plafond — un backlog n'est pas un Jira. Clore ou abandonner d'abord.`);
+        return out(`Refusé : ${backlog.MAX_LOTS_OPEN} US ouvertes au plafond — un backlog n'est pas un Jira. Clore ou abandonner d'abord.`);
       }
       return out('Refusé : --title manquant ou vide.');
     }
@@ -659,7 +666,7 @@ function main() {
     // Se poser un lot avant de le traiter est le geste ORDINAIRE d'une session de travail (et le
     // marquer « Plan » la décrivait à faux) ; l'acte de conception tracé est `epic --set`, que
     // /pmz:scope exécute pour le plan qu'il découpe.
-    let addMsg =`Lot #${newLot.id} « ${newLot.title} » ajouté (à faire)${backlog.modelEffortTag(newLot)}${newLot.epic ? ` [epic : ${newLot.epic}]` : ''}${newLot.verify ? ` [verify : ${newLot.verify}]` : ''}${newLot.us ? ` [US : ${newLot.us}]` : ''}${newLot.perimeter.length ? ` [périmètre : ${newLot.perimeter.join(', ')}]` : ''}${newLot.depends_on.length ? ` [dépend de : ${newLot.depends_on.map((d) => '#' + d).join(', ')}]` : ''}.`;
+    let addMsg =`US#${newLot.id} « ${newLot.title} » ajoutée (à faire)${backlog.modelEffortTag(newLot)}${newLot.epic ? ` [epic : ${newLot.epic}]` : ''}${newLot.verify ? ` [verify : ${newLot.verify}]` : ''}${newLot.spec ? ` [Spec : ${newLot.spec}]` : ''}${newLot.perimeter.length ? ` [périmètre : ${newLot.perimeter.join(', ')}]` : ''}${newLot.depends_on.length ? ` [dépend de : ${newLot.depends_on.map((d) => '#' + d).join(', ')}]` : ''}.`;
     addMsg += estimateSuffix(backlog.loadBacklog(root), newLot);
     return out(addMsg);
   }
@@ -669,56 +676,57 @@ function main() {
     if (!set) {
       const b = backlog.loadBacklog(root);
       const l = b.lots.find((x) => x.id === Number(id));
-      return out(l ? `Verify du lot #${l.id} : ${l.verify || '(aucune)'}` : `Lot #${id} introuvable.`);
+      return out(l ? `Verify de l'US#${l.id} : ${l.verify || '(aucune)'}` : `US#${id} introuvable.`);
     }
     if (truncGuard([{ name: '--set', value: set, max: backlog.MAX_VERIFY }])) return;
     const l = backlog.setVerify(root, id, set);
-    return out(l ? `Verify du lot #${l.id} enregistrée : ${l.verify}` : `Lot #${id} introuvable ou commande vide.`);
+    return out(l ? `Verify de l'US#${l.id} enregistrée : ${l.verify}` : `US#${id} introuvable ou commande vide.`);
   }
 
-  // Lot #106 : le champ `us` (lot #101) n'avait qu'une porte d'entrée, `add --us`, et supposait
-  // l'US déjà rédigée. Trois régimes ici, sur le modèle de `verify` :
+  // Lot #106 : le champ `spec` (ex-`us`, lot #101) n'avait qu'une porte d'entrée, `add --spec`,
+  // et supposait la spec déjà rédigée. Trois régimes ici, sur le modèle de `verify` :
   //  - sans flag : LECTURE du pointeur (coût zéro, pas d'ouverture du fichier) ;
-  //  - --new : pose docs/us/US-<id>.md depuis le gabarit ET rattache le pointeur ;
-  //  - --set <chemin> : rattache une US déjà écrite ailleurs (issue du refus doux « existe déjà »).
-  if (cmd === 'us') {
+  //  - --new : pose docs/specs/SPEC-<id>.md depuis le gabarit ET rattache le pointeur ;
+  //  - --set <chemin> : rattache une spec déjà écrite ailleurs (issue du refus doux « existe déjà »).
+  // Sous-commande `us` gardée en alias déprécié de `spec`.
+  if (cmd === 'spec' || cmd === 'us') {
     const b = backlog.loadBacklog(root);
     const cur = b.lots.find((x) => x.id === Number(id));
-    if (!cur) return out(`Lot #${id} introuvable.`);
+    if (!cur) return out(`US#${id} introuvable.`);
     const set = flag('set');
     const wantNew = process.argv.includes('--new');
     if (wantNew && set) {
       return out('Refusé : --new et --set s\'excluent (générer un gabarit ou rattacher un fichier existant, pas les deux).');
     }
     if (set) {
-      if (truncGuard([{ name: '--set', value: set, max: backlog.MAX_US }])) return;
+      if (truncGuard([{ name: '--set', value: set, max: backlog.MAX_SPEC }])) return;
       if (!fs.existsSync(path.join(root, set))) {
         return out(`Refusé : --set pointe vers un chemin inexistant (« ${set} », relatif à « ${root} »). `
-          + `Un pointeur mort est pire qu'aucune US — écris le fichier d'abord, ou pose le gabarit avec \`us --id ${cur.id} --new\`.`);
+          + `Un pointeur mort est pire qu'aucune spec — écris le fichier d'abord, ou pose le gabarit avec \`spec --id ${cur.id} --new\`.`);
       }
-      const l = backlog.setUs(root, id, set);
-      if (!l) return out(`Refusé : le lot #${cur.id} est ${LABELS[cur.status]} — son pointeur US n'est plus modifiable.`);
-      return out(`US du lot #${l.id} rattachée : ${l.us}`);
+      const l = backlog.setSpec(root, id, set);
+      if (!l) return out(`Refusé : l'US#${cur.id} est ${LABELS_F[cur.status]} — son pointeur de spec n'est plus modifiable.`);
+      return out(`Spec de l'US#${l.id} rattachée : ${l.spec}`);
     }
     if (!wantNew) {
-      return out(`US du lot #${cur.id} : ${cur.us || '(aucune)'}${cur.us ? '' : ` — poser le gabarit : \`us --id ${cur.id} --new\``}`);
+      return out(`Spec de l'US#${cur.id} : ${cur.spec || '(aucune)'}${cur.spec ? '' : ` — poser le gabarit : \`spec --id ${cur.id} --new\``}`);
     }
-    const res = backlog.createUsFile(root, id);
+    const res = backlog.createSpecFile(root, id);
     if (res.ok) {
-      out(`US du lot #${res.lot.id} créée : ${res.rel} (gabarit posé, pointeur rattaché).`);
+      out(`Spec de l'US#${res.lot.id} créée : ${res.rel} (gabarit posé, pointeur rattaché).`);
       return out('À remplir à la main : récit, critères d\'acceptation vérifiables, hors périmètre. Le backlog ne porte QUE le chemin.');
     }
     if (res.reason === 'exists') {
-      const already = cur.us === res.rel;
-      out(`Refusé : ${res.rel} existe déjà — cette commande génère un gabarit, elle n'écrase jamais une US rédigée.`);
-      return out(already ? 'Ce fichier est déjà le pointeur US du lot : rien à faire, édite-le directement.'
-        : `${cur.us ? `Le lot pointe vers « ${cur.us} »` : 'Le lot ne pointe vers aucune US'} — pour rattacher ce fichier : \`us --id ${cur.id} --set ${res.rel}\`.`);
+      const already = cur.spec === res.rel;
+      out(`Refusé : ${res.rel} existe déjà — cette commande génère un gabarit, elle n'écrase jamais une spec rédigée.`);
+      return out(already ? 'Ce fichier est déjà le pointeur de spec de l\'US : rien à faire, édite-le directement.'
+        : `${cur.spec ? `L'US pointe vers « ${cur.spec} »` : 'L\'US ne pointe vers aucune spec'} — pour rattacher ce fichier : \`spec --id ${cur.id} --set ${res.rel}\`.`);
     }
     if (res.reason === 'closed') {
-      return out(`Refusé : le lot #${cur.id} est ${LABELS[cur.status]} — une US écrite après la clôture ne gouverne plus rien.`);
+      return out(`Refusé : l'US#${cur.id} est ${LABELS_F[cur.status]} — une spec écrite après la clôture ne gouverne plus rien.`);
     }
     if (res.reason === 'template') {
-      return out(`Refusé : gabarit d'US illisible (attendu : ${PMZ_BASE}/templates/us-template.md). Réinstalle Promptimizer.`);
+      return out(`Refusé : gabarit de spec illisible (attendu : ${PMZ_BASE}/templates/spec-template.md). Réinstalle Promptimizer.`);
     }
     return out(`Refusé : écriture impossible sous ${res.rel} (droits ? dépôt en lecture seule ?).`);
   }
@@ -731,21 +739,21 @@ function main() {
   if (cmd === 'depends') {
     const b = backlog.loadBacklog(root);
     const cur = b.lots.find((x) => x.id === Number(id));
-    if (!cur) return out(`Lot #${id} introuvable.`);
+    if (!cur) return out(`US#${id} introuvable.`);
     const fmt = (ds) => (ds.length ? ds.map((d) => '#' + d).join(', ') : '(aucune)');
     if (!process.argv.includes('--depends')) {
-      return out(`Dépendances du lot #${cur.id} : ${fmt(cur.depends_on)}`);
+      return out(`Dépendances de l'US#${cur.id} : ${fmt(cur.depends_on)}`);
     }
     const dep = parseDepends();
     if (!dep.ok) return;
     const lot = backlog.setDepends(root, id, dep.ids);
-    if (!lot) return out(`Refusé : le lot #${cur.id} est ${LABELS[cur.status]} — ses dépendances ne sont plus modifiables.`);
+    if (!lot) return out(`Refusé : l'US#${cur.id} est ${LABELS_F[cur.status]} — ses dépendances ne sont plus modifiables.`);
     // Ids ne correspondant à aucun lot : AVERTIS, pas refusés — `blockedByOf`/`planWaves` les
     // traitent comme satisfaits (tolérance hors-plan volontaire), mais c'est le symptôme n°1
     // de la faute de frappe que cette commande sert justement à corriger.
     const unknown = lot.depends_on.filter((d) => !b.lots.some((x) => x.id === d));
-    const warn = unknown.length ? ` ⚠️ Aucun lot ne porte ${unknown.map((d) => '#' + d).join(', ')} (dépendance ignorée au calcul de vagues).` : '';
-    return out(`Dépendances du lot #${lot.id} : ${fmt(lot.depends_on)}.${warn}`);
+    const warn = unknown.length ? ` ⚠️ Aucune US ne porte ${unknown.map((d) => '#' + d).join(', ')} (dépendance ignorée au calcul de vagues).` : '';
+    return out(`Dépendances de l'US#${lot.id} : ${fmt(lot.depends_on)}.${warn}`);
   }
 
   // FIA-25 (lot #98) : soupape de réouverture d'un lot clos (scope insuffisant découvert après
@@ -755,41 +763,43 @@ function main() {
     const note = flag('note');
     const b = backlog.loadBacklog(root);
     const cur = b.lots.find((x) => x.id === Number(id));
-    if (!cur) return out(`Lot #${id} introuvable.`);
+    if (!cur) return out(`US#${id} introuvable.`);
     if (cur.status === 'dropped') {
-      return out(`Refusé : le lot #${cur.id} est abandonné, pas clos — un lot dropped se re-crée (add), il ne se rouvre pas.`);
+      return out(`Refusé : l'US#${cur.id} est abandonnée, pas close — une US dropped se re-crée (add), elle ne se rouvre pas.`);
     }
-    if (cur.status !== 'done') return out(`Refusé : le lot #${cur.id} est déjà ouvert (${LABELS[cur.status]}).`);
+    if (cur.status !== 'done') return out(`Refusé : l'US#${cur.id} est déjà ouverte (${LABELS[cur.status]}).`);
     if (!note) {
       return out('Refusé : --note manquante. Une réouverture efface la trace de clôture (commit, verdict verify, '
         + 'session, occupation) — elle doit dire pourquoi. Ex. --note "régression détectée sur X".');
     }
     const lot = backlog.reopenLot(root, id, note);
-    if (!lot) return out(`Lot #${id} : échec d'écriture, rien n'a été modifié.`);
+    if (!lot) return out(`US#${id} : échec d'écriture, rien n'a été modifié.`);
     const n = (lot.reopened || []).length;
-    return out(`Lot #${lot.id} « ${lot.title} » rouvert (à faire)${backlog.modelEffortTag(lot)} — clôture effacée`
-      + `, réouverture n°${n} tracée. Démarre-le avec : backlog.js start --id ${lot.id}`);
+    return out(`US#${lot.id} « ${lot.title} » rouverte (à faire)${backlog.modelEffortTag(lot)} — clôture effacée`
+      + `, réouverture n°${n} tracée. Démarre-la avec : backlog.js start --id ${lot.id}`);
   }
 
   if (cmd === 'start') {
     const lot = backlog.startLot(root, id, flag('owner'));
-    if (!lot) return out(`Lot #${id} introuvable ou déjà clos/abandonné.`);
-    let startMsg = `Lot #${lot.id} « ${lot.title} » démarré (en cours)${backlog.modelEffortTag(lot)}${lot.session_owner ? ` [session : ${lot.session_owner}]` : ''}.`;
+    if (!lot) return out(`US#${id} introuvable ou déjà close/abandonnée.`);
+    let startMsg = `US#${lot.id} « ${lot.title} » démarrée (en cours)${backlog.modelEffortTag(lot)}${lot.session_owner ? ` [session : ${lot.session_owner}]` : ''}.`;
     startMsg += estimateSuffix(backlog.loadBacklog(root), lot);
     liveRecord(root, 'start', lot, lot.session_owner);
     return out(startMsg);
   }
 
   if (cmd === 'done') {
-    // Structure de l'US (lot #107) : une US aux sections obligatoires manquantes n'a pas la
+    // Structure de la spec (lot #107) : une spec aux sections obligatoires manquantes n'a pas la
     // valeur de contrat qu'elle prétend avoir. Refus DOUX (message actionnable, pas de fail-hard
-    // ni de blocage de session) — --allow-incomplete-us débloque un lot clos malgré tout.
-    const preUs = backlog.loadBacklog(root).lots.find((x) => x.id === Number(id));
-    if (preUs && preUs.us && !process.argv.includes('--allow-incomplete-us')) {
-      const struct = backlog.checkUsStructure(root, preUs.us);
+    // ni de blocage de session) — --allow-incomplete-spec (alias déprécié --allow-incomplete-us)
+    // débloque la clôture malgré tout.
+    const preSpec = backlog.loadBacklog(root).lots.find((x) => x.id === Number(id));
+    const allowIncomplete = process.argv.includes('--allow-incomplete-spec') || process.argv.includes('--allow-incomplete-us');
+    if (preSpec && preSpec.spec && !allowIncomplete) {
+      const struct = backlog.checkSpecStructure(root, preSpec.spec);
       if (struct && struct.missing.length) {
-        return out(`Refusé : l'US du lot #${preUs.id} (${preUs.us}) n'a pas toutes ses sections obligatoires — `
-          + `manque : ${struct.missing.join(', ')}. Complète le fichier, ou clos quand même avec --allow-incomplete-us.`);
+        return out(`Refusé : la spec de l'US#${preSpec.id} (${preSpec.spec}) n'a pas toutes ses sections obligatoires — `
+          + `manque : ${struct.missing.join(', ')}. Complète le fichier, ou clos quand même avec --allow-incomplete-spec.`);
       }
     }
     // Auto-remplissage session/occupancy (lot #96, DEP-6) : la clôture CLI est le chemin
@@ -841,27 +851,27 @@ function main() {
       }
     }
     const lot = backlog.doneLot(root, id, flag('commit'), null, sessionId, occupancy);
-    if (!lot) return out(`Lot #${id} introuvable.`);
-    liveRecord(root, 'done', lot, preUs && preUs.session_owner, verdict, { tokens: flag('tokens') }); // owner lu AVANT clôture (doneLot le vide)
+    if (!lot) return out(`US#${id} introuvable.`);
+    liveRecord(root, 'done', lot, preSpec && preSpec.session_owner, verdict, { tokens: flag('tokens') }); // owner lu AVANT clôture (doneLot le vide)
     const posted = verdict ? backlog.setClosedVerify(root, lot.id, verdict) : null;
     const proof = posted
       ? ` — verify : ${verdict}${verdict === 'failed' ? ' ⚠️ échec PERSISTÉ (closed_verify), à corriger' : ''}${verdict === 'timeout' ? ' ⚠️ non terminée dans le délai — ce n\'est PAS une preuve de réussite (suite longue ? pose `verify_close_ms` sous `budget:` dans .vibe-agent/rules.yaml)' : ''}`
       : (verdict ? ` — verify : ${verdict} (verdict non persisté : déjà posé)` : '');
-    return out(`Lot #${lot.id} « ${lot.title} » clos${lot.closed_commit ? ` (commit ${lot.closed_commit})` : ''}.${proof}${verifyTail}`);
+    return out(`US#${lot.id} « ${lot.title} » close${lot.closed_commit ? ` (commit ${lot.closed_commit})` : ''}.${proof}${verifyTail}`);
   }
 
   if (cmd === 'drop') {
     if (truncGuard([{ name: '--note', value: flag('note'), max: backlog.MAX_NOTE }])) return;
     const lot = backlog.dropLot(root, id, flag('note'));
-    return out(lot ? `Lot #${lot.id} « ${lot.title} » abandonné.`
-      : `Lot #${id} introuvable ou déjà fait.`);
+    return out(lot ? `US#${lot.id} « ${lot.title} » abandonnée.`
+      : `US#${id} introuvable ou déjà faite.`);
   }
 
   if (cmd === 'note') {
     if (truncGuard([{ name: '--note', value: flag('note'), max: backlog.MAX_NOTE }])) return;
     const lot = backlog.noteLot(root, id, flag('note'));
     if (lot) liveRecord(root, 'note', lot, lot.session_owner, undefined, { decide: process.argv.includes('--decide') });
-    return out(lot ? `Note posée sur le lot #${lot.id}${process.argv.includes('--decide') ? ' (à trancher)' : ''}.` : `Lot #${id} introuvable ou --note manquante.`);
+    return out(lot ? `Note posée sur l'US#${lot.id}${process.argv.includes('--decide') ? ' (à trancher)' : ''}.` : `US#${id} introuvable ou --note manquante.`);
   }
 
   if (cmd === 'next') {
@@ -871,9 +881,9 @@ function main() {
     // (annoter `lot` le ferait écrire dans backlog.json par un saveBacklog ultérieur).
     const bl = backlog.blockedByOf(bn, lot);
     if (json) return out(JSON.stringify(lot ? Object.assign({}, lot, { blockedBy: bl }) : null));
-    if (!lot) return out('Aucun lot à faire.');
-    const warn = bl.length ? ` ⚠️ Bloqué par ${bl.map((d) => '#' + d).join(', ')} encore ouvert (tous les lots restants le sont).` : '';
-    return out(`Prochain lot : #${lot.id} « ${lot.title} »${backlog.modelEffortTag(lot)}${lot.scope ? ` — ${lot.scope}` : ''}.${warn}`);
+    if (!lot) return out('Aucune US à faire.');
+    const warn = bl.length ? ` ⚠️ Bloqué par ${bl.map((d) => '#' + d).join(', ')} encore ouvert (toutes les US restantes le sont).` : '';
+    return out(`Prochaine US : #${lot.id} « ${lot.title} »${backlog.modelEffortTag(lot)}${lot.scope ? ` — ${lot.scope}` : ''}.${warn}`);
   }
 
   if (cmd === 'export') {
@@ -905,7 +915,7 @@ function main() {
     return;
   }
 
-  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | fleet <join|ready|leave|show> | reintegrate | reconcile | epic | verify | us | trigram | export.`);
+  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | fleet <join|ready|leave|show> | reintegrate | reconcile | epic | verify | spec | trigram | export.`);
 }
 
 if (require.main === module) {

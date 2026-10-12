@@ -52,7 +52,7 @@ function perimeterDeny(input) {
     // Trace la friction dans le registre partagé (best-effort) — ce n'est PAS un droit d'écriture :
     // l'écriture reste refusée, mais l'orchestrateur voit ce que le lot a voulu toucher hors zone.
     try { requestExtension(root, mine.id, toRelPosix(fp, root) || fp); } catch (_) { /* jamais bloquant */ }
-    return `Lot #${mine.id} — « ${fp} » est hors du périmètre exclusif (${mine.perimeter.join(', ')}). `
+    return `US#${mine.id} — « ${fp} » est hors du périmètre exclusif (${mine.perimeter.join(', ')}). `
       + 'Écriture bloquée par Promptimizer (vague parallèle) : reste dans ton périmètre, ou demande '
       + 'l\'élargissement à l\'orchestrateur (demande tracée dans fleet.json).';
   } catch (_) {

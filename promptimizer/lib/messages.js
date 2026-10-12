@@ -18,9 +18,9 @@ const MSG_ACTIF = [
   'Promptimizer actif.',
   'Priorité : réduire les relectures de contexte.',
   'Utilise git grep/git diff avant Read complet.',
-  'Lot terminé : propose la clôture via une question à choix (OK / Non), jamais en texte',
+  'US terminée : propose la clôture via une question à choix (OK / Non), jamais en texte',
   'libre ; sur OK, déroule /close-batch (vérif ciblée + changelog + commit + handoff court),',
-  'puis session fraîche — enchaîner un nouveau lot dans la même session coûte le contexte du précédent.',
+  'puis session fraîche — enchaîner une nouvelle US dans la même session coûte le contexte de la précédente.',
 ].join('\n');
 
 // Variante SessionStart pour projet déjà augmenté : les règles PMZ vivent déjà dans le
@@ -28,16 +28,16 @@ const MSG_ACTIF = [
 // On ne garde que le protocole de clôture, qui n'est PAS dans pmz-rules.md.
 const MSG_ACTIF_SLIM = [
   'Promptimizer actif. Règles : bloc « pmz:rules » du CLAUDE.md (ne pas les répéter).',
-  'Lot terminé : propose la clôture via une question à choix (OK / Non), jamais en texte',
+  'US terminée : propose la clôture via une question à choix (OK / Non), jamais en texte',
   'libre ; sur OK, déroule /close-batch (vérif ciblée + changelog + commit + handoff court),',
-  'puis session fraîche — enchaîner un nouveau lot dans la même session coûte le contexte du précédent.',
+  'puis session fraîche — enchaîner une nouvelle US dans la même session coûte le contexte de la précédente.',
 ].join('\n');
 
 const MSG_NON_INIT = [
   'Projet non initialisé détecté.',
   'Promptimizer peut créer un socle prudent (CLAUDE.md, AGENTS.md, CHANGELOG.md, .vibe-agent/).',
   "Propose à l'utilisateur de lancer /init (ou le bootstrap) et ne crée rien qu'APRÈS sa confirmation.",
-  'Avant de coder : finaliser CLAUDE.md/AGENTS.md avec lecture minimale, puis proposer un premier lot court.',
+  'Avant de coder : finaliser CLAUDE.md/AGENTS.md avec lecture minimale, puis proposer une première US courte.',
 ].join('\n');
 
 // MSG_LECTURE / MSG_CLOTURE sont des nudges VISIBLES (systemMessage stop.js, toast OpenCode) :
@@ -51,7 +51,7 @@ const MSG_LECTURE = withSeverity(SEV.WARN, [
 ]);
 
 const MSG_CLOTURE = withSeverity(SEV.WARN, [
-  'Lot modifié sans clôture complète.',
+  'US modifiée sans clôture complète.',
   'Propose la clôture via une question à choix (OK / Non) — pas en texte libre ; sur OK,',
   'lance /close-batch pour la checklist et l\'audit complets (vérif ciblée, CHANGELOG, commit, handoff).',
 ]);
@@ -63,18 +63,18 @@ const MSG_HANDOFF = [
 
 const MSG_LARGE = [
   'Demande potentiellement large.',
-  'Propose un découpage en 2 à 5 lots (1 lot = 1 commit livrable), fais-le valider, puis',
+  'Propose un découpage en 2 à 5 US (1 US = 1 commit livrable), fais-le valider, puis',
   `persiste-le : /scope, ou node ${PMZ_BASE}/scripts/backlog.js add --title "…" --scope "fait quand : …" (puis start --id N).`,
-  'Traite ensuite UNIQUEMENT le premier lot.',
+  'Traite ensuite UNIQUEMENT la première US.',
 ].join('\n');
 
 // Variante quand un plan de lots existe déjà : ne pas repartir sur un nouveau plan.
 function largeWithPlanMessage(prog, cur) {
   return [
-    `Demande potentiellement large — un plan de lots existe déjà (${prog.done}/${prog.total} faits).`,
+    `Demande potentiellement large — un plan d'US existe déjà (${prog.done}/${prog.total} faites).`,
     cur
-      ? `Rattache la demande au lot en cours (« ${cur.title} ») ou ajoute un lot via backlog.js add — sans élargir le lot courant.`
-      : 'Rattache la demande à un lot existant ou ajoute un lot via backlog.js add — un seul lot à la fois.',
+      ? `Rattache la demande à l'US en cours (« ${cur.title} ») ou ajoute une US via backlog.js add — sans élargir l'US courante.`
+      : 'Rattache la demande à une US existante ou ajoute une US via backlog.js add — une seule US à la fois.',
   ].join('\n');
 }
 
@@ -111,7 +111,7 @@ function occupancyMessage(occ, bucket) {
   const lines = [
     `Contexte ≈ ${k}k tokens (${repere}).`,
     'Pense à : git diff/git grep plutôt que relire.',
-    "Lot fini → lance /close-batch. Sinon → /fresh-session après un commit intermédiaire pour repartir au plancher.",
+    "US finie → lance /close-batch. Sinon → /fresh-session après un commit intermédiaire pour repartir au plancher.",
   ];
   // À partir du palier 300k (bucket ≥ 2), ajoute l'argument chiffré : compacter coûte
   // plus cher qu'une clôture + session fraîche. Ces messages sont VISIBLES (systemMessage),
@@ -127,7 +127,7 @@ function compactionNudgeMessage(occ) {
   const lines = ['Compaction manuelle demandée.'];
   if (occ != null && occ > 0) lines.push(...compactionCostLines(occ));
   lines.push(
-    "Alternative la prochaine fois : /close-batch (lot fini) ou commit intermédiaire + /fresh-session — repart d'un handoff sans résumé lossy.",
+    "Alternative la prochaine fois : /close-batch (US finie) ou commit intermédiaire + /fresh-session — repart d'un handoff sans résumé lossy.",
   );
   return withSeverity(SEV.WARN, lines);
 }
@@ -163,11 +163,11 @@ function redZonePrescriptionMessage(rz, lot) {
   }
   if (lot && lot.title) {
     lines.push(
-      `Lot « ${lot.title} » EN COURS — ne le termine pas ici : commit intermédiaire + /fresh-session (le lot reste ouvert, le handoff le reprend). Déjà bouclé → /close-batch.`,
+      `US « ${lot.title} » EN COURS — ne la termine pas ici : commit intermédiaire + /fresh-session (l'US reste ouverte, le handoff la reprend). Déjà bouclée → /close-batch.`,
     );
   } else {
     lines.push(
-      "Lot fini → /close-batch. Sinon → commit intermédiaire + /fresh-session : repart d'un handoff court, sans perte.",
+      "US finie → /close-batch. Sinon → commit intermédiaire + /fresh-session : repart d'un handoff court, sans perte.",
     );
   }
   lines.push(...compactionCostLines(rz.occ));
@@ -182,7 +182,7 @@ function occupancyPromptMessage(occ, bucket) {
   const k = Math.round(occ / 1000);
   return [
     `Contexte ≈ ${k}k tokens — occupation haute, ce tour coûtera plus cher en cache.`,
-    "Lot fini → /close-batch. Sinon → commit intermédiaire puis /fresh-session pour repartir au plancher.",
+    "US finie → /close-batch. Sinon → commit intermédiaire puis /fresh-session pour repartir au plancher.",
   ].join('\n');
 }
 
@@ -214,7 +214,7 @@ function turnBudgetWarnMessage(tb) {
   return withSeverity(SEV.WARN, [
     `Session à ${tb.turnCount} tours (rappel posé à ${tb.warn}).`,
     turnScalingLine(),
-    `Amène le lot vers un point de commit : à ${tb.prescribe} tours, la session fraîche devient la bonne option.`,
+    `Amène l'US vers un point de commit : à ${tb.prescribe} tours, la session fraîche devient la bonne option.`,
   ]);
 }
 
@@ -230,11 +230,11 @@ function turnBudgetPrescriptionMessage(tb, lot) {
   ];
   if (lot && lot.title) {
     lines.push(
-      `Lot « ${lot.title} » EN COURS — ne l'étire pas ici : commit intermédiaire + /fresh-session (le lot reste ouvert, le handoff le reprend). Déjà bouclé → /close-batch.`,
+      `US « ${lot.title} » EN COURS — ne l'étire pas ici : commit intermédiaire + /fresh-session (l'US reste ouverte, le handoff la reprend). Déjà bouclée → /close-batch.`,
     );
   } else {
     lines.push(
-      "Lot fini → /close-batch. Sinon → commit intermédiaire + /fresh-session : repart d'un handoff court, sans perte.",
+      "US finie → /close-batch. Sinon → commit intermédiaire + /fresh-session : repart d'un handoff court, sans perte.",
     );
   }
   if (tb.floating) lines.push(`Rappel tous les +${tb.step} tours tant que la session dure (prochain à ${tb.next}).`);
@@ -248,7 +248,7 @@ function turnBudgetPrescriptionMessage(tb, lot) {
 function turnBudgetPromptMessage(tb) {
   return [
     `Session à ${tb.turnCount} tours (budget ${tb.prescribe}) — au-delà, chaque tour repaye tout le contexte accumulé.`,
-    "Amène le lot en cours à un point de commit maintenant, puis propose la clôture via la question à choix (OK / Non) : /close-batch si le lot est bouclé, sinon commit intermédiaire + /fresh-session. N'ouvre pas de nouveau chantier dans cette session.",
+    "Amène l'US en cours à un point de commit maintenant, puis propose la clôture via la question à choix (OK / Non) : /close-batch si l'US est bouclée, sinon commit intermédiaire + /fresh-session. N'ouvre pas de nouveau chantier dans cette session.",
   ].join('\n');
 }
 // ---------------------------------------------------------------------------------------
@@ -279,7 +279,7 @@ function statusLineText(info) {
   const parts = ['PMZ' + (i.version ? ` v${i.version}` : '')];
   if (i.epic) parts.push(clip(i.epic, 24));
   if (i.lot) {
-    let s = `lot #${i.lot.id}`;
+    let s = `US#${i.lot.id}`;
     if (i.lot.title) s += ` ${clip(i.lot.title, 24)}`;
     if (i.lot.blocked) s += ' ⚠'; // lot #97 : prochain lot proposé mais bloqué par une dépendance ouverte
     parts.push(s);
@@ -306,7 +306,7 @@ function pct(x) { return `${Math.round((x || 0) * 100)}%`; }
 function driftMessage(drift) {
   return withSeverity(SEV.WARN, [
     `Dérive de session sur ${drift.turns} tours : le coût de contexte monte (~${fmtK(drift.avgDeltaOld)} → ~${fmtK(drift.avgDeltaNew)}/tour) pendant que le cache rend moins (${pct(drift.avgHitOld)} → ${pct(drift.avgHitNew)}).`,
-    'Signe qu\'il vaut mieux clôturer le lot et repartir sur une session fraîche que continuer à payer le contexte accumulé (/close-batch puis /fresh-session).',
+    'Signe qu\'il vaut mieux clôturer l\'US et repartir sur une session fraîche que continuer à payer le contexte accumulé (/close-batch puis /fresh-session).',
   ]);
 }
 
@@ -332,7 +332,7 @@ function gitDebtMessage(debt) {
   const vol = churn > 0 ? ` (~${fmtK(churn)} lignes)` : '';
   return withSeverity(SEV.WARN, [
     `Dette git : ${files} fichier${files > 1 ? 's' : ''} modifié${files > 1 ? 's' : ''} sans commit depuis ${turns} tours${vol}, et le diff grossit encore.`,
-    'Committe maintenant (ou clôture le lot) : un diff qui enfle sans commit, c\'est du travail exposé à la perte (compaction, /clear, incident) et un commit monstre difficile à relire.',
+    'Committe maintenant (ou clôture l\'US) : un diff qui enfle sans commit, c\'est du travail exposé à la perte (compaction, /clear, incident) et un commit monstre difficile à relire.',
   ]);
 }
 
@@ -349,7 +349,7 @@ function claudeMdMessage(res) {
   }
   return withSeverity(SEV.INFO, [
     'Pas de CLAUDE.md projet : chaque session repart sans règles (mêmes rappels et relectures à chaque fois).',
-    'Propose à l\'utilisateur d\'en créer un minimal (règles stables, commandes de vérif, discipline de lot) — /init pose le socle après confirmation. (Signalé 1×/session.)',
+    'Propose à l\'utilisateur d\'en créer un minimal (règles stables, commandes de vérif, discipline d\'US) — /init pose le socle après confirmation. (Signalé 1×/session.)',
   ]);
 }
 
@@ -383,7 +383,7 @@ function autoInitMessage({ gitInitDone, committed }) {
     committed
       ? 'Commit initial du socle effectué.'
       : "Commit initial NON effectué (git a échoué) — à faire manuellement.",
-    'Relis CLAUDE.md avant de coder, puis propose un premier lot court.',
+    'Relis CLAUDE.md avant de coder, puis propose une première US courte.',
   ];
   return lines.join('\n');
 }
@@ -394,10 +394,10 @@ function autoInitMessage({ gitInitDone, committed }) {
 // (le marqueur n'est pas persisté). La reco « nouvelle session » n'est plus ici : c'est une
 // PRESCRIPTION, émise en coda HORS arbitre par stop.js (cf. freshSessionCodaMessage).
 function nextLotLines(next, blockedBy) {
-  if (!next) return ['Plan de lots terminé.'];
+  if (!next) return ['Plan des US terminé.'];
   const lines = [`Suivant : « ${next.title} »${next.scope ? ` — ${String(next.scope).slice(0, 100)}` : ''}.`];
   const bl = Array.isArray(blockedBy) ? blockedBy : [];
-  if (bl.length) lines.push(`⚠️ Bloqué par ${bl.map((d) => '#' + d).join(', ')} encore ouvert : clôture cette dépendance avant de démarrer (tous les lots restants sont bloqués).`);
+  if (bl.length) lines.push(`⚠️ Bloqué par ${bl.map((d) => '#' + d).join(', ')} encore ouvert : clôture cette dépendance avant de démarrer (toutes les US restantes sont bloquées).`);
   return lines;
 }
 
@@ -415,7 +415,7 @@ function compactResumeMessage(lot, prog, opts) {
   const skips = Array.isArray(o.skips) ? o.skips : [];
   const decisions = Array.isArray(o.decisions) ? o.decisions : [];
   const fleet = Array.isArray(o.fleet) ? o.fleet : [];
-  const blocks = [`Après compaction — lot en cours : « ${lot.title} » (${prog.done}/${prog.total} faits).`];
+  const blocks = [`Après compaction — US en cours : « ${lot.title} » (${prog.done}/${prog.total} faites).`];
   // Vague parallèle : la garantie de périmètre est CRITIQUE juste après compaction (le contexte
   // perdu incluait la contrainte « ne modifie que X »). Placée en 2ᵉ bloc = priorité haute,
   // survit au rognage du cap.
@@ -473,19 +473,19 @@ function backlogResumeMessage(cur, next, prog, blockedBy) {
     const scopeOf = (l) => (l.scope && scopeMax > 0 ? ` — ${String(l.scope).slice(0, scopeMax)}` : '');
     const lines = [];
     if (cur) {
-      lines.push(`Plan de lots : ${prog.done}/${prog.total} faits. Lot en cours : « ${String(cur.title).slice(0, 60)} »${modelEffortTag(cur)}${scopeOf(cur)}.`);
-      lines.push('Traite ce lot uniquement ; clôture par vérif ciblée + CHANGELOG + commit.');
+      lines.push(`Plan des US : ${prog.done}/${prog.total} faites. US en cours : « ${String(cur.title).slice(0, 60)} »${modelEffortTag(cur)}${scopeOf(cur)}.`);
+      lines.push('Traite cette US uniquement ; clôture par vérif ciblée + CHANGELOG + commit.');
       if (!cur.verify) {
-        lines.push('Ce lot n\'a pas de commande verify — sans elle, « clos sans preuve » à la clôture (pose-en une : backlog.js verify --set).');
+        lines.push('Cette US n\'a pas de commande verify — sans elle, « close sans preuve » à la clôture (pose-en une : backlog.js verify --set).');
       }
       if (hintResolvableClaude(cur.model_hint)) {
         lines.push('Modèle préconisé ci-dessus : bascule via /model avant d\'attaquer si besoin.');
       }
     } else if (next) {
-      lines.push(`Plan de lots : ${prog.done}/${prog.total} faits. Prochain lot : « ${String(next.title).slice(0, 60)} »${modelEffortTag(next)}${scopeOf(next)}.`);
+      lines.push(`Plan des US : ${prog.done}/${prog.total} faites. Prochaine US : « ${String(next.title).slice(0, 60)} »${modelEffortTag(next)}${scopeOf(next)}.`);
       const bl = Array.isArray(blockedBy) ? blockedBy : [];
       if (bl.length) lines.push(`⚠️ Bloqué par ${bl.map((d) => '#' + d).join(', ')} encore ouvert : ne le démarre pas, clôture d'abord cette dépendance.`);
-      else lines.push(`Démarre-le (node ${PMZ_BASE}/scripts/backlog.js start --id ${next.id}) puis traite ce lot uniquement.`);
+      else lines.push(`Démarre-la (node ${PMZ_BASE}/scripts/backlog.js start --id ${next.id}) puis traite cette US uniquement.`);
       if (hintResolvableClaude(next.model_hint)) {
         lines.push('Modèle préconisé ci-dessus : bascule via /model avant de démarrer si besoin.');
       }
@@ -516,7 +516,7 @@ function backlogResumeMessage(cur, next, prog, blockedBy) {
 function selfTitleMessage(title, opts) {
   const o = opts || {};
   const head = o.compose
-    ? `Titre de CETTE session : « ${title} · <objet de la demande, 6 mots max> ».`
+    ? `Titre de CETTE session : « ${title} <objet de la demande, 6 mots max> ».`
     : `Titre de CETTE session : « ${title} ».`;
   if (o.nomenclature) {
     return [
@@ -541,8 +541,8 @@ function lotCostMessage(lot, costTokens) {
   const over = (costTokens || 0) >= COST_BUDGET_TOKENS;
   const budgetK = Math.round(COST_BUDGET_TOKENS / 1000);
   return withSeverity(over ? SEV.ALERT : SEV.WARN, [
-    `Lot « ${lot.title} » : ~${fmtK(costTokens)} tokens de sortie cumulés — ${over ? `au-delà du budget ~${budgetK}k/lot` : `en approche du budget ~${budgetK}k/lot`}.`,
-    'Un lot devenu gros gagne à être redécoupé (un sous-lot livrable + commit intermédiaire, puis /fresh-session) plutôt qu\'étiré.',
+    `US « ${lot.title} » : ~${fmtK(costTokens)} tokens de sortie cumulés — ${over ? `au-delà du budget ~${budgetK}k/US` : `en approche du budget ~${budgetK}k/US`}.`,
+    'Une US devenue grosse gagne à être redécoupée (une sous-US livrable + commit intermédiaire, puis /fresh-session) plutôt qu\'étirée.',
   ]);
 }
 
@@ -557,21 +557,21 @@ function closureProofMessage(verify, changelogMissing, noVerify) {
   let sev = SEV.INFO;
   if (verify && verify.cmd) {
     if (verify.ok) {
-      lines.push(`Verify du lot (\`${verify.cmd}\`) : OK.`);
+      lines.push(`Verify de l'US (\`${verify.cmd}\`) : OK.`);
       // reste INFO : preuve verte.
     } else if (verify.timedOut) {
-      lines.push(`Verify du lot (\`${verify.cmd}\`) : non terminée dans le délai court de l'auto-clôture — relance-la via /close-batch pour la preuve complète.`);
+      lines.push(`Verify de l'US (\`${verify.cmd}\`) : non terminée dans le délai court de l'auto-clôture — relance-la via /close-batch pour la preuve complète.`);
       sev = SEV.WARN;
     } else {
-      lines.push(`Verify du lot (\`${verify.cmd}\`) : ÉCHEC (clôture non bloquée) — à corriger avant d'enchaîner :\n  ${verify.tail}`);
+      lines.push(`Verify de l'US (\`${verify.cmd}\`) : ÉCHEC (clôture non bloquée) — à corriger avant d'enchaîner :\n  ${verify.tail}`);
       sev = SEV.ALERT;
     }
   } else if (noVerify) {
-    lines.push('Clos sans preuve : ce lot n\'avait pas de commande verify. Au prochain /scope, ajoute `--verify "…"` (si le lot est vérifiable par commande) pour une clôture prouvée.');
+    lines.push('Close sans preuve : cette US n\'avait pas de commande verify. Au prochain /scope, ajoute `--verify "…"` (si l\'US est vérifiable par commande) pour une clôture prouvée.');
     sev = SEV.WARN;
   }
   if (changelogMissing) {
-    lines.push('Rappel doux : le commit de clôture ne touche pas CHANGELOG.md — un lot de retours = une entrée datée au CHANGELOG.');
+    lines.push('Rappel doux : le commit de clôture ne touche pas CHANGELOG.md — une US de retours = une entrée datée au CHANGELOG.');
     if (sev === SEV.INFO) sev = SEV.WARN;
   }
   return lines.length ? withSeverity(sev, lines) : null;
@@ -616,7 +616,7 @@ function readHygieneMessage(mix) {
 // (déjà glyphé WARN) et lui adjoint la liste des fichiers relus. Extrait ici (jadis inline) pour
 // que le nudge porte la même grammaire que les autres.
 function avoidableRereadsMessage(rereads) {
-  return MSG_LECTURE + '\nRelectures évitables ce lot : ' + rereads.join(', ') + '.';
+  return MSG_LECTURE + '\nRelectures évitables cette US : ' + rereads.join(', ') + '.';
 }
 
 // Brouillon CHANGELOG servi (lot #68) : au moment où la clôture est proposée, l'entrée
@@ -630,7 +630,7 @@ function closureWithDraftMessage(lot, files, dateStr) {
   const list = Array.isArray(files) ? files.filter(Boolean) : [];
   if (!lot && !list.length) return MSG_CLOTURE;
   const head = lot
-    ? `## ${dateStr} (lot #${lot.id}${lot.epic ? ` — epic « ${lot.epic} »` : ''} : ${lot.title})`
+    ? `## ${dateStr} (US#${lot.id}${lot.epic ? ` — epic « ${lot.epic} »` : ''} : ${lot.title})`
     : `## ${dateStr}`;
   const bullets = [];
   // Le scope backlog est un critère d'acceptation (« fait quand : … ») : on retire ce
@@ -643,7 +643,7 @@ function closureWithDraftMessage(lot, files, dateStr) {
   }
   if (lot && lot.verify) bullets.push(`- Vérif : \`${lot.verify}\``);
   return MSG_CLOTURE + '\n' + [
-    'Brouillon d\'entrée CHANGELOG (pré-mâché depuis le lot et git — à ajuster, pas à recopier aveuglément) :',
+    'Brouillon d\'entrée CHANGELOG (pré-mâché depuis l\'US et git — à ajuster, pas à recopier aveuglément) :',
     head,
   ].concat(bullets).join('\n');
 }
@@ -662,8 +662,8 @@ function fmtDurationApprox(ms) {
 // aucun recalcul depuis le transcript. Nudge VISIBLE (systemMessage stop.js / toast OpenCode)
 // donc passe par la grammaire de sévérité et l'arbitre de tour (#57) comme les autres.
 function epicBilanLine(bilan) {
-  return `Epic « ${bilan.epic} » terminée : ${bilan.count} lot(s), ${fmtK(bilan.totalCost)} tokens`
-    + ` (≈ ${fmtK(bilan.avgCost)}/lot)${bilan.durationMs != null ? `, ${fmtDurationApprox(bilan.durationMs)}` : ''}.`;
+  return `Epic « ${bilan.epic} » terminée : ${bilan.count} US, ${fmtK(bilan.totalCost)} tokens`
+    + ` (≈ ${fmtK(bilan.avgCost)}/US)${bilan.durationMs != null ? `, ${fmtDurationApprox(bilan.durationMs)}` : ''}.`;
 }
 
 function epicBilanMessage(bilan) {
@@ -684,8 +684,8 @@ function lotClosureCardHeadLine(lot, rereadsAvoided, prog) {
   const bits = [`~${fmtK(cost)} tokens`];
   if (Number.isFinite(durationMs) && durationMs >= 0) bits.push(fmtDurationApprox(durationMs));
   bits.push(`${rereadsAvoided || 0} relecture(s) évitée(s)`);
-  const clos = prog ? ` clos (${prog.done}/${prog.total})` : '';
-  return `Carte de clôture — lot « ${lot.title} »${clos} : ${bits.join(', ')}.`;
+  const clos = prog ? ` close (${prog.done}/${prog.total})` : '';
+  return `Carte de clôture — US « ${lot.title} »${clos} : ${bits.join(', ')}.`;
 }
 
 function lotClosureCardMessage(lot, rereadsAvoided) {
@@ -716,10 +716,10 @@ function closureCardMessage(lot, next, prog, blockedBy, opts) {
 // l'instant où repartir en session fraîche coûte le MOINS (lot clos, handoff frais, plan persisté)
 // est précisément celui où la reco ne doit pas se perdre.
 function freshSessionCodaMessage(next) {
-  const lines = ['Nouvelle session recommandée maintenant : lot clos, handoff frais — /pmz:fresh-session.'];
+  const lines = ['Nouvelle session recommandée maintenant : US close, handoff frais — /pmz:fresh-session.'];
   lines.push(next
-    ? 'Le handoff reprendra le plan au démarrage ; enchaîner ici repartirait avec tout le contexte du lot clos.'
-    : 'Enchaîner ici repartirait avec tout le contexte du lot clos, pour rien.');
+    ? 'Le handoff reprendra le plan au démarrage ; enchaîner ici repartirait avec tout le contexte de l\'US close.'
+    : 'Enchaîner ici repartirait avec tout le contexte de l\'US close, pour rien.');
   return withSeverity(SEV.INFO, lines);
 }
 
@@ -728,8 +728,8 @@ function freshSessionCodaMessage(next) {
 // hors grammaire de sévérité (pas de glyphe — coût de contexte, pas alerte visible).
 function modelMismatchMessage(lot, actualModel) {
   return [
-    `Modèle réel (${actualModel}) ≠ modèle préconisé pour le lot en cours (« ${lot.title} » : ${lot.model_hint}).`,
-    `Bascule via /model si le lot le demande, ou ignore si le changement est volontaire.`,
+    `Modèle réel (${actualModel}) ≠ modèle préconisé pour l'US en cours (« ${lot.title} » : ${lot.model_hint}).`,
+    `Bascule via /model si l'US le demande, ou ignore si le changement est volontaire.`,
   ].join('\n');
 }
 

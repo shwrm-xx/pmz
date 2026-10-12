@@ -3,7 +3,7 @@ description: Statut et activation guidée du bridge RTK (command optimizer) avec
 allowed-tools: Bash(node *)
 ---
 
-Gère le bridge RTK (lot #81/#82, epic « Bridge RTK »).
+Gère le bridge RTK (US#81/#82, epic « Bridge RTK »).
 
 Détermine le sous-mot demandé par l'utilisateur après `/pmz:rtk` (défaut : `status` si aucun) :
 `status`, `enable`, `disable` ou `migrate`. Exécute :

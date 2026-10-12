@@ -325,7 +325,7 @@ function recommendations(w) {
       `Scinder les sessions en deux : ${minus(g)} sur le coût, ${eur(w.cost.total * g)} sur la fenêtre`,
       `Le coût mesuré croît en tours<sup>${dec(w.scaling.exponent)}</sup> (r² ${dec(w.scaling.r2)}, n=${int(w.scaling.n)} sessions ` +
       `de ${int(w.scaling.minTurns)} tours ou plus) : deux sessions de T/2 tours coûtent ${minus(g)} par rapport à une de T. ` +
-      `Concrètement : clore le lot puis repartir en session fraîche au lieu de laisser courir.`);
+      `Concrètement : clore l'US puis repartir en session fraîche au lieu de laisser courir.`);
   }
 
   // 2. Réduire le préfixe : le seul poste dont la réduction se paie à CHAQUE tour.
@@ -422,8 +422,8 @@ function rtkGainLotsSection(root) {
     lots = [];
   }
   if (!lots.length) {
-    return card('Gain RTK par lot',
-      `<p class="pmz-note">Aucun lot clos avec preuve RTK (compteur local ou mesuré) pour ce projet.</p>`);
+    return card('Gain RTK par US',
+      `<p class="pmz-note">Aucune US close avec preuve RTK (compteur local ou mesuré) pour ce projet.</p>`);
   }
   const rows = lots.map((l) => {
     const co = l.integrations.command_optimizer;
@@ -432,8 +432,8 @@ function rtkGainLotsSection(root) {
     const detail = lines.slice(1).join(' · ');
     return `<tr><td>#${esc(l.id)}</td><td>${esc(l.title || '—')}</td><td>${badge}</td><td>${esc(detail)}</td></tr>`;
   }).join('');
-  return card('Gain RTK par lot',
-    `<div class="pmz-scroll"><table class="pmz-table"><thead><tr><th>lot</th><th>titre</th>` +
+  return card('Gain RTK par US',
+    `<div class="pmz-scroll"><table class="pmz-table"><thead><tr><th>US</th><th>titre</th>` +
     `<th>preuve</th><th>chiffres</th></tr></thead><tbody>${rows}</tbody></table></div>` +
     `<p class="pmz-note"><strong>mesuré</strong> : chiffres issus du contrat RTK lui-même (<code>rtk gain</code>). ` +
     `<strong>compteur local</strong> : commandes réécrites comptées côté PMZ, économie de sortie non mesurable ici.</p>`);

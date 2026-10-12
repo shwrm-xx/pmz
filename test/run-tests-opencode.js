@@ -492,7 +492,7 @@ function sameSnapshot(a, b) {
     git54(['add', '-A']); git54(['commit', '-m', 'feat: work']);
     const nProof = toasts54.length;
     await idle54('sV');
-    const proofT = toasts54.slice(nProof).filter((t) => t.body && /Verify du lot/.test(t.body.message));
+    const proofT = toasts54.slice(nProof).filter((t) => t.body && /Verify de l'US/.test(t.body.message));
     ok(proofT.length === 1, 'auto-clôture : verify rejoué -> 1 toast de preuve');
     ok(proofT.length === 1 && /ÉCHEC/.test(proofT[0].body.message) && proofT[0].body.variant === 'warning',
       'auto-clôture : verify en échec -> toast distinct (warning)');
