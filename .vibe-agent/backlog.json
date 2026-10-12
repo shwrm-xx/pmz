@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 151,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-12T14:56:44.247Z",
+  "updated_at": "2026-10-12T15:02:55.778Z",
   "lots": [
     {
       "id": 1,
@@ -4303,36 +4303,28 @@
       "id": 150,
       "title": "Un dossier par US : spec et maquettes harmonisées",
       "scope": "fait quand : chaque US a un dossier unique (spec + n maquettes) ; maquette.js et la recherche de spec n'utilisent que ce dossier ; anciens chemins migrés ; tests verts",
-      "status": "in_progress",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": null,
       "epic": "Maquettes d'écrans",
       "verify": "node test/run-tests.js",
       "spec": null,
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_commit": "31f6cd3",
+      "closed_at": "2026-10-12T15:02:55.725Z",
+      "closed_session_id": "398eecfd-1c87-48a5-b54c-6129f0fd3c1a",
+      "closed_occupancy": 104123,
+      "closed_verify": "ok",
       "cost_tokens": 40018,
       "cost_turns": 5,
       "cost_subagent_tokens": 25367,
-      "closed_avg_cost_per_turn": null,
+      "closed_avg_cost_per_turn": 8004,
       "started_at": "2026-10-12T14:52:33.802Z",
-      "lot_number": null,
-      "note": null,
+      "lot_number": 620,
+      "note": "Maquette exige désormais un id d'US : plus de maquette libre hors US — garder ?",
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": "master/lot-150",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
+      "session_owner": "master/lot-150"
     }
   ]
 }
