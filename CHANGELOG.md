@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Doctor dans le plugin + accueil 1er démarrage (lot #144, epic Install sans couture)
+
+- `/pmz:doctor` livré dans le plugin : fonctionne sans le dépôt cloné.
+- Le build embarque `install/{doctor,lib-io,merge-settings}.js` (`INSTALL_SHIPPED`).
+- `/pmz:statusline` livrée dans le plugin ; le tag statusline reconnaît le chemin plugin.
+- Accueil 1er démarrage (`lib/welcome.js`) : message unique `/init` + `/statusline`, marqueur `welcomed.json`, muet sur resume/compact.
+- +20 assertions (build, doctor autonome, accueil) ; suite à 2463 OK ; README et ARCHITECTURE à jour.
+
 ## 2026-10-12 — Installeur plugin en un clic (lot #143, epic Install sans couture)
 
 - `install-plugin.command`/`.sh`/`.ps1` → `install-plugin.js` : vérifie node/claude, installe ou met à jour `pmz@pmz-local`.

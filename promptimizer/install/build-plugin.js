@@ -68,10 +68,14 @@ function modCopyFilter(src) {
   return true;
 }
 // Composants EXCLUS du plugin : l'installeur manuel (obsolète en plugin) et le bruit OS.
-// `statusline.md` : commande opt-in du CANAL MANUEL uniquement (lot #45). Elle invoque
-// install/merge-settings.js, absent du plugin (install/ exclu) → la livrer dans le plugin
-// donnerait une commande cassée. La statusline reste une feature settings.json = canal manuel.
-const EXCLUDE = new Set(['install', '.DS_Store', 'statusline.md']);
+// `install` : exclu EN BLOC, puis le sous-ensemble utile au plugin est réinjecté (INSTALL_SHIPPED,
+// lot #144) — le reste de install/ (installeurs, migration, packaging) n'a aucun sens dans un plugin.
+const EXCLUDE = new Set(['install', '.DS_Store']);
+// Sous-ensemble d'install/ livré DANS le plugin (même chemin relatif install/ que le miroir plat, donc
+// les commandes `~/.claude/promptimizer/install/…` se réécrivent en ${CLAUDE_PLUGIN_ROOT}/install/…) :
+//   doctor.js (+ lib-io.js, son helper) -> /pmz:doctor sans le dépôt cloné ;
+//   merge-settings.js -> /pmz:statusline (opt-in) et la vérification des hooks par le doctor.
+const INSTALL_SHIPPED = ['doctor.js', 'lib-io.js', 'merge-settings.js'];
 
 // Garde-fou anti-suppression accidentelle (post-mortem v1.1.3 : le cleanup 7533d72 avait
 // supprimé pmz-scope/pmz-init/pmz-about de la source, croyant à tort les commandes namespacées
@@ -81,7 +85,7 @@ const EXCLUDE = new Set(['install', '.DS_Store', 'statusline.md']);
 const REQUIRED_COMMANDS = [
   'budget.md', 'check-context.md', 'close-batch.md', 'fresh-session.md',
   'about.md', 'init.md', 'scope.md', 'help.md', 'parallelize.md', 'reintegrate.md',
-  'rtk.md', 'archive.md', 'epicmaster.md',
+  'rtk.md', 'archive.md', 'epicmaster.md', 'doctor.md', 'statusline.md',
 ];
 
 function log(s) { process.stdout.write(s + '\n'); }
@@ -128,6 +132,14 @@ fs.cpSync(PMZ_SRC, PLUGIN, {
     path.relative(PMZ_SRC, src) !== 'mods' &&
     !(path.basename(src) === 'types' && path.basename(path.dirname(src)) === '.claude-plugin'),
 });
+
+// ── 2a. Sous-ensemble d'install/ (doctor + merge-settings) → <plugin>/install/ ──
+fs.mkdirSync(path.join(PLUGIN, 'install'), { recursive: true });
+for (const f of INSTALL_SHIPPED) {
+  const src = path.join(PMZ_SRC, 'install', f);
+  if (!fs.existsSync(src)) fail('fichier install/ à livrer introuvable : ' + src);
+  fs.copyFileSync(src, path.join(PLUGIN, 'install', f));
+}
 
 // ── 2b. Bande epicmaster → fusionnée DANS le plugin pmz (un seul plugin, un seul hooks.json) ──
 // Retourne le chemin relatif (« ./types/index.d.ts ») à déclarer dans plugin.json, ou null.
@@ -221,6 +233,7 @@ fs.writeFileSync(path.join(MARKET, '.claude-plugin', 'marketplace.json'),
 chmodInDir(path.join(PLUGIN, 'bin'), ['pmz-hook']);
 chmodInDir(path.join(PLUGIN, 'hooks'), ['.js']);
 chmodInDir(path.join(PLUGIN, 'scripts'), ['.js']);
+chmodInDir(path.join(PLUGIN, 'install'), ['.js']);
 
 log('Plugin assemblé : ' + PLUGIN);
 log(`  version manifeste : ${manifest.version}`);

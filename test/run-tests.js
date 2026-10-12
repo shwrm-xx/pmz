@@ -3699,8 +3699,28 @@ section('build-plugin.js — assemble le plugin Claude Code (layout conventionne
   }
   ok(fs.existsSync(path.join(plugin, 'bin', 'pmz-hook')), 'build-plugin : bin/pmz-hook présent');
   ok(fs.existsSync(path.join(plugin, 'lib', 'claude-dir.js')), 'build-plugin : lib/ présent (require voisin)');
-  // Installeur manuel EXCLU du plugin (obsolète en mode plugin).
-  ok(!fs.existsSync(path.join(plugin, 'install')), 'build-plugin : install/ exclu du plugin');
+  // Installeur manuel EXCLU du plugin (obsolète en mode plugin), hors sous-ensemble livré (lot #144).
+  for (const f of ['install.js', 'install-plugin.js', 'build-plugin.js', 'migrate-to-plugin.js', 'uninstall.js']) {
+    ok(!fs.existsSync(path.join(plugin, 'install', f)), 'build-plugin : installeur exclu du plugin — ' + f);
+  }
+  for (const f of ['doctor.js', 'lib-io.js', 'merge-settings.js']) {
+    ok(fs.existsSync(path.join(plugin, 'install', f)), 'build-plugin : livré dans le plugin (lot #144) — install/' + f);
+  }
+  for (const c of ['doctor.md', 'statusline.md']) {
+    ok(fs.existsSync(path.join(plugin, 'commands', c)), 'build-plugin : commande livrée — ' + c);
+  }
+  const docMd = fs.readFileSync(path.join(plugin, 'commands', 'doctor.md'), 'utf8');
+  ok(docMd.includes('${CLAUDE_PLUGIN_ROOT}/install/doctor.js'), 'doctor.md : chemin réécrit en ${CLAUDE_PLUGIN_ROOT}');
+  {
+    // /pmz:doctor SANS dépôt ni canal manuel : exécuté depuis le plugin assemblé seul, config vide.
+    const sbx = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-doctor-plugin-'));
+    fs.writeFileSync(path.join(sbx, 'settings.json'), JSON.stringify({ enabledPlugins: { 'pmz@pmz-local': true } }));
+    const d = runNode(path.join(plugin, 'install', 'doctor.js'), ['--no-pause'], { CLAUDE_CONFIG_DIR: sbx, CLAUDE_PLUGIN_ROOT: '', PMZ_STATE_DIR: path.join(sbx, 'state') });
+    ok(d.code === 0 && /Canal : plugin/.test(d.out), 'doctor livré dans le plugin : canal plugin détecté, sans dépôt');
+    ok(/Scripts exécutables : OK/.test(d.out), 'doctor livré dans le plugin : hook exercé depuis le plugin lui-même');
+    ok(/Statut : vert/.test(d.out), 'doctor livré dans le plugin : statut vert');
+    fs.rmSync(sbx, { recursive: true, force: true });
+  }
 
   // Manifeste : JSON valide, version alignée sur VERSION (semver direct, lot D3).
   let manifest = null;
@@ -10253,6 +10273,29 @@ section('install-plugin.js — installeur plugin en un clic (lot #143, bac à sa
       'B143-7 : CLI en échec -> repli déclaratif dans settings.json');
   }
   try { fs.rmSync(base, { recursive: true, force: true }); } catch (_) { /* ignore */ }
+}
+
+// ============== Accueil 1er démarrage (lot #144) ==============
+section('session-start — accueil du 1er démarrage (une seule fois, hors dépôt git inclus)');
+{
+  const mk = (n) => fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-welcome' + n + '-'));
+  const mkEnv = (d, extra) => Object.assign({ CLAUDE_CONFIG_DIR: d, PMZ_STATE_DIR: path.join(d, 'state'), PMZ_DISABLE: '' }, extra || {});
+  const sbx = mk(1);
+  const env = mkEnv(sbx);
+  const w1 = runHook('session-start.js', { cwd: sbx, source: 'startup' }, env);
+  ok(w1.code === 0 && /\/init/.test(w1.out) && /\/statusline/.test(w1.out), '1er démarrage : message avec /init et /statusline');
+  const w2 = runHook('session-start.js', { cwd: sbx, source: 'startup' }, env);
+  ok(w2.code === 0 && w2.out.trim() === '', '2e démarrage : plus aucun message (unique)');
+  const sbx2 = mk(2);
+  ok(runHook('session-start.js', { cwd: sbx2, source: 'resume' }, mkEnv(sbx2)).out.trim() === '', 'resume : pas d\'accueil');
+  ok(/\/init/.test(runHook('session-start.js', { cwd: sbx2, source: 'startup' }, mkEnv(sbx2)).out), 'startup après resume : accueil toujours dû');
+  const sbx3 = mk(3);
+  fs.mkdirSync(path.join(sbx3, 'state'), { recursive: true });
+  fs.writeFileSync(path.join(sbx3, 'state', 'occupancy.json'), '{}');
+  ok(runHook('session-start.js', { cwd: sbx3, source: 'startup' }, mkEnv(sbx3)).out.trim() === '', 'install existante (état peuplé) : pas d\'accueil');
+  const sbx4 = mk(4);
+  ok(/\/pmz:init/.test(runHook('session-start.js', { cwd: sbx4, source: 'startup' }, mkEnv(sbx4, { CLAUDE_PLUGIN_ROOT: PKG })).out), 'canal plugin : /pmz:init');
+  for (const d of [sbx, sbx2, sbx3, sbx4]) fs.rmSync(d, { recursive: true, force: true });
 }
 
 // ============================ RÉSUMÉ ============================

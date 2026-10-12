@@ -55,18 +55,26 @@ const NODE_BIN = resolveNodeBin();
 const STATE_DIR = process.env.PMZ_STATE_DIR || cdir.stateDir();
 const SIDECAR = path.join(STATE_DIR, 'taken-over.json');
 
-// Statusline PMZ (lot #45, opt-in). Chemin ABSOLU vers le renderer sous pmzDir() —
-// c.-à-d. le miroir manuel stable ~/.claude/promptimizer/, HORS du dossier versionné du
-// plugin : la statusline (feature settings.json) appartient au canal manuel, comme les
-// hooks-dans-settings. Le tag `promptimizer/scripts/statusline.js` identifie NOTRE entrée
-// pour ne jamais toucher une statusLine tierce.
-const SL_SCRIPT = path.join(cdir.pmzDir(), 'scripts', 'statusline.js');
+// Statusline PMZ (lot #45, opt-in). Chemin ABSOLU vers le renderer : sous pmzDir() (miroir manuel
+// stable ~/.claude/promptimizer/, ou racine plugin si CLAUDE_PLUGIN_ROOT) ; à défaut (script lancé
+// depuis le plugin par /pmz:statusline sans env posée, lot #144), le renderer voisin de CE fichier.
+// Attention : en plugin ce chemin est celui du dossier versionné (à repasser après un update).
+// Les tags identifient NOTRE entrée pour ne jamais toucher une statusLine tierce.
+function resolveSlScript() {
+  const viaPmz = path.join(cdir.pmzDir(), 'scripts', 'statusline.js');
+  if (fs.existsSync(viaPmz)) return viaPmz;
+  const sibling = path.resolve(__dirname, '..', 'scripts', 'statusline.js');
+  return fs.existsSync(sibling) ? sibling : viaPmz;
+}
+const SL_SCRIPT = resolveSlScript();
 const SL_TAG = 'promptimizer/scripts/statusline.js';
+// Chemin plugin (cache versionné .../pmz/<version>/scripts/statusline.js) : pas de dossier « promptimizer ».
+const SL_TAG_PLUGIN = /[\\/]pmz[\\/][^"]*scripts[\\/]statusline\.js/;
 function pmzStatusLine() {
   return { type: 'command', command: `"${NODE_BIN}" ${SL_SCRIPT}`, padding: 0 };
 }
 function isPmzStatusLine(sl) {
-  return !!(sl && typeof sl === 'object' && typeof sl.command === 'string' && sl.command.includes(SL_TAG));
+  return !!(sl && typeof sl === 'object' && typeof sl.command === 'string' && (sl.command.includes(SL_TAG) || SL_TAG_PLUGIN.test(sl.command)));
 }
 
 // Bande epicmaster (lot #139) : chargement AUTOMATIQUE du mod via env.CLAUDE_CODE_PLUGIN_DIRS

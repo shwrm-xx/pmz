@@ -70,11 +70,14 @@ function pluginInstalledVersion() {
 const MANUAL_PMZ = path.join(DEST, 'promptimizer');
 const PMZ = fs.existsSync(path.join(MANUAL_PMZ, 'hooks', 'session-start.js'))
   ? MANUAL_PMZ
-  : (PLUGIN_ROOT && fs.existsSync(path.join(PLUGIN_ROOT, 'hooks', 'session-start.js')) ? PLUGIN_ROOT : MANUAL_PMZ);
+  : (PLUGIN_ROOT && fs.existsSync(path.join(PLUGIN_ROOT, 'hooks', 'session-start.js')) ? PLUGIN_ROOT
+    // Doctor lancé depuis le plugin lui-même (/pmz:doctor, lot #144) : sa racine = dossier parent
+    // d'install/, même si ni l'env ni installed_plugins.json ne la désignent.
+    : (fs.existsSync(path.join(__dirname, '..', 'hooks', 'session-start.js')) ? path.resolve(__dirname, '..') : MANUAL_PMZ));
 
-// Sibling direct de ce fichier (pas via pmzDir()) : doctor.js n'est jamais expédié dans le
-// plugin (EXCLUDE de build-plugin.js), donc merge-settings.js vit toujours à côté de lui dans
-// le canal manuel — même si CLAUDE_PLUGIN_ROOT est posée par ailleurs (double install, D3).
+// Sibling direct de ce fichier (pas via pmzDir()) : doctor.js et merge-settings.js sont livrés
+// ensemble (miroir manuel ET <plugin>/install/, INSTALL_SHIPPED de build-plugin.js, lot #144) —
+// même si CLAUDE_PLUGIN_ROOT est posée par ailleurs (double install, D3).
 const MS = path.join(__dirname, 'merge-settings.js');
 const NO_PAUSE = process.argv.slice(2).includes('--no-pause');
 

@@ -27,6 +27,7 @@ const { fleetLines } = require('../lib/fleet');
 const occupancy = require('../lib/occupancy');
 const rtkStatus = require('../lib/rtk-status');
 const { readVersion } = require('../lib/version');
+const { firstRunWelcome } = require('../lib/welcome');
 const {
   MSG_ACTIF, MSG_ACTIF_SLIM, MSG_NON_INIT, MSG_HANDOFF, sessionTitleMessage, autoInitMessage,
   compactResumeMessage, backlogResumeMessage, occupancyMessage, rtkStartupLine,
@@ -111,8 +112,14 @@ function main() {
   const input = parseHookInput();
   const cwd = input.cwd || process.cwd();
   const src = input.source || 'startup';
+  // Accueil 1er démarrage (lot #144) : au vrai démarrage seulement, UNE fois après l'install.
+  // `ctx`/`pass` remplacent injectContext/passThrough sur les chemins startup|clear pour que le
+  // message ne soit jamais perdu (même hors dépôt git ou projet déjà rappelé).
+  const welcome = src === 'startup' ? firstRunWelcome() : null;
+  const ctx = (text) => injectContext('SessionStart', welcome ? welcome + (text ? '\n\n' + text : '') : text);
+  const pass = () => (welcome ? injectContext('SessionStart', welcome) : passThrough());
   const root = gitRoot(cwd);
-  if (!root) return passThrough();
+  if (!root) return pass();
 
   // Après compaction : réinjection ENRICHIE sous budget explicite chiffré (#72). Ni MSG_ACTIF,
   // ni handoff, ni titre — mais le contexte compacté a perdu le plan ET la mémoire des
@@ -158,9 +165,9 @@ function main() {
   if (isFullyInitialized(root)) {
     // Anti-spam : un seul rappel par session, et jamais de réinjection au resume/compact
     // (sinon MSG_ACTIF regonfle le contexte à chaque reprise).
-    if (src !== 'startup' && src !== 'clear') return passThrough();
+    if (src !== 'startup' && src !== 'clear') return pass();
     const st = loadSessionState(root, input.session_id || null);
-    if (st.session_start_reminded) return passThrough();
+    if (st.session_start_reminded) return pass();
     // Rangement opportuniste, muet (jamais dans le message injecté) : une vague ABANDONNÉE
     // (jamais réintégrée ni quittée lot par lot) laisse ses handoff-lot-*.md orphelins sur
     // disque indéfiniment (dette #100). Un seul point de passage garanti (au moins un
@@ -185,11 +192,11 @@ function main() {
     }
     st.session_start_reminded = true;
     saveSessionState(root, st);
-    return injectContext('SessionStart', withFleet(root, input.session_id || null, withHandoff(root, msg, input.session_id || null)));
+    return ctx(withFleet(root, input.session_id || null, withHandoff(root, msg, input.session_id || null)));
   }
   // Non initialisé, et uniquement au vrai démarrage (l'état n'est pas persistable
   // hors projet initialisé).
-  if (src !== 'startup' && src !== 'clear') return passThrough();
+  if (src !== 'startup' && src !== 'clear') return pass();
 
   // Projet NEUF (repo git existant mais 0 commit) : scaffold posé automatiquement,
   // sans confirmation — rien à écraser par construction (copyIfAbsent). Un projet
@@ -199,7 +206,7 @@ function main() {
       const result = runBootstrap(root);
       if (result.ok) {
         const committed = commitScaffold(root, result.created);
-        return injectContext('SessionStart', withVersion(autoInitMessage({ gitInitDone: false, committed })));
+        return ctx(withVersion(autoInitMessage({ gitInitDone: false, committed })));
       }
     } catch (_) {
       /* fail-open : on retombe sur la proposition normale ci-dessous */
@@ -207,7 +214,7 @@ function main() {
   }
   // Sinon : on PROPOSE seulement (l'init réelle se fait après confirmation).
   // Le handoff éventuel (ledger auto-créé sans socle visible) est injecté aussi.
-  return injectContext('SessionStart', withVersion(withHandoff(root, MSG_NON_INIT, input.session_id || null)));
+  return ctx(withVersion(withHandoff(root, MSG_NON_INIT, input.session_id || null)));
 }
 
 main();
