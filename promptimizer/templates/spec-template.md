@@ -40,3 +40,9 @@ Commande(s) qui prouvent les critères ci-dessus ; alimente le `--verify` de l'U
 Décisions et contraintes **non déductibles du code** (le code fait foi pour le reste).
 
 - ...
+
+## Maquettes
+
+<!-- Optionnelle : à garder seulement si l'US produit des écrans, sinon supprimer cette section.
+     `maquette.js link --id {{ID}} --slug <slug>` y ajoute les liens. L'implémentation suit les
+     maquettes liées ; tout écart se signale, il ne se décide pas en silence. -->

@@ -10515,6 +10515,23 @@ section('maquette.js — new / link / validate / open, gabarit autonome, REQUIRE
   fs.rmSync(sbx, { recursive: true, force: true });
 }
 
+// ============== Intégration maquettes scope/epicmaster (US #148) ==============
+section('scope / epicmaster / gabarit de spec — consignes maquettes');
+{
+  const rd = (f) => fs.readFileSync(f, 'utf8');
+  const sc = rd(path.join(PKG, 'commands', 'scope.md'));
+  ok(/écrans : oui\/non/.test(sc) && /liste des écrans à maquetter/.test(sc), 'scope.md : statut « écrans : oui/non » + liste à maquetter dans la question unique');
+  ok(/Maquettes — <epic>/.test(sc) && /vague 1/.test(sc) && /--depends <id Maquettes>/.test(sc), 'scope.md : US « Maquettes » en vague 1 + --depends des US à écrans');
+  ok(/maquettes écartées/.test(sc), 'scope.md : choix « non » noté dans le handoff');
+  const em = rd(path.join(PKG, 'commands', 'epicmaster.md'));
+  ok(/maquettes à valider/.test(em) && /ne les valide pas/.test(em), 'epicmaster.md : maquettes remontées « à valider », jamais validées par le sous-agent');
+  ok(/suis-les/.test(em) && /signale tout écart/.test(em), 'epicmaster.md : sous-agents des US à écrans suivent les maquettes liées');
+  ok(/set_session_title/.test(em) && /session_id: "self"/.test(em) && em.indexOf('set_session_title') < em.indexOf('--live-seed` avec'),
+    'epicmaster.md : renommage auto de la session maître (set_session_title self) avant --live-seed');
+  const tp = rd(path.join(PKG, 'templates', 'spec-template.md'));
+  ok(/^## Maquettes\s*$/m.test(tp) && /Optionnelle/.test(tp), 'spec-template.md : section « Maquettes » optionnelle');
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);

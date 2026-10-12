@@ -46,21 +46,26 @@ cocher précochées** — jamais une liste à retaper :
   Pour en décocher : « sans #12, #15 ». » Une question **fermée sans réponse** = rien n'est
   lancé, les US restent « à faire » ; ne jamais interpréter un silence comme un oui.
 
+**Maquettes** : si le plan contient une US « Maquettes » (vague 1), **signale-le en une ligne**
+dans la restitution : ses maquettes devront être validées par l'humain avant/pendant les US à
+écrans, qui en dépendent.
+
 Si des US sont décochées : relance avec `--skip 12,15`, réaffiche, et ne redemande que si une
 US est devenue **bloquée** (dépendance sur une US décochée). N'embarque **jamais** une US absente de
 la sortie du script.
 
-Plan confirmé : **sème le plan complet dans la bande** (rien n'est démarré, backlog intact) —
+Plan confirmé — **première action, sans attendre qu'on te le demande** : **renomme ta propre
+session** (une session maître se nomme elle-même). `backlog.js epicmaster --session-title` (mêmes
+`--epic`/`--skip`) donne « [XXX · EP#a–#b] <nom de l'epic> » ; appelle l'outil `set_session_title`
+avec `session_id: "self"` et ce titre, **avant** le `--live-seed` et la vague 1. Sans cet outil
+(autre hôte) : ignore l'étape, sans le signaler.
+
+Puis **sème le plan complet dans la bande** (rien n'est démarré, backlog intact) —
 `backlog.js epicmaster --live-seed` avec les **mêmes** `--epic`/`--skip`/`--max-parallel` que le
 plan validé, plus `--wave-labels "1=…;2=…"` : un **libellé court par vague** (2 à 4 mots, déduit
 des titres de ses US, jamais inventé au-delà — ex. « Socle registre », « Providers TheFork »).
 La bande affiche aussitôt epic et vagues (« Vague 2 (#10, #11) · libellé ») ; son bouton **Plan**
 ouvre le plan complet (vagues, US, modèle · effort, « fait quand ») dans un panneau.
-
-Puis **renomme ta propre session** (une session maître se nomme elle-même, dès le lancement) :
-`backlog.js epicmaster --session-title` (mêmes `--epic`/`--skip`) donne
-« [XXX · EP#a–#b] <nom de l'epic> » ; dans l'app desktop, outil de titre de session avec
-`session_id: "self"`. Hors app : ignore cette étape, sans le signaler.
 
 Si le script préconise un autre modèle que le tien pour la session maître, dis-le en une
 ligne (`/model …`) avant de lancer — tu orchestres, tu n'as pas besoin de raisonner lourd.
@@ -75,6 +80,12 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    **distinct par US**, sinon le second démarrage rétrograde le premier en « à faire »).
    Une vague à plusieurs US = sous-agents lancés **en parallèle** (arrière-plan) ; une vague
    « série » = un seul sous-agent, attendu avant la suivante.
+   **Maquettes** : dans le prompt du sous-agent de l'US « Maquettes », ajoute : « produis les
+   maquettes (`/maquette`) et lie-les aux specs (`maquette.js link`), mais **ne les valide pas**
+   (`maquette.js validate` interdit) : liste-les dans « À trancher » sous l'intitulé **maquettes
+   à valider** (slug + chemin). » Dans le prompt de chaque US à écrans (spec avec section
+   « Maquettes »), ajoute : « lis les maquettes liées à ta spec et suis-les ; signale tout écart
+   (maquette ↔ implémentation) dans « À trancher », sans trancher toi-même. »
 2. Attends le rapport de **tous** les sous-agents de la vague. Un rapport est ≤ 250 mots aux
    sections fixes (Fait / Fichiers modifiés / Verify / Non vérifié / Dette / À trancher / Bloc
    CHANGELOG). **Ne relis jamais** le transcript ni la sortie brute d'un sous-agent, ni les
@@ -96,6 +107,10 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
      triviale (< 5 min), relance **un** sous-agent de correction au même modèle, une seule fois.
    - Un sous-agent qui a écrit **hors de son périmètre** : ne commite pas ses écritures hors zone
      (`git checkout -- <chemin>` après confirmation), note-le, poursuis.
+   - Rapport de l'US « Maquettes » : chaque maquette listée dans « maquettes à valider » →
+     `backlog.js note --id <id> --note "maquettes à valider : <slug, …>" --decide`, et reprise
+     dans « À trancher » du handoff final (jamais validées à la place de l'humain). Un écart
+     maquette ↔ implémentation signalé par une US à écrans se traite comme un « À trancher ».
    - Toute décision qui attend l'humain (« À trancher » du rapport d'un sous-agent) :
      `backlog.js note --id <id> --note "<décision en une ligne>" --decide` — la bande compte
      « N à trancher » en direct.
