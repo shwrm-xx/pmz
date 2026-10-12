@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 150,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-12T14:34:47.691Z",
+  "updated_at": "2026-10-12T14:37:31.847Z",
   "lots": [
     {
       "id": 1,
@@ -4273,39 +4273,31 @@
       "id": 149,
       "title": "Doc et release maquettes v2.10.0",
       "scope": "fait quand : README, ARCHITECTURE, CHANGELOG à jour et VERSION 2.10.0 ; tests verts",
-      "status": "in_progress",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "low",
       "epic": "Maquettes d'écrans",
       "verify": "node test/run-tests.js",
       "us": null,
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_commit": "9e37b56",
+      "closed_at": "2026-10-12T14:37:31.721Z",
+      "closed_session_id": "4abaa7de-cb7b-4cef-93dc-b02529671f28",
+      "closed_occupancy": 92992,
+      "closed_verify": "ok",
       "cost_tokens": 0,
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
       "started_at": "2026-10-12T14:34:47.689Z",
-      "lot_number": null,
-      "note": null,
+      "lot_number": 619,
+      "note": "plugin.json porte sa propre version (1.1.8), distincte de VERSION : doit-elle suivre 2.10.0 ?",
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [
         147,
         148
       ],
-      "session_owner": "master/lot-149",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
+      "session_owner": "master/lot-149"
     }
   ]
 }
