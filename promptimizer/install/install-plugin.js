@@ -123,6 +123,37 @@ function samePath(a, b) {
   return !!a && !!b && n(a) === n(b);
 }
 
+// Empreinte d'un dossier : chemins relatifs + contenus, triés (types/ générés par le moteur exclus).
+function dirDigest(dir) {
+  const h = require('crypto').createHash('sha256');
+  const walk = (d, rel) => {
+    let entries = [];
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_) { return; }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const e of entries) {
+      const r = rel ? rel + '/' + e.name : e.name;
+      if (e.isDirectory()) { if (r !== '.claude-plugin/types') walk(path.join(d, e.name), r); continue; }
+      if (!e.isFile()) continue;
+      h.update(r + '\0');
+      try { h.update(fs.readFileSync(path.join(d, e.name))); } catch (_) { /* illisible : ignoré */ }
+      h.update('\0');
+    }
+  };
+  walk(dir, '');
+  return h.digest('hex');
+}
+// Dossier installé du plugin (installed_plugins.json) identique au plugin assemblé ? Indéterminable
+// (chemin absent) -> true : on n'invente pas de réinstallation.
+function installedMatchesBuild() {
+  try {
+    const ip = readJson(path.join(DEST, 'plugins', 'installed_plugins.json'));
+    const entry = ip && ip.plugins && Array.isArray(ip.plugins[PLUGIN_ID]) ? ip.plugins[PLUGIN_ID][0] : null;
+    const built = path.join(MARKET, 'promptimizer');
+    if (!entry || !entry.installPath || !fs.existsSync(entry.installPath) || !fs.existsSync(built)) return true;
+    return dirDigest(entry.installPath) === dirDigest(built);
+  } catch (_) { return true; }
+}
+
 // Retourne true si marketplace + plugin sont en place via la CLI, false sinon (-> repli).
 function installViaCli(bin) {
   const step = (label, args) => {
@@ -143,7 +174,14 @@ function installViaCli(bin) {
   if (!step('marketplace', fresh ? ['plugin', 'marketplace', 'add', MARKET] : ['plugin', 'marketplace', 'update', MARKETPLACE_NAME])) return false;
   if (pluginInstalled()) {
     log('Plugin ' + PLUGIN_ID + ' déjà installé : mise à jour…');
-    return step('plugin update', ['plugin', 'update', PLUGIN_ID]);
+    if (!step('plugin update', ['plugin', 'update', PLUGIN_ID])) return false;
+    // `plugin update` ne recopie rien à version égale : un build modifié sans montée de VERSION
+    // resterait invisible (bande figée sur l'ancien code). Contenu installé ≠ contenu assemblé ->
+    // réinstallation, données du plugin conservées (--keep-data : marqueur d'accueil, état).
+    if (installedMatchesBuild()) return true;
+    log('Contenu installé différent du build (même version) : réinstallation…');
+    if (!step('plugin uninstall', ['plugin', 'uninstall', PLUGIN_ID, '--keep-data'])) return false;
+    return step('plugin install', ['plugin', 'install', PLUGIN_ID]);
   }
   log('Installation du plugin ' + PLUGIN_ID + '…');
   if (step('plugin install', ['plugin', 'install', PLUGIN_ID])) return true;

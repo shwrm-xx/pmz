@@ -857,6 +857,12 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   (rétrocompatible). Bouton **Plan** (à gauche de Détails/Masquer, et sur le récap terminé) :
   `$.ui.open({ id: 'epicmaster-plan' })`, panneau rendu en `Markdown` par `planMarkdown` (une section
   par vague, une puce par lot), suivi en direct par le même sondage.
+- **Titre de session maître** : `lot.titleForMasterSession` → « [XXX · Epicmaster] Epic · #a–#b » (plages
+  compressées par `idRanges`). Le maître se renomme lui-même (`epicmaster --session-title`, outil de titre
+  `session_id: "self"`) ; `suggestedTitle` rend ce format pour une session précédente ayant clos ≥ 2 lots.
+- **Mise à jour à version égale** : `install-plugin.js` compare l'empreinte (sha256 chemins + contenus) du
+  dossier installé (`installed_plugins.json` → `installPath`) et du plugin assemblé ; différente →
+  `plugin uninstall --keep-data` + `plugin install` (un `plugin update` seul ne recopie rien à version égale).
 - **Bande epicmaster embarquée dans le plugin pmz** (lot #140, un seul plugin à installer sur un
   autre poste) : `build-plugin.js` **fusionne** le mod dans `dist/marketplace/promptimizer/` — plus de
   second plugin, `marketplace.json` n'expose que `pmz`. **Cohabitation vérifiée empiriquement** : un
