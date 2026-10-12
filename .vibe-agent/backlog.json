@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 147,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-12T08:07:05.915Z",
+  "updated_at": "2026-10-12T08:08:59.568Z",
   "lots": [
     {
       "id": 1,
@@ -4087,7 +4087,7 @@
       "id": 143,
       "title": "Installeur plugin en un clic",
       "scope": "fait quand : un double-clic sur un CLAUDE_CONFIG_DIR vierge (bac à sable) vérifie node/claude, ajoute la marketplace, installe ou met à jour pmz, migre une install manuelle, lance le doctor ; repli déclaratif settings.json (extraKnownMarketplaces + enabledPlugins, fusion taguée réversible) si claude introuvable ; idempotent ; tests verts",
-      "status": "todo",
+      "status": "in_progress",
       "model_hint": "opus",
       "effort_hint": "high",
       "epic": "Install sans couture",
@@ -4102,7 +4102,7 @@
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
-      "started_at": null,
+      "started_at": "2026-10-12T08:08:59.567Z",
       "lot_number": null,
       "note": null,
       "session_touches": 0,
@@ -4111,7 +4111,15 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": "master/lot-143",
+      "integrations": {
+        "command_optimizer": {
+          "snapshot_start": {
+            "commands": 0,
+            "delivered_tokens": 0
+          }
+        }
+      }
     },
     {
       "id": 144,

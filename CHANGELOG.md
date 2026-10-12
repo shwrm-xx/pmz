@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Installeur plugin en un clic (lot #143, epic Install sans couture)
+
+- `install-plugin.command`/`.sh`/`.ps1` → `install-plugin.js` : vérifie node/claude, installe ou met à jour `pmz@pmz-local`.
+- Repli sans `claude` : déclaration settings.json (`extraKnownMarketplaces` + `enabledPlugins`) append-only, backup, idempotente, réversible (`--remove`).
+- Plugin assemblé dans un dossier stable `<claudeDir>/pmz-plugin/build`.
+- Migration auto de l'install manuelle (`--purge` relayé) puis verdict doctor.
+- 30 tests B143 en bac à sable (dont faux `claude`) ; suite à 2441 OK.
+
 ## 2026-10-11 — Bande epicmaster immédiate, où que soit la session
 
 - La bande s'affiche dès la saisie de `/epicmaster` (hook `command.run` + `prompt.submit`) : « plan en préparation… » jusqu'au semis du plan, expirée seule après 15 min.
