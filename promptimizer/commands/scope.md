@@ -28,6 +28,13 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    doute, « série » assumé et annoncé (l'US reste périmètre-vide, séquentiel classique).
    Si un ordre s'impose entre US, poser un `depends_on` (id des US qui doivent être
    clos avant).
+   **Statuer enfin « écrans : oui/non »** pour **chaque** US (une US produit des écrans si elle
+   crée ou modifie une page, un formulaire, une modale, un composant visible…). Si au moins une
+   US produit des écrans : préparer la **liste des écrans à maquetter** (un slug + un titre par
+   écran, proposition d'abord comme `/maquette`) et l'US dédiée « Maquettes — <epic> » (modèle
+   et effort préconisés, « fait quand : maquettes produites et liées aux specs des US à écrans »,
+   déroulant `/maquette`), qui compte alors dans les 2 à 5 US. Aucune US à écrans : rien à
+   proposer, ne pas en parler.
    **Statuer aussi sur la spec** pour **chaque** US : soit un chemin de fichier de spec existant,
    soit « pas de spec » assumé, soit une spec **à créer** — dans ce dernier cas, **rédiger tout de
    suite** son contenu (gabarit `templates/spec-template.md` : récit persona/besoin/bénéfice,
@@ -37,7 +44,8 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    fichier existant, ni inventer un critère hors de ce que la demande couvre.
 2. Faire valider le découpage, les modèles préconisés, l'epic éventuel, le périmètre/les
    dépendances proposés, **le statut spec de chaque US et le contenu rédigé des specs à créer**
-   par l'utilisateur en **UNE** question (pas dix).
+   par l'utilisateur en **UNE** question (pas dix). Si des US produisent des écrans, **cette même
+   question** présente la liste des écrans à maquetter et demande « on maquette ? » (oui / non).
 3. Si un epic a été validé, l'enregistrer — **toujours**, même s'il était déjà posé par un
    découpage précédent : `node ~/.claude/promptimizer/scripts/backlog.js epic --set "Nom de l'epic"`
    (écrit `.vibe-agent/epic`, cap 60 caractères). C'est aussi ce qui marque la session courante
@@ -52,6 +60,12 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    lint…) : c'est la preuve rejouée à l'auto-clôture. Une US posée sans elle sera « close sans
    preuve » — à réserver aux US réellement non vérifiables par commande (doc, choix visuel).
    Elle est éditable après coup : `backlog.js verify --set "…" --id <id>`.
+   **Maquettes** : sur **oui**, persister d'abord l'US « Maquettes — <epic> » **en vague 1**
+   (sans `--depends`, périmètre `docs/maquettes/**`), puis poser `--depends <id Maquettes>` sur
+   **chaque** US à écrans (en plus de leurs autres dépendances) ; les écrans validés à l'étape 2
+   figurent dans le « fait quand » ou la spec de l'US Maquettes. Sur **non** : n'ajouter aucune
+   US ni dépendance, et **noter le choix** (« maquettes écartées ») dans le handoff écrit à
+   l'étape 5.
    **`--spec` uniquement si le fichier existe déjà** (`--us` : alias déprécié) : l'ajout est
    **refusé** si le chemin est introuvable (garde d'existence, aucun pointeur mort accepté) ;
    omis si la spec n'a pas été statuée à l'étape 1. Pour une US dont la spec a été rédigée et

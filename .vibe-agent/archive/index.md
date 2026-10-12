@@ -149,3 +149,4 @@
 #0144 | 2026-10-12 | dc331c6 | epic:Install sans couture | verify:inconnu | fiche:oui | Doctor dans le plugin + accueil 1er démarrage
 #0145 | 2026-10-12 | f186ca8 | epic:Install sans couture | verify:inconnu | fiche:oui | Archive hors-ligne poste vierge
 #0146 | 2026-10-12 | 6346321 | epic:Install sans couture | verify:inconnu | fiche:oui | Doc et release install sans couture
+#0147 | 2026-10-12 | 50b141c | epic:Maquettes d'écrans | verify:inconnu | fiche:non | Commande /maquette autonome
