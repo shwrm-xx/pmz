@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 150,
+  "next_id": 151,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-12T14:37:31.847Z",
+  "updated_at": "2026-10-12T14:46:39.610Z",
   "lots": [
     {
       "id": 1,
@@ -4223,7 +4223,7 @@
       "closed_avg_cost_per_turn": 19558,
       "started_at": "2026-10-12T14:15:01.852Z",
       "lot_number": 617,
-      "note": "link refuse si la maquette n'existe pas (non demandé par l'US) — garder ?",
+      "note": "tranché : refus de link gardé ; spec → un dossier par US (nouvelle US)",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/commands/maquette.md",
@@ -4298,6 +4298,33 @@
         148
       ],
       "session_owner": "master/lot-149"
+    },
+    {
+      "id": 150,
+      "title": "Un dossier par US : spec et maquettes harmonisées",
+      "scope": "fait quand : chaque US a un dossier unique (spec + n maquettes) ; maquette.js et la recherche de spec n'utilisent que ce dossier ; anciens chemins migrés ; tests verts",
+      "status": "todo",
+      "model_hint": "sonnet",
+      "effort_hint": null,
+      "epic": "Maquettes d'écrans",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [],
+      "depends_on": [],
+      "session_owner": null
     }
   ]
 }
