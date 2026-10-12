@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 152,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-12T15:15:33.840Z",
+  "updated_at": "2026-10-12T15:21:20.101Z",
   "lots": [
     {
       "id": 1,
@@ -4330,36 +4330,28 @@
       "id": 151,
       "title": "Renommage systématique de chaque session",
       "scope": "fait quand : toute session reçoit une consigne de titre au 1er prompt, y compris pendant qu'un lot master/lot-* est en cours (seule la session maître /epicmaster est exclue) ; trigramme absent → question puis renommage, et sans réponse on renomme avec un trigramme par défaut au lieu de se taire ; projet non initialisé → titre « [PMZ? · HS] … » ou équivalent ; tests verts",
-      "status": "in_progress",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Titres de session",
       "verify": "node test/run-tests.js",
       "spec": null,
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_commit": "42de2aa",
+      "closed_at": "2026-10-12T15:21:19.984Z",
+      "closed_session_id": "b008949d-47f1-4e77-81a7-58d47242fffc",
+      "closed_occupancy": 87835,
+      "closed_verify": "ok",
       "cost_tokens": 145,
       "cost_turns": 1,
       "cost_subagent_tokens": 145,
-      "closed_avg_cost_per_turn": null,
+      "closed_avg_cost_per_turn": 145,
       "started_at": "2026-10-12T15:15:22.024Z",
-      "lot_number": null,
-      "note": null,
+      "lot_number": 622,
+      "note": "à trancher : attendre >1 tour avant le repli trigramme ? session maître non persistée (projet non init) reconnue seulement sur /epicmaster",
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": "master/lot-151",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
+      "session_owner": "master/lot-151"
     }
   ]
 }
