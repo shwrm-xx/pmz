@@ -515,6 +515,20 @@ function backlogResumeMessage(cur, next, prog, blockedBy) {
 // en fin de tour = jamais traité), accusé de résultat explicite. Sinon : en silence.
 function selfTitleMessage(title, opts) {
   const o = opts || {};
+  if (o.fallback) {
+    // US#151 : la question trigramme est restée sans réponse -> on ne se tait pas, on renomme
+    // avec le trigramme par défaut (celui du titre), sans rouvrir de dialogue.
+    return [
+      `Trigramme non choisi : renomme CETTE session avec le trigramme par défaut, « ${title}${o.compose ? ' <objet de la demande, 6 mots max>' : ''} ».`,
+      'Outil de titre de session, session_id "self" ; jamais une autre session, sans question. Échec : une ligne.',
+    ].join('\n');
+  }
+  if (o.uninit) {
+    return [
+      `Projet non initialisé : titre de CETTE session « ${title} <objet de la demande, 6 mots max> ».`,
+      'Renomme-la en silence (outil de titre de session, session_id "self" ; jamais une autre session). Échec : une ligne.',
+    ].join('\n');
+  }
   const head = o.compose
     ? `Titre de CETTE session : « ${title} <objet de la demande, 6 mots max> ».`
     : `Titre de CETTE session : « ${title} ».`;

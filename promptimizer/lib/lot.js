@@ -297,8 +297,9 @@ function suggestedTitle(root) {
 }
 
 // Titre de la session COURANTE (renommage « self »). Renvoie { title, compose } ou null :
-//   - null : une session maître pilote la vague (lot « master/lot-* » en cours) — le maître a son
-//     propre titre (epicmaster --session-title), on ne le concurrence pas ;
+//   - (US#151) une vague master/lot-* en cours N'exclut PLUS la session : seule la session maître
+//     elle-même est écartée (côté hook, marquée sur /epicmaster) ; les lots master/lot-* sont
+//     ignorés pour l'attribution (ils appartiennent aux sous-agents, pas à cette session) ;
 //   - session de CONCEPTION (opts.plan : mode plan / /pmz:scope) : « [XXX · Plan] <epic> » ;
 //   - lot en cours attribuable à cette session (le sien, ou l'unique en cours) : titre du lot ;
 //   - sinon « [XXX · HS] » avec compose: true — l'assistant complète d'après la demande.
@@ -307,8 +308,7 @@ function currentSessionTitle(root, sid, opts) {
     const backlog = require('./backlog');
     const trigram = trigramLib.readTrigram(root);
     const b = backlog.loadBacklog(root);
-    const inProg = b.lots.filter((l) => l.status === 'in_progress');
-    if (inProg.some((l) => /^master\//.test(String(l.session_owner || '')))) return null;
+    const inProg = b.lots.filter((l) => l.status === 'in_progress' && !/^master\//.test(String(l.session_owner || '')));
     if (opts && opts.plan) {
       const epic = planSessionEpic(root, b);
       if (epic) return { title: titleForPlanSession(trigram, epic), compose: false };
@@ -320,9 +320,15 @@ function currentSessionTitle(root, sid, opts) {
   } catch (_) { return null; }
 }
 
+// Titre d'une session dans un projet NON initialisé (US#151) : « [XXX? · HS] <objet> » — le « ? »
+// signale que le trigramme n'est pas choisi. Renommage transparent, jamais muet.
+function uninitSessionTitle(root) {
+  try { return `[${trigramLib.readTrigram(root)}? · ${HS_TAG}]`; } catch (_) { return `[PMZ? · ${HS_TAG}]`; }
+}
+
 // Nomenclature posée = trigramme choisi (fichier .vibe-agent/trigram présent, pas seulement dérivé).
 function nomenclatureSet(root) {
   try { return fs.existsSync(trigramLib.trigramFile(root)); } catch (_) { return true; }
 }
 
-module.exports = { readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, titleForMasterSession, idRanges, currentSessionTitle, nomenclatureSet, MAX_EPIC };
+module.exports = { readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, titleForMasterSession, idRanges, currentSessionTitle, uninitSessionTitle, nomenclatureSet, MAX_EPIC };

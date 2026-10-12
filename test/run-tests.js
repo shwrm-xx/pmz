@@ -4024,6 +4024,32 @@ section('Titre de session : la session COURANTE se renomme elle-même, jamais la
 
   // Q7. Session maître : /epicmaster se titre lui-même, le hook se tait.
   ok(!/Titre de CETTE session/.test(upsQ('sess-q7', '/pmz:epicmaster')), 'Q7 : /epicmaster -> aucun titre injecté par le hook');
+  ok(!/CETTE session/.test(upsQ('sess-q7', 'suite maître')), 'Q7 : la session maître reste exclue aux prompts suivants');
+
+  // Q8 (US#151). Trigramme absent : question au 1er prompt, puis SANS réponse -> renommage par défaut (1×), jamais muet.
+  const repo8 = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-q8-'));
+  execFileSync('git', ['init', '-q', repo8]);
+  fs.writeFileSync(path.join(repo8, 'CLAUDE.md'), 'règles');
+  fs.mkdirSync(path.join(repo8, '.vibe-agent'), { recursive: true });
+  const up8 = (sid, prompt) => ctxOf(runHook('user-prompt-submit.js', { cwd: repo8, session_id: sid, prompt }));
+  ok(/question à choix IMMÉDIATE/.test(up8('s8', 'salut')), 'Q8 : 1er prompt -> question trigramme');
+  const f8 = up8('s8', 'toujours rien');
+  ok(/Trigramme non choisi/.test(f8) && /trigramme par défaut/.test(f8) && /"self"/.test(f8), 'Q8 : sans réponse -> renommage avec trigramme par défaut');
+  ok(up8('s8', 'encore') === '', 'Q8 : fallback une seule fois');
+
+  // Q9 (US#151). Un lot master/lot-* en cours n'exclut plus une autre session : elle se titre (HS, lot maître non attribué).
+  const a9 = backlogLib.addLot(repo8, 'Lot du maître', 'fait quand : test', 'sonnet');
+  backlogLib.startLot(repo8, a9.id, 'master/lot-' + a9.id);
+  trigramLibQ.writeTrigram(repo8, 'ABC');
+  const c9 = up8('s9', 'autre chantier');
+  ok(/Titre de CETTE session : « \[ABC · HS\] <objet/.test(c9), 'Q9 : lot master/lot-* en cours -> session non maître titrée (HS)');
+
+  // Q10 (US#151). Projet non initialisé : titre « [XXX? · HS] ».
+  const repo10 = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-q10-'));
+  execFileSync('git', ['init', '-q', repo10]);
+  const up10 = (prompt) => ctxOf(runHook('user-prompt-submit.js', { cwd: repo10, session_id: 'q10-' + path.basename(repo10), prompt }));
+  ok(/\[[A-Z]{3}\? · HS\]/.test(up10('bonjour')), 'Q10 : projet non initialisé -> titre « [XXX? · HS] »');
+  ok(up10('suite') === '', 'Q10 : une seule fois par session');
 }
 
 // ============================ R. VIGIE MODÈLE RÉEL VS PRÉCONISÉ (lot #42) ============================
