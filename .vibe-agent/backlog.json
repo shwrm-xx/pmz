@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 143,
+  "next_id": 147,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-11T06:27:22.412Z",
+  "updated_at": "2026-10-12T08:07:05.915Z",
   "lots": [
     {
       "id": 1,
@@ -4050,23 +4050,23 @@
       "id": 142,
       "title": "À trancher, tokens réels et procédure maître",
       "scope": "fait quand : note --decide alimente to_decide ; done --tokens N ; epicmaster.md fait appeler --live-seed, --decide, done failed, --tokens ; test bande sur fichier du vrai writer ; README/ARCHITECTURE à jour ; tests verts",
-      "status": "in_progress",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Bande epicmaster",
       "verify": "node test/run-tests.js && claude plugin test promptimizer/mods/epicmaster-band",
       "us": null,
-      "closed_commit": null,
-      "closed_at": null,
+      "closed_commit": "38dfac1",
+      "closed_at": "2026-10-11T06:35:02.503Z",
       "closed_session_id": null,
       "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_verify": "ok",
       "cost_tokens": 0,
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
       "started_at": "2026-10-11T06:27:22.411Z",
-      "lot_number": null,
+      "lot_number": 611,
       "note": null,
       "session_touches": 0,
       "perimeter": [
@@ -4081,15 +4081,126 @@
       "depends_on": [
         141
       ],
-      "session_owner": "master/lot-142",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
+      "session_owner": "master/lot-142"
+    },
+    {
+      "id": 143,
+      "title": "Installeur plugin en un clic",
+      "scope": "fait quand : un double-clic sur un CLAUDE_CONFIG_DIR vierge (bac à sable) vérifie node/claude, ajoute la marketplace, installe ou met à jour pmz, migre une install manuelle, lance le doctor ; repli déclaratif settings.json (extraKnownMarketplaces + enabledPlugins, fusion taguée réversible) si claude introuvable ; idempotent ; tests verts",
+      "status": "todo",
+      "model_hint": "opus",
+      "effort_hint": "high",
+      "epic": "Install sans couture",
+      "verify": "node test/run-tests.js",
+      "us": "docs/us/US-143.md",
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/install/install-plugin.*",
+        "test/**"
+      ],
+      "depends_on": [],
+      "session_owner": null
+    },
+    {
+      "id": 144,
+      "title": "Doctor dans le plugin + accueil 1er démarrage",
+      "scope": "fait quand : /pmz:doctor fonctionne sans le dépôt cloné ; au 1er SessionStart après install, un message unique indique /pmz:init et /pmz:statusline ; tests verts",
+      "status": "todo",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Install sans couture",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [],
+      "depends_on": [
+        143
+      ],
+      "session_owner": null
+    },
+    {
+      "id": 145,
+      "title": "Archive hors-ligne poste vierge",
+      "scope": "fait quand : package.js produit un zip embarquant la marketplace assemblée + l'installeur du lot #143 ; décompressé et double-cliqué en bac à sable, il installe pmz sans réseau ni git ; tests verts",
+      "status": "todo",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Install sans couture",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [],
+      "depends_on": [
+        143
+      ],
+      "session_owner": null
+    },
+    {
+      "id": 146,
+      "title": "Doc et release install sans couture",
+      "scope": "fait quand : README « Nouveau poste en un double-clic » (une étape par OS), canal manuel présenté en secours, ARCHITECTURE et CHANGELOG à jour, VERSION montée, tests verts",
+      "status": "todo",
+      "model_hint": "sonnet",
+      "effort_hint": "low",
+      "epic": "Install sans couture",
+      "verify": "node test/run-tests.js",
+      "us": null,
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [],
+      "depends_on": [
+        143,
+        144,
+        145
+      ],
+      "session_owner": null
     }
   ]
 }
