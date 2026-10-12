@@ -18,8 +18,9 @@ const { loadSessionState, saveSessionState } = require('../lib/state');
 const { loadBacklog, currentLot, progress } = require('../lib/backlog');
 const {
   MSG_LARGE, MSG_INIT_BEFORE_CODE, autoInitMessage, largeWithPlanMessage, occupancyPromptMessage,
-  sessionTitleMessage, modelMismatchMessage, turnBudgetPromptMessage,
+  sessionTitleMessage, selfTitleMessage, modelMismatchMessage, turnBudgetPromptMessage,
 } = require('../lib/messages');
+const lotLib = require('../lib/lot');
 const occupancy = require('../lib/occupancy');
 const turnstats = require('../lib/turnstats');
 const turnbudget = require('../lib/turnbudget');
@@ -79,7 +80,16 @@ function main() {
   // à suggestedTitle — un recalcul fausserait le compteur « (partie N) » de touchLot).
   if (st.pending_title_rename && !st.prompt_reminders.title_rename) {
     st.prompt_reminders.title_rename = true;
-    parts.push(sessionTitleMessage(st.pending_title_rename));
+    parts.push(sessionTitleMessage(st.pending_title_rename, { nomenclature: !lotLib.nomenclatureSet(root) }));
+  }
+  // Renommage transparent de la session COURANTE (nomenclature posée) : injecté seulement quand
+  // le titre de son lot en cours apparaît ou change — jamais à chaque tour.
+  if (initialized && lotLib.nomenclatureSet(root)) {
+    const selfTitle = lotLib.currentSessionTitle(root, input.session_id || null);
+    if (selfTitle && selfTitle !== st.self_title) {
+      st.self_title = selfTitle;
+      parts.push(selfTitleMessage(selfTitle));
+    }
   }
 
   let msg = null;

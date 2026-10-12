@@ -16,6 +16,7 @@ const DEFAULT_STATE = {
   // en coût — un même message final vu par plusieurs session.idle n'est agrégé qu'une fois.
   // Inutilisé côté Claude Code (turnstats scanne l'offset transcript, pas de double-comptage).
   prompt_reminders: {}, // anti-spam des rappels UserPromptSubmit (clé -> true)
+  self_title: null, // dernier titre « self » injecté (renommage transparent de la session courante)
   pending_title_rename: null, // titre suggéré calculé par session-start.js (lot #40),
   // reproposé au 1er UserPromptSubmit si non encore vu là — jamais recalculé (sinon
   // double incrément de touchLot/lot.js:suggestedTitle).

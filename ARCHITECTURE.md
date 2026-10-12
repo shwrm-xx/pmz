@@ -1064,16 +1064,16 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   (`lotClosedBySession`) > marque **Plan** > lot **en cours** — une session de scope démarre le lot
   #1 en dernière étape, la titrer par ce lot annoncerait un travail pas encore commencé ; à
   l'inverse, une session qui a réellement **clos** un lot est décrite par ce lot même si elle a
-  aussi planifié la suite. Puis demande à l'assistant de **proposer** ce nom en clair **et de poser une
-  question à choix IMMÉDIATE** (valider / autre nom / non) **en tout début de 1er tour, avant de
-  traiter la demande** — retour utilisateur 2026-07-12 (v1.1.1) : un renommage proposé en fin de
-  tour ou sans dialogue n'est jamais traité — puis de tenter le renommage réel
-  et d'accuser explicitement le résultat — un hook ne peut pas appeler un outil MCP lui-même, ce
-  n'est donc qu'une instruction, pas une garantie. Le dialogue d'autorisation du tool de renommage
-  (`mcp__ccd_session_mgmt__set_session_title`, fourni par Claude Code Desktop, hors de ce dépôt)
-  est un `ask` **câblé côté serveur** : ni `permissions.allow`, ni `bypassPermissions`, ni un hook
-  PreToolUse « allow » ne le suppriment. PMZ ne peut donc pas l'auto-approuver — il le transforme
-  en simple validation du nom proposé.
+  aussi planifié la suite. **Renommage transparent** (2026-10-12) : nomenclature posée (fichier
+  `.vibe-agent/trigram` présent) → l'assistant renomme la session précédente **en silence**, sans
+  question ni annonce ; et la session **courante** se nomme elle-même (`session_id: "self"`) dès que son
+  lot en cours est connu ou change (`lot.currentSessionTitle`, injecté par `user-prompt-submit.js`
+  seulement si le titre diffère de `self_title` ; jamais pour un lot piloté `master/lot-*`, le maître a
+  son propre titre). **Seule exception, la 1re session du projet** (trigramme non posé) : question à
+  choix IMMÉDIATE en tout début de 1er tour (valider / autre trigramme / non), `trigram --set`, puis
+  renommage. L'outil de titre de l'app ne demande plus d'approbation pour un titre qu'elle a généré
+  (« Epicmaster », etc.) ; il en demande une pour un titre posé par la personne (sauf en mode bypass).
+  Un hook ne peut pas appeler l'outil lui-même : ce reste une instruction, pas une garantie.
 - **Rappel SessionStart slim vs plein** (`lib/messages.js`, `MSG_ACTIF` / `MSG_ACTIF_SLIM`) : quand
   le CLAUDE.md du projet porte déjà le bloc `pmz:rules` (`project.js: carriesRules`, fail-open), les
   règles d'économie sont **déjà dans le contexte** — le rappel injecté ne les répète plus (variante

@@ -3142,16 +3142,18 @@ section('Trim injection SessionStart (titre compressé + slim si règles dans CL
     try { return JSON.parse(r.out).hookSpecificOutput.additionalContext || null; } catch (_) { return null; }
   };
 
-  // -- sessionTitleMessage compressé : <= 400 o pour un titre réaliste, protocole intact --
+  // -- sessionTitleMessage : TRANSPARENT par défaut (nomenclature posée), dialogue seulement pour la poser --
   const t = messages.sessionTitleMessage('promptimiser — Lot 25 : Lot T1 — Nudge anti-compaction chiffré');
   ok(Buffer.byteLength(t, 'utf8') <= 400, 'T2 : sessionTitleMessage <= 400 o (titre réaliste)');
-  ok(t.includes('PRÉCÉDENTE'), 'T2 : cible la session PRÉCÉDENTE');
-  ok(/en clair/i.test(t), 'T2 : proposition en clair (pas seulement le dialogue)');
-  ok(/question à choix IMMÉDIATE/.test(t), 'T2 : exige le dialogue de validation immédiat');
-  ok(/AVANT la demande/.test(t) && /1er tour/.test(t), 'T2 : au tout début du 1er tour, avant la demande');
-  ok(/jamais en fin de tour/.test(t), 'T2 : interdit le renommage repoussé en fin de tour');
-  ok(/jamais la courante/.test(t), 'T2 : jamais la session courante');
-  ok(/réussi|échec/.test(t) && /jamais muet/.test(t), 'T2 : accusé de résultat explicite');
+  ok(t.includes('PRÉCÉDENTE') && /jamais la courante/.test(t), 'T2 : cible la session PRÉCÉDENTE, jamais la courante');
+  ok(/en silence, sans question ni annonce/.test(t) && !/question à choix/.test(t), 'T2 : nomenclature posée -> renommage transparent, aucun dialogue');
+  const tn = messages.sessionTitleMessage('[COC · #1] X', { nomenclature: true });
+  ok(Buffer.byteLength(tn, 'utf8') <= 480, 'T2 : variante nomenclature <= 480 o');
+  ok(/question à choix IMMÉDIATE/.test(tn) && /AVANT la demande/.test(tn) && /1er tour/.test(tn) && /jamais en fin de tour/.test(tn),
+    'T2 : nomenclature à poser -> dialogue immédiat au 1er tour');
+  ok(/trigram --set/.test(tn) && /réussi|échec/.test(tn) && /jamais muet/.test(tn), 'T2 : nomenclature -> fixe le trigramme, accusé de résultat');
+  const ts = messages.selfTitleMessage('[COC · #1] X');
+  ok(/"self"/.test(ts) && /sans question ni annonce/.test(ts), 'T2 : titre de la session courante -> self, en silence');
 
   // -- MSG_ACTIF_SLIM : ne répète plus les règles d'économie, garde le protocole de clôture --
   ok(!/réduire les relectures/.test(messages.MSG_ACTIF_SLIM), 'T2 : slim ne répète pas les règles d\'économie');
@@ -4008,6 +4010,16 @@ section('Titre suggéré : rappelé aussi au 1er UserPromptSubmit (fiabilité, l
   // (touchLot ne doit être incrémenté qu'une fois, par session-start.js — jamais par
   // le rappel de user-prompt-submit.js, qui ne fait que relire l'état persisté).
   ok(!/\(partie 2\)/.test(ctxPrompt1), 'pas de double incrément touchLot via le rappel UserPromptSubmit');
+
+  // Q5. Nomenclature posée (trigramme écrit) : renommage TRANSPARENT de la précédente, et la session
+  // courante se nomme elle-même (self) une fois, puis seulement si son lot change.
+  require(path.join(PKG, 'lib', 'trigram')).writeTrigram(repo, 'RTR');
+  const ctxS5 = ctxOf(runHook('session-start.js', { source: 'startup', cwd: repo, session_id: 'sess-q5' }));
+  ok(/en silence, sans question ni annonce/.test(ctxS5) && !/question à choix IMMÉDIATE/.test(ctxS5), 'Q5 : nomenclature posée -> SessionStart sans dialogue');
+  const ctxP5 = ctxOf(runHook('user-prompt-submit.js', { cwd: repo, session_id: 'sess-q5', prompt: 'go' }));
+  ok(/Titre de CETTE session : « \[RTR · #\d+\][^»]*Lot du rappel doublé/.test(ctxP5) && /"self"/.test(ctxP5), 'Q5 : 1er prompt -> la session courante se renomme (self) d\'après son lot');
+  const ctxP5b = ctxOf(runHook('user-prompt-submit.js', { cwd: repo, session_id: 'sess-q5', prompt: 'suite' }));
+  ok(!/Titre de CETTE session/.test(ctxP5b), 'Q5 : titre inchangé -> pas de réinjection');
 }
 
 // ============================ R. VIGIE MODÈLE RÉEL VS PRÉCONISÉ (lot #42) ============================
