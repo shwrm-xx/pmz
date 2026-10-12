@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Doc et release install sans couture (lot #146, epic Install sans couture) — v2.8.0
+
+- README : section « Nouveau poste en un double-clic », une étape par OS.
+- Canal manuel rétrogradé en « Installation manuelle (secours) ».
+- ARCHITECTURE : sous-section « Install sans couture » (installeur, build stable, repli, migration, doctor, accueil).
+- VERSION 2.7.1 → 2.8.0 ; suite à 2472 OK.
+
 ## 2026-10-12 — Archive hors-ligne poste vierge (lot #145, epic Install sans couture)
 
 - `package.js` embarque la marketplace plugin pré-assemblée (`marketplace/`) à la racine de l'archive.

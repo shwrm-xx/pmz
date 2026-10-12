@@ -147,3 +147,4 @@
 #0142 | 2026-10-11 | 38dfac1 | epic:Bande epicmaster | verify:inconnu | fiche:oui | À trancher, tokens réels et procédure maître
 #0143 | 2026-10-12 | 75d79bb | epic:Install sans couture | verify:inconnu | fiche:non | Installeur plugin en un clic
 #0144 | 2026-10-12 | dc331c6 | epic:Install sans couture | verify:inconnu | fiche:non | Doctor dans le plugin + accueil 1er démarrage
+#0145 | 2026-10-12 | f186ca8 | epic:Install sans couture | verify:inconnu | fiche:non | Archive hors-ligne poste vierge

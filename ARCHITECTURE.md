@@ -1581,6 +1581,18 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   `CLAUDE_CONFIG_DIR` bac à sable (`marketplace add` + `plugin install`) avant tout
   `publish-plugin.js --push`.
 
+### Install sans couture (lots #143–#146)
+
+Canal recommandé pour un nouveau poste : `install/install-plugin.{command,sh,ps1}` (lanceurs fins) →
+`install-plugin.js` (core Node). Étapes : vérif `node`/`claude` ; build dans le dossier stable
+`<claudeDir>/pmz-plugin/build` (ou marketplace embarquée par `package.js` dans l'archive hors-ligne,
+`LIRE-MOI.txt`) ; `claude plugin install/update pmz@pmz-local`, sinon **repli déclaratif**
+`settings.json` (`extraKnownMarketplaces` + `enabledPlugins`, append-only, taguée, backup,
+idempotente, `--remove`) ; migration auto de l'install manuelle (`--purge` relayé) ; verdict doctor.
+Le plugin embarque `doctor`/`lib-io`/`merge-settings` (`INSTALL_SHIPPED`), `/pmz:doctor`,
+`/pmz:statusline` et l'accueil 1er démarrage (`lib/welcome.js`, marqueur `welcomed.json`). L'install
+manuelle (miroir plat vers `~/.claude/`) reste le canal de **secours**, documenté comme tel au README.
+
 ### Migration manuel → plugin + versioning semver (lot D3)
 
 - **`VERSION` en semver** (`x.y.z`), aligné sur `.claude-plugin/plugin.json` : `lib/version.js`
