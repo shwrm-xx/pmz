@@ -2,6 +2,27 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — US#149 Doc et release maquettes (v2.10.0)
+
+- README : `/maquette` dans la liste des commandes, avec son fonctionnement et son intégration à `/scope` et `/epicmaster`.
+- ARCHITECTURE : nouvelle section « Maquettes d’écrans (v2.10.0, US#147–#149) ».
+- VERSION 2.10.0 ; suite à 2529 OK.
+
+## 2026-10-12 — US#148 Maquettes intégrées à /scope et /epicmaster
+
+- `/scope` statue « écrans : oui/non » par US et propose la liste à maquetter dans la question unique ; sur oui, il ajoute une US « Maquettes » en vague 1 dont dépendent les US à écrans ; sur non, le choix est noté dans le handoff.
+- `/epicmaster` remonte les « maquettes à valider » en à-trancher et impose aux sous-agents des US à écrans de suivre les maquettes liées.
+- La session maître se renomme elle-même (`set_session_title`, `self`) dès la confirmation du plan, avant `--live-seed`.
+- Gabarit de spec : section « Maquettes » optionnelle ; 7 assertions de non-régression.
+
+## 2026-10-12 — US#147 Commande /maquette autonome
+
+- Nouvelle commande `/maquette` (`/pmz:maquette`) : propose écrans × états × tailles en une question, sans rien écrire avant l’accord.
+- `scripts/maquette.js` (`new` / `link` / `validate` / `open` / `list`) : stdlib seule, fail-open, refus d’écrasement ; index `docs/maquettes/INDEX.md`.
+- Gabarit `templates/maquette.html` autonome (zéro CDN), bascule mobile 375 / desktop et 4 états.
+- `link` ajoute ou complète la section « Maquettes » de la spec de l’US, sans doublon ; `validate` marque « validée » dans l’index.
+- `maquette.md` ajouté à `REQUIRED_COMMANDS`, embarqué par le plugin et listé dans `/help` ; 30 cas de test.
+
 ## 2026-10-12 — Bande epicmaster affichable à la demande : `/epicband` (v2.9.1)
 
 - Nouvelle commande locale `/epicband` (déclarée par le mod, aucun appel au modèle) : force la bande sur le plan le plus récent — fichier live local, sinon copie du projet courant, sinon copie la plus récemment semée — sans exiger un `/epicmaster` saisi dans la session ni un semis postérieur. Réaffiche un récap déjà masqué.

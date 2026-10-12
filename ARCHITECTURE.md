@@ -1620,6 +1620,17 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   `CLAUDE_CONFIG_DIR` bac à sable (`marketplace add` + `plugin install`) avant tout
   `publish-plugin.js --push`.
 
+### Maquettes d'écrans (v2.10.0, lots #147–#149)
+
+Commande `maquette.md` (`REQUIRED_COMMANDS`, embarquée par le plugin) → `scripts/maquette.js`
+(`new`/`link`/`validate`/`open`/`list`, stdlib, fail-open, refus d'écrasement) ; gabarit autonome
+`templates/maquette.html` (zéro CDN, bascule 375/desktop, 4 états) ; index `docs/maquettes/INDEX.md` ;
+`link` ajoute la section « Maquettes » (optionnelle dans `spec-template.md`) à la spec de l'US.
+`/scope` statue « écrans : oui/non » par US et propose une US « Maquettes » en vague 1 dont
+dépendent les US à écrans ; `/epicmaster` remonte les « maquettes à valider » en à-trancher, impose
+aux sous-agents de suivre les maquettes liées et renomme la session maître dès la confirmation du
+plan (`set_session_title` self).
+
 ### Install sans couture (lots #143–#146)
 
 Canal recommandé pour un nouveau poste : `install/install-plugin.{command,sh,ps1}` (lanceurs fins) →

@@ -150,3 +150,4 @@
 #0145 | 2026-10-12 | f186ca8 | epic:Install sans couture | verify:inconnu | fiche:oui | Archive hors-ligne poste vierge
 #0146 | 2026-10-12 | 6346321 | epic:Install sans couture | verify:inconnu | fiche:oui | Doc et release install sans couture
 #0147 | 2026-10-12 | 50b141c | epic:Maquettes d'écrans | verify:inconnu | fiche:non | Commande /maquette autonome
+#0148 | 2026-10-12 | cf400fa | epic:Maquettes d'écrans | verify:inconnu | fiche:non | Intégration maquettes dans scope et epicmaster
