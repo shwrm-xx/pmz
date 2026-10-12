@@ -27,7 +27,26 @@ poursuit trois objectifs :
 
 Il fournit aussi un **delta Codex** (`AGENTS.md`) pour porter le même socle de règles.
 
-## Installation
+## Nouveau poste en un double-clic
+
+Prérequis : **Node.js** (et, idéalement, `claude`). Une seule étape par OS, depuis le dépôt ou
+l'archive hors-ligne (`package.*`, qui embarque la marketplace : sans build, sans réseau, sans git) :
+
+- **macOS** — double-clic `promptimizer/install/install-plugin.command`
+- **Linux** — `bash promptimizer/install/install-plugin.sh`
+- **Windows** — `promptimizer/install/install-plugin.ps1` (PowerShell)
+
+L'installeur (`install-plugin.js`, cross-platform) vérifie `node`/`claude`, assemble le plugin dans
+un dossier stable `<claudeDir>/pmz-plugin/build`, installe ou met à jour `pmz@pmz-local`, migre
+automatiquement une install manuelle existante, puis affiche le verdict doctor. **Sans `claude`**
+dans le PATH, repli déclaratif : `extraKnownMarketplaces` + `enabledPlugins` ajoutés à
+`settings.json` (append-only, backup, idempotent, réversible avec `--remove`). Au 1er démarrage,
+l'accueil propose `/init` et `/statusline` ; `/pmz:doctor` vérifie l'installation sans le dépôt.
+Aucun `sudo`. _(macOS 1re fois : si Gatekeeper bloque, clic droit → Ouvrir.)_
+
+## Installation manuelle (secours)
+
+Canal de **secours** (legacy, gelé) : à utiliser si le plugin n'est pas possible.
 
 1. Lance l'installeur selon ton OS (prérequis : **Node.js**) :
    - **macOS** — double-clic `promptimizer/install/install.command`
