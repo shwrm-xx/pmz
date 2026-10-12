@@ -66,6 +66,25 @@ function live(over: Record<string, unknown> = {}, lots?: Record<string, unknown>
 // --decide, tokens réels) — régénéré par un script bac à sable, pas écrit à la main (lot #142).
 const REAL_WRITER = `{"v":1,"updated_at":"2026-10-09T11:55:00.000Z","lots":{"1":{"id":1,"title":"Spec","status":"done","wave":1,"model":"sonnet","effort":"low","tokens":33000,"tokens_basis":"measured","depends_on":[],"started_at":"2026-10-09T11:10:00.000Z","done_at":"2026-10-09T11:20:00.000Z","updated_at":"2026-10-09T11:20:00.000Z","owner":"master/lot-1","verify":"ok"},"2":{"id":2,"title":"Fichier","status":"failed","wave":1,"model":"opus","effort":"high","tokens":41000,"tokens_basis":"measured","depends_on":[],"started_at":"2026-10-09T11:10:00.000Z","done_at":"2026-10-09T11:35:00.000Z","updated_at":"2026-10-09T11:35:00.000Z","owner":"master/lot-2","note":"verify rouge : test X","verify":"failed"},"3":{"id":3,"title":"Bande","status":"running","wave":2,"model":"sonnet","effort":"medium","tokens":60000,"tokens_basis":"base","depends_on":[1],"started_at":"2026-10-09T11:55:00.000Z","done_at":null,"updated_at":"2026-10-09T11:55:00.000Z","owner":"master/lot-3"},"4":{"id":4,"title":"Doc","status":"pending","wave":2,"model":"haiku","effort":"low","tokens":60000,"tokens_basis":"base","depends_on":[1],"started_at":null,"done_at":null,"updated_at":"2026-10-09T11:00:00.000Z"}},"agents":{},"epic":"Plan","wave":{"current":2,"total":2},"finished":false,"to_decide":[{"id":2,"title":"Fichier","reason":"verify rouge : test X"}]}`
 
+// Plan semé avec vagues (wave_plan + wave/scope par lot, comme lib/epicmaster-live.js seedFromPlan).
+function waved() {
+  return JSON.stringify({
+    v: 1, updated_at: iso(1), epic: 'Multi', wave: { current: 2, total: 3 }, finished: false, to_decide: [],
+    wave_plan: [
+      { index: 1, ids: [9], parallel: false, label: 'Socle' },
+      { index: 2, ids: [10, 11], parallel: true, label: 'Providers' },
+      { index: 3, ids: [12], parallel: false, label: 'Page web' },
+    ],
+    lots: {
+      9: { id: 9, title: 'Socle', status: 'done', wave: 1, started_at: iso(40), done_at: iso(20) },
+      10: { id: 10, title: 'Registre', status: 'running', wave: 2, model: 'opus', effort: 'high', started_at: iso(12), updated_at: iso(1), scope: 'registre testé' },
+      11: { id: 11, title: 'TheFork', status: 'pending', wave: 2 },
+      12: { id: 12, title: 'Page', status: 'pending', wave: 3, depends_on: [10, 11] },
+    },
+    agents: {},
+  })
+}
+
 const ENGINE = { key: 'engine-band' } // ce que dessine le moteur quand la bande passe la main
 const toggle = { key: 'em-toggle' }
 type UI = {
@@ -265,5 +284,46 @@ describe('bande epicmaster', () => {
     expect(await text(ui, /◆ Mon projet/)).toBeDefined()
     expect(await text(ui, /Autre projet/)).toBeUndefined()
     await ui.unmount()
+  })
+  test('vagues : barre groupée, détail « Vague N (#ids) · libellé », lots en vol sous la vague en cours', async ($, on) => {
+    serve(on, { text: waved() })
+    await arm($)
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      expect(await text(ui, /◆ Multi · vague 2\/3/)).toBeDefined()
+      expect(await text(ui, /^■ ■□ □$/)).toBeDefined() // une espace entre deux vagues
+      await ui.press(toggle)
+      expect((await text(ui, /^ {2}✓ Vague 1 \(#9\) · Socle$/))?.props.color).toBe('success')
+      expect((await text(ui, /^ {2}⟳ Vague 2 \(#10, #11\) · Providers · 12 min$/))?.props.color).toBe('warning')
+      expect(await text(ui, /^ {6}⟳ #10 Registre · opus·high · 12 min/)).toBeDefined()
+      expect(await text(ui, /^ {2}⧗ Vague 3 \(#12\) · Page web$/)).toBeDefined()
+      expect(await text(ui, /^ {2}⧗ #12/)).toBeUndefined() // plus de ligne par lot en attente
+      await ui.press(toggle) // replié pour la surface suivante (état de session)
+      await ui.unmount()
+    }
+  })
+
+  test('bouton Plan : à gauche de Détails, ouvre le panneau du plan complet', async ($, on) => {
+    serve(on, { text: waved() })
+    const opened: string[] = []
+    on('ui.open', ($, e) => { opened.push(String(e.id)); return { value: { isPlaced: true } } as never })
+    await arm($)
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      const all = (await ui.findAll({ type: 'Button' })).map(b => b.props.label)
+      expect(all).toEqual(['Plan', 'Détails'])
+      await ui.press({ key: 'em-plan' })
+      await ui.unmount()
+    }
+    expect(opened).toEqual(['epicmaster-plan', 'epicmaster-plan'])
+    const pane = await $.ui.mount({
+      plugin: 'epicmaster-band', surface: 'desktop', component: 'Pane', requestId: 'epicmaster-plan',
+      props: { title: 'Plan', isFocused: false, bodyColumns: 100, placement: 'dock', scroll: { offset: 0, bodyRows: 40 } } as never,
+    })
+    const md = String((await pane.find({ key: 'em-plan-md' }))?.props.text)
+    expect(md).toContain('### ⟳ Vague 2 — Providers')
+    expect(md).toContain('**#10 Registre** — `opus · high` · en cours')
+    expect(md).toContain('Fait quand : registre testé')
+    await pane.unmount()
   })
 })

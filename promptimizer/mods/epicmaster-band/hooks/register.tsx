@@ -12,8 +12,8 @@ import type { Register } from 'claude-code'
 import type { EpicmasterBandDismissed } from '../types'
 
 import {
-  LIVE_PATH, failedLabel, finishedLabel, parseLive, pendingLine, runningLine, seededAt,
-  type LiveLot,
+  LIVE_PATH, failedLabel, finishedLabel, parseLive, pendingLine, planMarkdown, runningLine, seededAt, waveLine,
+  type LiveLot, type LiveView,
 } from './live'
 
 const expanded = atom({ plugin: 'epicmaster-band', key: 'expanded' } as const, false)
@@ -25,10 +25,12 @@ const POLL_MS = 2000
 const MINUTE_TICKS = 30 // 30 × 2 s : redessin périodique des temps écoulés
 const MAX_SEGMENTS = 40
 const ARM_MS = 15 * 60 * 1000 // l'attente « préparation du plan » expire seule
+const PLAN_PANE = 'epicmaster-plan'
 const SEED_SLACK_MS = 5000 // horloges du moteur et de node : même machine, marge de sûreté
 const GLOBAL_DIR = 'promptimizer/epicmaster-live'
 const CALL_RE = /^\s*\/(?:pmz:)?epicmaster(?![\w-])/
 
+const WAVE_GLYPH: Record<LiveLot['status'], string> = { done: '✓', running: '⟳', pending: '⧗', failed: '✗' }
 const SEG: Record<LiveLot['status'], { glyph: string; color: string }> = {
   done: { glyph: '■', color: 'success' },
   running: { glyph: '■', color: 'warning' },
@@ -96,6 +98,45 @@ const arm = async ($: Dollar, now: number) => {
   await update($, boundFile, () => null) // nouveau /epicmaster : on relie au prochain plan semé
 }
 
+// Segments de la barre groupés par vague (une espace entre deux vagues) ; sans vagues : à plat.
+function segmentsByWave(view: LiveView, shown: LiveLot[]): (LiveLot | string | null)[] {
+  if (!view.waves.length) return shown
+  const keep = new Set(shown.map(l => l.id))
+  const byId = new Map(shown.map(l => [l.id, l]))
+  const out: (LiveLot | string | null)[] = []
+  view.waves.forEach((w, i) => {
+    const lots = w.ids.filter(id => keep.has(id)).map(id => byId.get(id) as LiveLot)
+    if (!lots.length) return
+    if (out.length) out.push(`seg-gap-${i}`)
+    out.push(...lots)
+  })
+  return out
+}
+
+// Détail déplié par vague : « ✓ Vague 1 (#9) · libellé », la vague en cours détaille ses lots en vol
+// et ses verify rouges (une ligne indentée chacun).
+const WAVE_COLOR: Record<LiveLot['status'], string | undefined> = { done: 'success', running: 'warning', pending: undefined, failed: 'error' }
+function waveRows(view: LiveView, now: number, Text: any): unknown[] {
+  const byId = new Map(view.lots.map(l => [l.id, l]))
+  const rows: unknown[] = []
+  for (const w of view.waves) {
+    const color = WAVE_COLOR[w.status]
+    rows.push(
+      <Text key={`wave-${w.index}`} {...(color ? { color } : { dimColor: true })} wrap="truncate">
+        {`  ${WAVE_GLYPH[w.status]} ${waveLine(w, now)}`}
+      </Text>,
+    )
+    if (w.status !== 'running' && w.status !== 'failed') continue
+    for (const id of w.ids) {
+      const l = byId.get(id)
+      if (!l) continue
+      if (l.status === 'running') rows.push(<Text key={`run-${l.id}`} color="warning" wrap="truncate">{'      ⟳ ' + runningLine(l, now)}</Text>)
+      if (l.status === 'failed') rows.push(<Text key={`red-${l.id}`} color="error" wrap="truncate">{`      ✗ #${l.id} ${l.title} · verify rouge`}</Text>)
+    }
+  }
+  return rows
+}
+
 export const register: Register = on => {
   let lastText: string | null = null
   let ticks = 0
@@ -145,6 +186,29 @@ export const register: Register = on => {
     }).catch(($, e, next) => next(e))
   }
 
+  // Panneau « Plan » : le plan complet de la session (vagues, lots, fait quand), suivi en direct.
+  on('ui.render', { component: 'Pane', requestId: PLAN_PANE }, async ($, e, next) => {
+    try {
+      const now = await $.clock.now()
+      const view = parseLive(await readLive($, now), now)
+      const { Box, Text, Markdown } = $.ui.resolve(e)
+      if (!view) {
+        return (
+          <Box key="em-plan" flexDirection="column">
+            <Text key="em-plan-none" dimColor>Aucun plan epicmaster actif dans cette session.</Text>
+          </Box>
+        )
+      }
+      return (
+        <Box key="em-plan" flexDirection="column">
+          <Markdown key="em-plan-md" text={planMarkdown(view, now)} />
+        </Box>
+      )
+    } catch (_) {
+      return next(e)
+    }
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     try {
       if (e.props.hasSurvey) return next(e)
@@ -164,12 +228,17 @@ export const register: Register = on => {
       if (view.finished && (await read($, dismissed)) === view.signature) return next(e)
       const isOpen = !view.finished && (await read($, expanded))
       const { Box, Text, Button } = $.ui.resolve(e)
+      const planButton = (
+        <Button key="em-plan" label="Plan" onPress={() => $.ui.open({ id: PLAN_PANE, title: `Plan epicmaster · ${view.epic}` })} />
+      )
 
       if (view.finished) {
         return (
           <Box key="em-band" flexDirection="row">
             <Text key="em-done" color="success" wrap="truncate">{finishedLabel(view)}</Text>
             {view.failed.length ? <Text key="em-failed" color="error" wrap="truncate">{'  ' + failedLabel(view.failed)}</Text> : null}
+            <Text key="em-gap"> </Text>
+            {planButton}
           </Box>
         )
       }
@@ -183,12 +252,18 @@ export const register: Register = on => {
         <Box key="em-line" flexDirection="row">
           <Text key="em-head" bold wrap="truncate">{head}</Text>
           <Text key="em-bar">
-            {shown.map(l => <Text key={`seg-${l.id}`} color={SEG[l.status].color}>{SEG[l.status].glyph}</Text>)}
+            {segmentsByWave(view, shown).map(x => x === null
+              ? null
+              : typeof x === 'string'
+                ? <Text key={x}> </Text>
+                : <Text key={`seg-${x.id}`} color={SEG[x.status].color}>{SEG[x.status].glyph}</Text>)}
             {more > 0 ? <Text key="seg-more" dimColor>{`+${more}`}</Text> : null}
           </Text>
           <Text key="em-counts">{counts}</Text>
           {view.failed.length ? <Text key="em-failed" color="error" bold>{'  ' + failedLabel(view.failed)}</Text> : null}
           <Text key="em-gap"> </Text>
+          {planButton}
+          <Text key="em-gap2"> </Text>
           <Button
             key="em-toggle"
             label={isOpen ? 'Masquer' : 'Détails'}
@@ -198,7 +273,7 @@ export const register: Register = on => {
       )
       if (!isOpen) return line
 
-      const rows = [
+      const rows = view.waves.length ? waveRows(view, now, Text) : [
         ...view.lots.filter(l => l.status === 'running').map(l => (
           <Text key={`run-${l.id}`} color="warning" wrap="truncate">{'  ⟳ ' + runningLine(l, now)}</Text>
         )),

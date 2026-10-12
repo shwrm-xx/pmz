@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Bande epicmaster par vagues + bouton Plan
+
+- La bande raisonne en **vagues**. La barre est groupée par vague. Dépliée, elle affiche une ligne par vague, `⟳ Vague 2 (#10, #11) · libellé`, avec en dessous les lots en vol et les verify rouges de la vague en cours.
+- Libellé de vague : `--live-seed --wave-labels "1=…;2=…"`, posé par le maître. À défaut, le titre du lot seul ou « N lots en parallèle ».
+- Bouton **Plan** à gauche de Détails/Masquer : il ouvre un panneau avec le plan complet (vagues, lots, modèle · effort, état, tokens, « fait quand »), mis à jour en direct.
+- Le fichier live sème `wave_plan` et le `scope` de chaque lot. `/epicmaster` passe les libellés de vague.
+- Tests : la bande passe à 13 tests (vagues, bouton Plan et panneau) ; BS-6 ; suite à 2481 OK.
+
 ## 2026-10-12 — Une bande epicmaster par session et par projet
 
 - Corrige : la bande d'une session affichait le plan d'une autre session maître, d'un autre projet. La copie globale unique `promptimizer/epicmaster-live.json` était partagée, et le dernier à écrire gagnait.

@@ -52,7 +52,10 @@ la sortie du script.
 
 Plan confirmé : **sème le plan complet dans la bande** (rien n'est démarré, backlog intact) —
 `backlog.js epicmaster --live-seed` avec les **mêmes** `--epic`/`--skip`/`--max-parallel` que le
-plan validé. La bande affiche aussitôt epic, vagues et lots en attente.
+plan validé, plus `--wave-labels "1=…;2=…"` : un **libellé court par vague** (2 à 4 mots, déduit
+des titres de ses lots, jamais inventé au-delà — ex. « Socle registre », « Providers TheFork »).
+La bande affiche aussitôt epic et vagues (« Vague 2 (#10, #11) · libellé ») ; son bouton **Plan**
+ouvre le plan complet (vagues, lots, modèle · effort, « fait quand ») dans un panneau.
 
 Si le script préconise un autre modèle que le tien pour la session maître, dis-le en une
 ligne (`/model …`) avant de lancer — tu orchestres, tu n'as pas besoin de raisonner lourd.

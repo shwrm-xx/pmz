@@ -25,6 +25,18 @@ export type LiveLot = {
   startedAt: number | null
   tokens: number | null
   dependsOn: string[]
+  wave: number | null
+  scope: string
+}
+
+// Une vague du plan : « Vague N (#a, #b) libellé », état agrégé de ses lots.
+export type LiveWave = {
+  index: number
+  ids: string[]
+  label: string
+  parallel: boolean
+  status: LotStatus
+  startedAt: number | null
 }
 
 export type LiveView = {
@@ -37,6 +49,7 @@ export type LiveView = {
   failed: LiveLot[]
   finished: boolean
   toDecide: number
+  waves: LiveWave[]
   signature: string
 }
 
@@ -95,6 +108,45 @@ export function seededAt(text: unknown): number | null {
   }
 }
 
+// État d'une vague : rouge si un lot l'est, en cours si un lot tourne ou si elle est entamée sans
+// être finie, faite si tous ses lots le sont, sinon en attente.
+function waveStatus(lots: LiveLot[]): LotStatus {
+  if (lots.some((l) => l.status === 'failed')) return 'failed'
+  if (lots.every((l) => l.status === 'done')) return 'done'
+  if (lots.some((l) => l.status === 'running' || l.status === 'done')) return 'running'
+  return 'pending'
+}
+
+// Vagues du plan (`wave_plan`, semé par lib/epicmaster-live.js) ; à défaut, regroupées par le champ
+// `wave` des lots (libellé : titre du lot seul ou « N lots en parallèle ») ; aucune -> [].
+function readWaves(raw: Rec, lots: LiveLot[]): LiveWave[] {
+  const byLot = new Map(lots.map((l) => [l.id, l]))
+  const plan: { index: number; ids: string[]; label: string }[] = []
+  if (Array.isArray(raw.wave_plan)) {
+    for (const w of raw.wave_plan) {
+      if (!isRec(w) || num(w.index) === null || !Array.isArray(w.ids)) continue
+      plan.push({ index: num(w.index) as number, ids: w.ids.map((x) => str(x, 20)).filter(Boolean), label: str(w.label, 80) })
+    }
+  } else {
+    const groups = new Map<number, string[]>()
+    for (const l of lots) if (l.wave !== null) groups.set(l.wave, [...(groups.get(l.wave) ?? []), l.id])
+    for (const [index, ids] of groups) plan.push({ index, ids, label: '' })
+  }
+  return plan
+    .map((w) => {
+      const members = w.ids.map((id) => byLot.get(id)).filter((l): l is LiveLot => !!l)
+      if (!members.length) return null
+      const label = w.label || (members.length === 1 ? members[0].title : `${members.length} lots en parallèle`)
+      const starts = members.map((l) => l.startedAt).filter((t): t is number => t !== null)
+      return {
+        index: w.index, ids: members.map((l) => l.id), label, parallel: members.length > 1,
+        status: waveStatus(members), startedAt: starts.length ? Math.min(...starts) : null,
+      }
+    })
+    .filter((w): w is LiveWave => w !== null)
+    .sort((a, b) => a.index - b.index)
+}
+
 export function parseLive(text: unknown, now: number): LiveView | null {
   try {
     if (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT) return null
@@ -118,6 +170,8 @@ export function parseLive(text: unknown, now: number): LiveView | null {
         startedAt: time(l.started_at),
         tokens: num(l.tokens),
         dependsOn: Array.isArray(l.depends_on) ? l.depends_on.map((d) => str(d, 20)).filter(Boolean) : [],
+        wave: num(l.wave),
+        scope: str(l.scope, 300),
       })
     }
     if (!lots.length) return null
@@ -140,6 +194,7 @@ export function parseLive(text: unknown, now: number): LiveView | null {
       failed,
       finished,
       toDecide,
+      waves: readWaves(raw, lots),
       signature: `${str(raw.updated_at, 40)}|${lots.map((l) => l.id + l.status[0]).join(',')}`,
     }
   } catch (_) {
@@ -180,4 +235,49 @@ export function failedLabel(failed: LiveLot[]): string {
 
 export function finishedLabel(v: LiveView): string {
   return `◆ epicmaster terminé · ${v.done}/${v.lots.length} ✓ · ${v.toDecide} à trancher`
+}
+
+// Ligne d'une vague : « Vague N (#a, #b) · libellé » (+ temps écoulé si elle tourne).
+export function waveLine(w: LiveWave, now: number): string {
+  const ids = w.ids.map((id) => '#' + id).join(', ')
+  const run = w.status === 'running' ? ` · ${elapsed(w.startedAt, now)}` : ''
+  return `Vague ${w.index} (${ids}) · ${w.label}${run}`
+}
+
+const STATE_LABEL: Record<LotStatus, string> = { done: 'fait', running: 'en cours', pending: 'à lancer', failed: 'verify rouge' }
+const STATE_GLYPH: Record<LotStatus, string> = { done: '✓', running: '⟳', pending: '⧗', failed: '✗' }
+
+// Plan complet en Markdown (panneau « Plan ») : une section par vague, une puce par lot avec
+// modèle·effort, état, tokens et « fait quand ». Sans vagues : une seule liste de lots.
+export function planMarkdown(v: LiveView, now: number): string {
+  const L: string[] = []
+  L.push(`## ◆ ${v.epic}${v.wave ? ` — vague ${v.wave.current}/${v.wave.total}` : ''}`)
+  L.push('')
+  L.push(`✓ ${v.done} fait · ⟳ ${v.running} en cours · ⧗ ${v.pending} à lancer · ✗ ${v.failed.length} rouge · ${v.toDecide} à trancher`)
+  const lotBlock = (l: LiveLot) => {
+    const me = [l.model, l.effort].filter(Boolean).join(' · ')
+    const bits = [me ? `\`${me}\`` : '', STATE_LABEL[l.status]]
+    if (l.status === 'running') bits.push(elapsed(l.startedAt, now))
+    const tk = tokensLabel(l.tokens)
+    if (tk) bits.push(tk)
+    if (l.dependsOn.length && l.status === 'pending') bits.push(`après ${l.dependsOn.map((d) => '#' + d).join(', ')}`)
+    L.push(`- ${STATE_GLYPH[l.status]} **#${l.id} ${l.title}** — ${bits.filter(Boolean).join(' · ')}`)
+    if (l.scope) L.push(`  Fait quand : ${l.scope}`)
+  }
+  const byId = new Map(v.lots.map((l) => [l.id, l]))
+  if (v.waves.length) {
+    for (const w of v.waves) {
+      L.push('')
+      L.push(`### ${STATE_GLYPH[w.status]} Vague ${w.index} — ${w.label}`)
+      L.push(`_${w.parallel ? `${w.ids.length} lots en parallèle` : 'série'} · ${STATE_LABEL[w.status]}_`)
+      L.push('')
+      for (const id of w.ids) { const l = byId.get(id); if (l) lotBlock(l) }
+    }
+  } else {
+    L.push('')
+    for (const l of v.lots) lotBlock(l)
+  }
+  L.push('')
+  L.push('_Durées et tokens : estimation indicative._')
+  return L.join('\n')
 }
