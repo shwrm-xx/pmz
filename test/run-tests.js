@@ -1042,10 +1042,10 @@ section('Archive tier 1/2 — fiches, CLI à tiroirs, commande, pare-feu canari 
   ok(archive.ficheSkeleton({ id: 3 }).includes('verify : aucune → inconnu'), 'ficheSkeleton : lot sans verify → « aucune → inconnu », jamais de valeur inventée');
 
   // --- Pointeur US (lot #101) : porté en-tête + section Liens quand présent, jamais inventé.
-  const skUs = archive.ficheSkeleton({ id: 13, title: 'Titre', epic: 'Formalisation US', date: '2026-07-28', commit: 'def5678', spec: 'docs/specs/SPEC-42.md' });
-  ok(/- epic : Formalisation US · clos : 2026-07-28 · commit : def5678 · session : inconnue · spec : docs\/specs\/SPEC-42\.md/.test(skUs),
+  const skUs = archive.ficheSkeleton({ id: 13, title: 'Titre', epic: 'Formalisation US', date: '2026-07-28', commit: 'def5678', spec: 'docs/us/US-42/spec.md' });
+  ok(/- epic : Formalisation US · clos : 2026-07-28 · commit : def5678 · session : inconnue · spec : docs\/us\/US-42\/spec\.md/.test(skUs),
     'ficheSkeleton : en-tête porte spec quand présente');
-  ok(/- Spec : docs\/specs\/SPEC-42\.md/.test(skUs), 'ficheSkeleton : section Liens porte la ligne Spec');
+  ok(/- Spec : docs\/us\/US-42\/spec\.md/.test(skUs), 'ficheSkeleton : section Liens porte la ligne Spec');
   const skNoUs = archive.ficheSkeleton({ id: 14, title: 'Titre', date: '2026-07-28', commit: 'def5678' });
   ok(!/spec :/.test(skNoUs) && !/- Spec :/.test(skNoUs),
     'ficheSkeleton : US sans spec → AUCUNE ligne (pas de null, pas de valeur inventée)');
@@ -1141,13 +1141,13 @@ section('Archive tier 1/2 — fiches, CLI à tiroirs, commande, pare-feu canari 
   ok(/archive\.js raw --id \d+ --file \.vibe-agent\/handoff\.md/.test(cbOut), 'close-batch : archivage du handoff manuel AVANT sa destruction');
 
   // --- /close-batch : le squelette de fiche porte la spec de l'US en cours (lot #103), jamais inventé.
-  fs.mkdirSync(path.join(cb, 'docs', 'specs'), { recursive: true });
-  fs.writeFileSync(path.join(cb, 'docs', 'specs', 'SPEC-99.md'), '# US 99\n');
+  fs.mkdirSync(path.join(cb, 'docs', 'us', 'US-99'), { recursive: true });
+  fs.writeFileSync(path.join(cb, 'docs', 'us', 'US-99', 'spec.md'), '# US 99\n');
   const lcbU = backlog.addLot(cb, 'Lot US', 'fait quand : …', 'opus', 'Formalisation US', null, null,
-    null, null, 'docs/specs/SPEC-99.md');
+    null, null, 'docs/us/US-99/spec.md');
   backlog.startLot(cb, lcbU.id);
   const cbOutU = runNode(path.join(PKG, 'scripts', 'close-batch.js'), ['--cwd', cb]).out;
-  ok(/- Spec : docs\/specs\/SPEC-99\.md/.test(cbOutU), 'close-batch : squelette de fiche porte la spec de l\'US en cours');
+  ok(/- Spec : docs\/us\/US-99\/spec\.md/.test(cbOutU), 'close-batch : squelette de fiche porte la spec de l\'US en cours');
   backlog.dropLot(cb, lcbU.id);
   const cbMd = fs.readFileSync(path.join(PKG, 'commands', 'close-batch.md'), 'utf8');
   ok(/^6bis\./m.test(cbMd) && /^6ter\./m.test(cbMd), 'close-batch.md : étapes 6bis (fiche) et 6ter (handoff archivé) posées avant le 7');
@@ -7288,19 +7288,19 @@ section('backlog — champ spec (ex-us) : garde d\'existence, show, export (epic
   const lotOf = (id) => backlogLib.loadBacklog(repo).lots.find((l) => l.id === id);
 
   // U1. --us pointant vers un chemin inexistant -> refus explicite, rien de persisté.
-  const rMissing = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--spec', 'docs/specs/SPEC-42.md']);
-  ok(/Refusé/.test(rMissing.out) && /chemin inexistant/.test(rMissing.out) && /docs\/specs\/SPEC-42\.md/.test(rMissing.out),
+  const rMissing = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--spec', 'docs/us/US-42/spec.md']);
+  ok(/Refusé/.test(rMissing.out) && /chemin inexistant/.test(rMissing.out) && /docs\/us\/US-42\/spec\.md/.test(rMissing.out),
     'U1 : add --spec <chemin inexistant> -> refus explicite (message nomme le chemin)');
   ok(!backlogLib.loadBacklog(repo).lots.length, 'U1 : aucun lot persisté (refus AVANT toute écriture)');
 
   // U2. --us pointant vers un fichier réel -> persisté, réaffiché par show et add.
-  fs.mkdirSync(path.join(repo, 'docs', 'specs'), { recursive: true });
-  fs.writeFileSync(path.join(repo, 'docs', 'specs', 'SPEC-42.md'), '# US — test\n');
-  const rOk = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--spec', 'docs/specs/SPEC-42.md']);
-  ok(/\[Spec : docs\/specs\/SPEC-42\.md\]/.test(rOk.out), 'U2 : add --spec <chemin existant> -> accepté, tag [Spec : …] dans la sortie');
-  ok(lotOf(1).spec === 'docs/specs/SPEC-42.md', 'U2 : champ spec persisté sur le lot');
+  fs.mkdirSync(path.join(repo, 'docs', 'us', 'US-42'), { recursive: true });
+  fs.writeFileSync(path.join(repo, 'docs', 'us', 'US-42', 'spec.md'), '# US — test\n');
+  const rOk = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US A', '--model', 'sonnet', '--spec', 'docs/us/US-42/spec.md']);
+  ok(/\[Spec : docs\/us\/US-42\/spec\.md\]/.test(rOk.out), 'U2 : add --spec <chemin existant> -> accepté, tag [Spec : …] dans la sortie');
+  ok(lotOf(1).spec === 'docs/us/US-42/spec.md', 'U2 : champ spec persisté sur le lot');
   const rShow = runNode(BKLG, ['show', '--cwd', repo]);
-  ok(/\[Spec : docs\/specs\/SPEC-42\.md\]/.test(rShow.out), 'U2 : show réaffiche le pointeur US');
+  ok(/\[Spec : docs\/us\/US-42\/spec\.md\]/.test(rShow.out), 'U2 : show réaffiche le pointeur US');
 
   // U3. lot posé SANS --us : champ absent, aucune ligne [Spec : …] (pas de valeur inventée).
   const rNoUs = runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US B', '--model', 'sonnet']);
@@ -7313,7 +7313,7 @@ section('backlog — champ spec (ex-us) : garde d\'existence, show, export (epic
   ok(header.includes('spec'), 'U4 : colonne spec présente dans l\'export CSV');
   const rows = csv.split('\n').slice(1);
   const usCol = header.indexOf('spec');
-  ok(rows[0].split(',')[usCol] === 'docs/specs/SPEC-42.md', 'U4 : export CSV — lot #1 porte son chemin US');
+  ok(rows[0].split(',')[usCol] === 'docs/us/US-42/spec.md', 'U4 : export CSV — lot #1 porte son chemin US');
   ok(rows[1].split(',')[usCol] === '', 'U4 : export CSV — lot #2 (sans US) -> cellule vide, rien d\'inventé');
 
   // U5. garde anti-troncature (#90) partagée : --us au-delà de MAX_SPEC -> refus, jamais tronqué.
@@ -7350,11 +7350,11 @@ section('backlog — commande `spec` (alias `us`) : lecture, --new (gabarit), --
 
   // N2. --new : pose le fichier au chemin conventionnel ET rattache le pointeur (indissociable).
   const rNew = runNode(BKLG, ['spec', '--cwd', repo, '--id', '1', '--new']);
-  ok(/docs\/specs\/SPEC-1\.md/.test(rNew.out) && /créée/.test(rNew.out), 'N2 : `spec --new` annonce le fichier créé');
-  const usAbs = path.join(repo, 'docs', 'specs', 'SPEC-1.md');
-  ok(fs.existsSync(usAbs), 'N2 : fichier US réellement posé sous docs/specs/');
-  ok(lotOf(1).spec === 'docs/specs/SPEC-1.md', 'N2 : pointeur spec rattaché au lot dans le même geste');
-  ok(backlogLib.specPathFor(7) === 'docs/specs/SPEC-7.md', 'N2 : specPathFor — chemin conventionnel sans slug de titre');
+  ok(/docs\/us\/US-1\/spec\.md/.test(rNew.out) && /créée/.test(rNew.out), 'N2 : `spec --new` annonce le fichier créé');
+  const usAbs = path.join(repo, 'docs', 'us', 'US-1', 'spec.md');
+  ok(fs.existsSync(usAbs), 'N2 : fichier US réellement posé sous docs/us/US-1/');
+  ok(lotOf(1).spec === 'docs/us/US-1/spec.md', 'N2 : pointeur spec rattaché au lot dans le même geste');
+  ok(backlogLib.specPathFor(7) === 'docs/us/US-7/spec.md', 'N2 : specPathFor — chemin conventionnel sans slug de titre');
 
   // N3. gabarit rendu : jetons substitués (id, titre, epic), aucun {{…}} résiduel, sections tenues.
   const body = fs.readFileSync(usAbs, 'utf8');
@@ -7377,17 +7377,18 @@ section('backlog — commande `spec` (alias `us`) : lecture, --new (gabarit), --
 
   // N5. --set : rattache une US écrite ailleurs (issue du refus N4 quand le lot ne pointe nulle part).
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot deux', '--model', 'sonnet']);
-  fs.writeFileSync(path.join(repo, 'docs', 'specs', 'SPEC-2.md'), '# US 2\n');
+  fs.mkdirSync(path.join(repo, 'docs', 'us', 'US-2'), { recursive: true });
+  fs.writeFileSync(path.join(repo, 'docs', 'us', 'US-2', 'spec.md'), '# US 2\n');
   const rExists2 = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new']);
-  ok(/ne pointe vers aucune spec/.test(rExists2.out) && /--set docs\/specs\/SPEC-2\.md/.test(rExists2.out),
+  ok(/ne pointe vers aucune spec/.test(rExists2.out) && /--set docs\/us\/US-2\/spec\.md/.test(rExists2.out),
     'N5 : refus doux -> propose --set comme issue quand le lot ne pointe nulle part');
-  const rSet = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/specs/SPEC-2.md']);
-  ok(/rattachée/.test(rSet.out) && lotOf(2).spec === 'docs/specs/SPEC-2.md', 'N5 : `spec --set <existant>` rattache le pointeur');
-  const rSetDead = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/specs/mort.md']);
+  const rSet = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/us/US-2/spec.md']);
+  ok(/rattachée/.test(rSet.out) && lotOf(2).spec === 'docs/us/US-2/spec.md', 'N5 : `spec --set <existant>` rattache le pointeur');
+  const rSetDead = runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/us/mort.md']);
   ok(/Refusé/.test(rSetDead.out) && /chemin inexistant/.test(rSetDead.out),
     'N5 : `spec --set <inexistant>` refusé (même garde qu\'add --spec : pas de pointeur mort)');
-  ok(lotOf(2).spec === 'docs/specs/SPEC-2.md', 'N5 : pointeur précédent préservé après un --set refusé');
-  ok(/s'excluent/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new', '--set', 'docs/specs/SPEC-2.md']).out),
+  ok(lotOf(2).spec === 'docs/us/US-2/spec.md', 'N5 : pointeur précédent préservé après un --set refusé');
+  ok(/s'excluent/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new', '--set', 'docs/us/US-2/spec.md']).out),
     'N5 : --new et --set ensemble -> refus (intentions contradictoires)');
   const tooLongUs = 'docs/' + 'x'.repeat(backlogLib.MAX_SPEC) + '.md';
   ok(/Refusé/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', tooLongUs]).out),
@@ -7397,21 +7398,21 @@ section('backlog — commande `spec` (alias `us`) : lecture, --new (gabarit), --
   // La LECTURE reste ouverte (consulter l'US d'un lot clos est légitime).
   backlogLib.startLot(repo, 2);
   backlogLib.doneLot(repo, 2, 'abc1234');
-  ok(/docs\/specs\/SPEC-2\.md/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2']).out),
+  ok(/docs\/us\/US-2\/spec\.md/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2']).out),
     'N6 : lecture du pointeur d\'un lot clos -> toujours autorisée');
   ok(/Refusé/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new']).out),
     'N6 : `spec --new` sur un lot clos -> refus');
-  ok(/Refusé/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/specs/SPEC-1.md']).out),
+  ok(/Refusé/.test(runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--set', 'docs/us/US-1/spec.md']).out),
     'N6 : `spec --set` sur un lot clos -> refus');
-  ok(lotOf(2).spec === 'docs/specs/SPEC-2.md', 'N6 : pointeur du lot clos inchangé');
+  ok(lotOf(2).spec === 'docs/us/US-2/spec.md', 'N6 : pointeur du lot clos inchangé');
 
   // N7. défense en profondeur côté lib : setUs refuse un chemin mort et un lot clos, comme addLot.
   ok(backlogLib.setSpec(repo, 1, 'chemin/mort.md') === null, 'N7 : lib.setSpec() refuse un chemin inexistant');
   ok(backlogLib.setSpec(repo, 1, '') === null, 'N7 : lib.setSpec() refuse un chemin vide');
-  ok(backlogLib.setSpec(repo, 2, 'docs/specs/SPEC-1.md') === null, 'N7 : lib.setSpec() refuse un lot clos');
+  ok(backlogLib.setSpec(repo, 2, 'docs/us/US-1/spec.md') === null, 'N7 : lib.setSpec() refuse un lot clos');
   ok(backlogLib.createSpecFile(repo, 404).reason === 'nolot', 'N7 : lib.createSpecFile() sur un lot inconnu -> reason nolot');
   // N8. sous-commande `us` gardée en alias déprécié de `spec`.
-  ok(/docs\/specs\/SPEC-1\.md/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '1']).out),
+  ok(/docs\/us\/US-1\/spec\.md/.test(runNode(BKLG, ['us', '--cwd', repo, '--id', '1']).out),
     'N8 : `us --id N` (alias déprécié) -> lit le pointeur de spec');
   ok(backlogLib.BOOL_FLAGS.includes('new'), 'N7 : --new déclaré booléen (sinon avalé comme valeur par la garde d\'orphelins)');
   ok(/\| spec \|/.test(runNode(BKLG, ['zzz', '--cwd', repo]).out), 'N7 : `spec` listée dans les commandes de l\'aide');
@@ -7434,7 +7435,7 @@ section('backlog — validation de structure de la spec à la clôture (epic « 
   // O2. US complète (gabarit tel que posé par `spec --new`) : aucune section manquante.
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US complète', '--model', 'sonnet']);
   runNode(BKLG, ['spec', '--cwd', repo, '--id', '1', '--new']);
-  ok(backlogLib.checkSpecStructure(repo, 'docs/specs/SPEC-1.md').missing.length === 0,
+  ok(backlogLib.checkSpecStructure(repo, 'docs/us/US-1/spec.md').missing.length === 0,
     'O2 : gabarit frais -> aucune section obligatoire manquante');
   backlogLib.startLot(repo, 1);
   const rDoneOk = runNode(BKLG, ['done', '--cwd', repo, '--id', '1', '--no-session', '--no-occupancy']);
@@ -7444,9 +7445,9 @@ section('backlog — validation de structure de la spec à la clôture (epic « 
   // O3. US aux sections manquantes (fichier tronqué à la main) : `done` refuse en refus doux.
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot US tronquée', '--model', 'sonnet']);
   runNode(BKLG, ['spec', '--cwd', repo, '--id', '2', '--new']);
-  const usAbs2 = path.join(repo, 'docs', 'specs', 'SPEC-2.md');
+  const usAbs2 = path.join(repo, 'docs', 'us', 'US-2', 'spec.md');
   fs.writeFileSync(usAbs2, '# US 2\n\n## Récit\n\nEn tant que designer, je veux X, afin de Y.\n');
-  ok(backlogLib.checkSpecStructure(repo, 'docs/specs/SPEC-2.md').missing.join(', ')
+  ok(backlogLib.checkSpecStructure(repo, 'docs/us/US-2/spec.md').missing.join(', ')
     === 'Critères d\'acceptation, Hors périmètre, Preuve de clôture, Notes',
     'O3 : checkSpecStructure -> liste exacte des 4 sections manquantes');
   backlogLib.startLot(repo, 2);
@@ -7474,13 +7475,14 @@ section('backlog — validation de structure de la spec à la clôture (epic « 
   // seule la présence des TITRES de section est vérifiée (portée littérale du lot #107).
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot critères vides', '--model', 'sonnet']);
   runNode(BKLG, ['spec', '--cwd', repo, '--id', '4', '--new']);
-  ok(backlogLib.checkSpecStructure(repo, 'docs/specs/SPEC-4.md').missing.length === 0,
+  ok(backlogLib.checkSpecStructure(repo, 'docs/us/US-4/spec.md').missing.length === 0,
     'O6 : gabarit avec critères encore « ... » -> structure jugée complète (portée = titres de section)');
 
   // O8. alias --allow-incomplete-us toujours honoré.
   runNode(BKLG, ['add', '--cwd', repo, '--title', 'Lot alias incomplet', '--model', 'sonnet']);
   runNode(BKLG, ['spec', '--cwd', repo, '--id', '5', '--new']);
-  fs.writeFileSync(path.join(repo, 'docs', 'specs', 'SPEC-5.md'), '# Spec 5\n');
+  fs.mkdirSync(path.join(repo, 'docs', 'us', 'US-5'), { recursive: true });
+  fs.writeFileSync(path.join(repo, 'docs', 'us', 'US-5', 'spec.md'), '# Spec 5\n');
   backlogLib.startLot(repo, 5);
   ok(!/Refusé/.test(runNode(BKLG, ['done', '--cwd', repo, '--id', '5', '--no-session', '--no-occupancy', '--allow-incomplete-us']).out)
     && lotOf(5).status === 'done', 'O8 : --allow-incomplete-us (alias déprécié) débloque encore la clôture');
@@ -10437,8 +10439,8 @@ section('maquette.js — new / link / validate / open, gabarit autonome, REQUIRE
   execFileSync('git', ['init', '-q'], { cwd: sbx });
   const env = { PMZ_NO_OPEN: '1' };
   const mq = (args) => runNode(MQ, args.concat(['--cwd', sbx]), env);
-  const idxF = path.join(sbx, 'docs', 'maquettes', 'INDEX.md');
-  const htmlF = path.join(sbx, 'docs', 'maquettes', 'liste-commandes.html');
+  const idxF = path.join(sbx, 'docs', 'us', 'US-7', 'maquettes', 'INDEX.md');
+  const htmlF = path.join(sbx, 'docs', 'us', 'US-7', 'maquettes', 'liste-commandes.html');
   const rd = (f) => { try { return fs.readFileSync(f, 'utf8'); } catch (_) { return ''; } };
 
   // Gabarit : autonome (zéro CDN / ressource distante).
@@ -10449,48 +10451,51 @@ section('maquette.js — new / link / validate / open, gabarit autonome, REQUIRE
     'maquette : gabarit porte les 4 états et la taille mobile 375');
 
   // new
-  const r1 = mq(['new', '--slug', 'liste-commandes', '--title', 'Liste <des> commandes']);
+  const r1 = mq(['new', '--id', '7', '--slug', 'liste-commandes', '--title', 'Liste <des> commandes']);
   ok(r1.code === 0 && /Créé/.test(r1.out) && fs.existsSync(htmlF), 'maquette new : fichier HTML créé');
   ok(rd(htmlF).includes('Liste &lt;des&gt; commandes') && !rd(htmlF).includes('{{'), 'maquette new : jetons substitués, titre échappé');
   ok(/`liste-commandes` · \[Liste <des> commandes\]\(liste-commandes\.html\) · statut : brouillon/.test(rd(idxF)), 'maquette new : référencée dans INDEX.md (brouillon)');
   fs.appendFileSync(htmlF, '<!-- édité -->');
-  const r2 = mq(['new', '--slug', 'liste-commandes', '--title', 'Autre']);
+  const r2 = mq(['new', '--id', '7', '--slug', 'liste-commandes', '--title', 'Autre']);
   ok(r2.code === 0 && /Refusé/.test(r2.out) && rd(htmlF).includes('<!-- édité -->'), 'maquette new : refus d\'écrasement (fichier intact)');
   ok((rd(idxF).match(/`liste-commandes`/g) || []).length === 1, 'maquette new : pas de doublon d\'index au refus');
-  ok(/Refusé/.test(mq(['new', '--slug', '../evil', '--title', 'x']).out), 'maquette new : slug invalide refusé');
-  ok(/Refusé/.test(mq(['new', '--slug', 'sans-titre']).out) && !fs.existsSync(path.join(sbx, 'docs', 'maquettes', 'sans-titre.html')),
+  ok(/Refusé/.test(mq(['new', '--id', '7', '--slug', '../evil', '--title', 'x']).out), 'maquette new : slug invalide refusé');
+  ok(/Refusé/.test(mq(['new', '--id', '7', '--slug', 'sans-titre']).out) && !fs.existsSync(path.join(sbx, 'docs', 'us', 'US-7', 'maquettes', 'sans-titre.html')),
     'maquette new : --title requis');
 
   // link
   const r3 = mq(['link', '--id', '7', '--slug', 'liste-commandes']);
-  ok(r3.code === 0 && /Refusé/.test(r3.out) && !fs.existsSync(path.join(sbx, 'docs', 'us', 'US-7.md')), 'maquette link : refus sans spec (rien créé)');
+  ok(r3.code === 0 && /Refusé/.test(r3.out) && !fs.existsSync(path.join(sbx, 'docs', 'us', 'US-7', 'spec.md')), 'maquette link : refus sans spec (rien créé)');
   fs.mkdirSync(path.join(sbx, 'docs', 'us'), { recursive: true });
-  const specF = path.join(sbx, 'docs', 'us', 'US-7.md');
+  const specF = path.join(sbx, 'docs', 'us', 'US-7', 'spec.md');
   fs.writeFileSync(specF, '# US 7 — Commandes\n\n## Récit\n\nTexte.\n\n## Notes\n\n- n\n');
   const r4 = mq(['link', '--id', '7', '--slug', 'liste-commandes']);
   const s1 = rd(specF);
-  ok(r4.code === 0 && /Lié/.test(r4.out) && /## Maquettes\n\n- \[liste-commandes\]\(\.\.\/maquettes\/liste-commandes\.html\)/.test(s1),
+  ok(r4.code === 0 && /Lié/.test(r4.out) && /## Maquettes\n\n- \[liste-commandes\]\(maquettes\/liste-commandes\.html\)/.test(s1),
     'maquette link : section « Maquettes » ajoutée avec lien relatif');
   const r5 = mq(['link', '--id', '7', '--slug', 'liste-commandes']);
   ok(/Déjà lié/.test(r5.out) && rd(specF) === s1, 'maquette link : idempotent (spec inchangée)');
-  mq(['new', '--slug', 'detail-commande', '--title', 'Détail']);
+  mq(['new', '--id', '7', '--slug', 'detail-commande', '--title', 'Détail']);
   fs.writeFileSync(specF, s1 + '\n## Annexe\n\nx\n');
   mq(['link', '--id', '7', '--slug', 'detail-commande']);
   const s2 = rd(specF);
   ok((s2.match(/## Maquettes/g) || []).length === 1 && /liste-commandes\.html\)\n- \[detail-commande\]/.test(s2) && /## Annexe/.test(s2),
     'maquette link : section existante complétée (une seule section, suite préservée)');
   ok(/Refusé/.test(mq(['link', '--id', '7', '--slug', 'inconnue']).out), 'maquette link : refus si maquette absente');
+  ok(/Refusé/.test(mq(['new', '--slug', 'sans-id', '--title', 'x']).out), 'maquette new : --id requis (dossier de l\'US)');
+  ok(/## US #7/.test(mq(['list']).out) && /liste-commandes/.test(mq(['list', '--id', '7']).out), 'maquette list : par US et global');
+  ok(!fs.existsSync(path.join(sbx, 'docs', 'maquettes')) && !fs.existsSync(path.join(sbx, 'docs', 'specs')), 'maquette : aucun ancien chemin (docs/maquettes, docs/specs) créé');
   ok(/Refusé/.test(mq(['link', '--slug', 'liste-commandes']).out), 'maquette link : --id requis');
 
   // validate
-  const r6 = mq(['validate', '--slug', 'liste-commandes']);
+  const r6 = mq(['validate', '--id', '7', '--slug', 'liste-commandes']);
   ok(r6.code === 0 && /Validée/.test(r6.out) && /`liste-commandes` ·.*statut : validée/.test(rd(idxF)), 'maquette validate : statut « validée » dans INDEX.md');
   ok(/`detail-commande` ·.*statut : brouillon/.test(rd(idxF)), 'maquette validate : les autres maquettes gardent leur statut');
-  ok(/Déjà validée/.test(mq(['validate', '--slug', 'liste-commandes']).out), 'maquette validate : idempotent');
-  ok(/Refusé/.test(mq(['validate', '--slug', 'inconnue']).out), 'maquette validate : refus si hors index');
+  ok(/Déjà validée/.test(mq(['validate', '--id', '7', '--slug', 'liste-commandes']).out), 'maquette validate : idempotent');
+  ok(/Refusé/.test(mq(['validate', '--id', '7', '--slug', 'inconnue']).out), 'maquette validate : refus si hors index');
 
   // open (sans ouvreur réel : PMZ_NO_OPEN=1) + fail-open
-  const r7 = mq(['open', '--slug', 'liste-commandes']);
+  const r7 = mq(['open', '--id', '7', '--slug', 'liste-commandes']);
   ok(r7.code === 0 && /URL : file:\/\//.test(r7.out), 'maquette open : chemin + URL file:// affichés');
   ok(mq([]).code === 0 && mq(['bogus']).code === 0, 'maquette : sous-commande absente/inconnue -> exit 0 (fail-open)');
   const nonGit = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-maquette-nogit-'));

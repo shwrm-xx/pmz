@@ -404,10 +404,11 @@ function setSpec(root, id, spec) {
 
 // Chemin conventionnel de la spec d'un lot, relatif à la racine du dépôt. Convention unique et
 // prévisible (pas de slug de titre : le titre bouge, le chemin resterait faux) — c'est celle
-// documentée pour `--spec` (docs/specs/SPEC-42.md).
-const SPEC_DIR = 'docs/specs';
+// documentée pour `--spec` : un dossier par US, `docs/us/US-42/spec.md` (les maquettes vivent à
+// côté, dans `docs/us/US-42/maquettes/`).
+const SPEC_DIR = 'docs/us';
 function specPathFor(id) {
-  return `${SPEC_DIR}/SPEC-${Number(id)}.md`;
+  return `${SPEC_DIR}/US-${Number(id)}/spec.md`;
 }
 
 // Rend le gabarit templates/spec-template.md pour un lot donné (substitution des jetons {{…}}).

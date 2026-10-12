@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — US#150 Un dossier par US : spec et maquettes harmonisées
+
+- Un dossier par US : `docs/us/US-<id>/spec.md` + `docs/us/US-<id>/maquettes/*.html` (et `INDEX.md` par US).
+- `backlog.js spec --new` / `specPathFor` produisent le nouveau chemin.
+- `maquette.js` : `--id` obligatoire pour `new`/`validate`/`open`, `list [--id]` ; `docs/maquettes/` et `docs/specs/` abandonnés.
+- Fiches US-122, 137, 143, 147, 148 migrées dans leur dossier.
+- README, ARCHITECTURE, `maquette.md`, `scope.md` et tests alignés ; 2532 OK.
+
 ## 2026-10-12 — US#149 Doc et release maquettes (v2.10.0)
 
 - README : `/maquette` dans la liste des commandes, avec son fonctionnement et son intégration à `/scope` et `/epicmaster`.
