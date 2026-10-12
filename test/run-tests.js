@@ -10429,6 +10429,92 @@ section('session-start — accueil du 1er démarrage (une seule fois, hors dép�
   for (const d of [sbx, sbx2, sbx3, sbx4]) fs.rmSync(d, { recursive: true, force: true });
 }
 
+// ============== /maquette autonome (US #147) ==============
+section('maquette.js — new / link / validate / open, gabarit autonome, REQUIRED_COMMANDS');
+{
+  const MQ = path.join(PKG, 'scripts', 'maquette.js');
+  const sbx = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-maquette-'));
+  execFileSync('git', ['init', '-q'], { cwd: sbx });
+  const env = { PMZ_NO_OPEN: '1' };
+  const mq = (args) => runNode(MQ, args.concat(['--cwd', sbx]), env);
+  const idxF = path.join(sbx, 'docs', 'maquettes', 'INDEX.md');
+  const htmlF = path.join(sbx, 'docs', 'maquettes', 'liste-commandes.html');
+  const rd = (f) => { try { return fs.readFileSync(f, 'utf8'); } catch (_) { return ''; } };
+
+  // Gabarit : autonome (zéro CDN / ressource distante).
+  const tpl = rd(path.join(PKG, 'templates', 'maquette.html'));
+  ok(tpl.includes('{{TITRE}}') && tpl.includes('{{SLUG}}'), 'maquette : gabarit avec jetons {{TITRE}}/{{SLUG}}');
+  ok(!/https?:\/\/|<script[^>]+src=|<link[^>]+href=/i.test(tpl), 'maquette : gabarit autonome (zéro URL distante, zéro script/link externe)');
+  ok(['nominal', 'vide', 'chargement', 'erreur'].every((e) => tpl.includes('data-etat="' + e + '"')) && /375px/.test(tpl),
+    'maquette : gabarit porte les 4 états et la taille mobile 375');
+
+  // new
+  const r1 = mq(['new', '--slug', 'liste-commandes', '--title', 'Liste <des> commandes']);
+  ok(r1.code === 0 && /Créé/.test(r1.out) && fs.existsSync(htmlF), 'maquette new : fichier HTML créé');
+  ok(rd(htmlF).includes('Liste &lt;des&gt; commandes') && !rd(htmlF).includes('{{'), 'maquette new : jetons substitués, titre échappé');
+  ok(/`liste-commandes` · \[Liste <des> commandes\]\(liste-commandes\.html\) · statut : brouillon/.test(rd(idxF)), 'maquette new : référencée dans INDEX.md (brouillon)');
+  fs.appendFileSync(htmlF, '<!-- édité -->');
+  const r2 = mq(['new', '--slug', 'liste-commandes', '--title', 'Autre']);
+  ok(r2.code === 0 && /Refusé/.test(r2.out) && rd(htmlF).includes('<!-- édité -->'), 'maquette new : refus d\'écrasement (fichier intact)');
+  ok((rd(idxF).match(/`liste-commandes`/g) || []).length === 1, 'maquette new : pas de doublon d\'index au refus');
+  ok(/Refusé/.test(mq(['new', '--slug', '../evil', '--title', 'x']).out), 'maquette new : slug invalide refusé');
+  ok(/Refusé/.test(mq(['new', '--slug', 'sans-titre']).out) && !fs.existsSync(path.join(sbx, 'docs', 'maquettes', 'sans-titre.html')),
+    'maquette new : --title requis');
+
+  // link
+  const r3 = mq(['link', '--id', '7', '--slug', 'liste-commandes']);
+  ok(r3.code === 0 && /Refusé/.test(r3.out) && !fs.existsSync(path.join(sbx, 'docs', 'us', 'US-7.md')), 'maquette link : refus sans spec (rien créé)');
+  fs.mkdirSync(path.join(sbx, 'docs', 'us'), { recursive: true });
+  const specF = path.join(sbx, 'docs', 'us', 'US-7.md');
+  fs.writeFileSync(specF, '# US 7 — Commandes\n\n## Récit\n\nTexte.\n\n## Notes\n\n- n\n');
+  const r4 = mq(['link', '--id', '7', '--slug', 'liste-commandes']);
+  const s1 = rd(specF);
+  ok(r4.code === 0 && /Lié/.test(r4.out) && /## Maquettes\n\n- \[liste-commandes\]\(\.\.\/maquettes\/liste-commandes\.html\)/.test(s1),
+    'maquette link : section « Maquettes » ajoutée avec lien relatif');
+  const r5 = mq(['link', '--id', '7', '--slug', 'liste-commandes']);
+  ok(/Déjà lié/.test(r5.out) && rd(specF) === s1, 'maquette link : idempotent (spec inchangée)');
+  mq(['new', '--slug', 'detail-commande', '--title', 'Détail']);
+  fs.writeFileSync(specF, s1 + '\n## Annexe\n\nx\n');
+  mq(['link', '--id', '7', '--slug', 'detail-commande']);
+  const s2 = rd(specF);
+  ok((s2.match(/## Maquettes/g) || []).length === 1 && /liste-commandes\.html\)\n- \[detail-commande\]/.test(s2) && /## Annexe/.test(s2),
+    'maquette link : section existante complétée (une seule section, suite préservée)');
+  ok(/Refusé/.test(mq(['link', '--id', '7', '--slug', 'inconnue']).out), 'maquette link : refus si maquette absente');
+  ok(/Refusé/.test(mq(['link', '--slug', 'liste-commandes']).out), 'maquette link : --id requis');
+
+  // validate
+  const r6 = mq(['validate', '--slug', 'liste-commandes']);
+  ok(r6.code === 0 && /Validée/.test(r6.out) && /`liste-commandes` ·.*statut : validée/.test(rd(idxF)), 'maquette validate : statut « validée » dans INDEX.md');
+  ok(/`detail-commande` ·.*statut : brouillon/.test(rd(idxF)), 'maquette validate : les autres maquettes gardent leur statut');
+  ok(/Déjà validée/.test(mq(['validate', '--slug', 'liste-commandes']).out), 'maquette validate : idempotent');
+  ok(/Refusé/.test(mq(['validate', '--slug', 'inconnue']).out), 'maquette validate : refus si hors index');
+
+  // open (sans ouvreur réel : PMZ_NO_OPEN=1) + fail-open
+  const r7 = mq(['open', '--slug', 'liste-commandes']);
+  ok(r7.code === 0 && /URL : file:\/\//.test(r7.out), 'maquette open : chemin + URL file:// affichés');
+  ok(mq([]).code === 0 && mq(['bogus']).code === 0, 'maquette : sous-commande absente/inconnue -> exit 0 (fail-open)');
+  const nonGit = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-maquette-nogit-'));
+  ok(runNode(MQ, ['link', '--id', '1', '--slug', 'x', '--cwd', path.join(nonGit, 'absent')], env).code === 0, 'maquette : cwd inexistant -> exit 0');
+  fs.rmSync(nonGit, { recursive: true, force: true });
+
+  // Commande + build plugin + /help
+  const md = rd(path.join(PKG, 'commands', 'maquette.md'));
+  ok(/^---\s*\ndescription:/.test(md) && /maquette\.js new/.test(md) && /UNE seule/.test(md), 'maquette.md : frontmatter + proposition en une question + new');
+  const bp = rd(path.join(PKG, 'install', 'build-plugin.js'));
+  ok(/'maquette\.md'/.test((/REQUIRED_COMMANDS = \[([\s\S]*?)\]/.exec(bp) || [, ''])[1]), 'build-plugin : maquette.md dans REQUIRED_COMMANDS');
+  ok(/\*\*maquette\*\*/.test(runNode(path.join(PKG, 'scripts', 'help.js'), []).out), '/help : maquette listée');
+  const outB = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-maquette-build-'));
+  const rb = runNode(path.join(PKG, 'install', 'build-plugin.js'), [outB], {});
+  const pl = path.join(outB, 'marketplace', 'promptimizer');
+  const pmd = rd(path.join(pl, 'commands', 'maquette.md'));
+  ok(rb.code === 0 && pmd.includes('${CLAUDE_PLUGIN_ROOT}/scripts/maquette.js') && !pmd.includes('~/.claude/promptimizer'),
+    'plugin buildé : commands/maquette.md porté, chemins réécrits');
+  ok(fs.existsSync(path.join(pl, 'scripts', 'maquette.js')) && fs.existsSync(path.join(pl, 'templates', 'maquette.html')),
+    'plugin buildé : scripts/maquette.js et templates/maquette.html livrés');
+  fs.rmSync(outB, { recursive: true, force: true });
+  fs.rmSync(sbx, { recursive: true, force: true });
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);
