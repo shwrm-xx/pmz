@@ -18,7 +18,7 @@ const { loadSessionState, saveSessionState } = require('../lib/state');
 const { loadBacklog, currentLot, progress } = require('../lib/backlog');
 const {
   MSG_LARGE, MSG_INIT_BEFORE_CODE, autoInitMessage, largeWithPlanMessage, occupancyPromptMessage,
-  sessionTitleMessage, selfTitleMessage, modelMismatchMessage, turnBudgetPromptMessage,
+  selfTitleMessage, modelMismatchMessage, turnBudgetPromptMessage,
 } = require('../lib/messages');
 const lotLib = require('../lib/lot');
 const occupancy = require('../lib/occupancy');
@@ -74,21 +74,17 @@ function main() {
   st.prompt_reminders = st.prompt_reminders || {};
   const parts = [];
 
-  // 2e rappel du titre de renommage (lot #40) : session-start.js l'a déjà injecté au
-  // SessionStart, mais noyé au milieu d'autres infos, il est parfois zappé par l'agent.
-  // Reproposé ICI, au 1er prompt, sans recalcul (titre déjà persisté, pas de nouvel appel
-  // à suggestedTitle — un recalcul fausserait le compteur « (partie N) » de touchLot).
-  if (st.pending_title_rename && !st.prompt_reminders.title_rename) {
-    st.prompt_reminders.title_rename = true;
-    parts.push(sessionTitleMessage(st.pending_title_rename, { nomenclature: !lotLib.nomenclatureSet(root) }));
-  }
-  // Renommage transparent de la session COURANTE (nomenclature posée) : injecté seulement quand
-  // le titre de son lot en cours apparaît ou change — jamais à chaque tour.
-  if (initialized && lotLib.nomenclatureSet(root)) {
-    const selfTitle = lotLib.currentSessionTitle(root, input.session_id || null);
-    if (selfTitle && selfTitle !== st.self_title) {
-      st.self_title = selfTitle;
-      parts.push(selfTitleMessage(selfTitle));
+  // Titre de la session COURANTE (« self ») — jamais la précédente (retour utilisateur 2026-10-12).
+  // Injecté au 1er prompt, puis seulement quand le titre change (lot démarré, scope posé) — jamais à
+  // chaque tour. Nomenclature non posée : question une seule fois par session. Session maître
+  // (/epicmaster) : elle se titre elle-même, on se tait.
+  if (initialized && !/^\s*\/(pmz:)?epicmaster\b/.test(prompt)) {
+    const nomenclature = !lotLib.nomenclatureSet(root);
+    const t = lotLib.currentSessionTitle(root, sid, { plan: st.plan_session === true });
+    if (t && t.title !== st.self_title && !(nomenclature && st.prompt_reminders.nomenclature)) {
+      if (nomenclature) st.prompt_reminders.nomenclature = true;
+      st.self_title = t.title;
+      parts.push(selfTitleMessage(t.title, { compose: t.compose, nomenclature }));
     }
   }
 

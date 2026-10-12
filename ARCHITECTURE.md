@@ -29,7 +29,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 
 | Hook | Event / matcher | Lit (stdin) | Émet | Rôle |
 |------|-----------------|-------------|------|------|
-| `session-start.js` | SessionStart `startup\|resume\|clear\|compact` (injecte au `startup`/`clear` ; `compact` → réinjection **enrichie** sous budget chiffré (`COMPACT_RESUME_CAP`, #72) : lot+verify + `pmz:skip` + résumés connus + todos ; `resume` → nudge occupation seul, voir ci-dessous) | `cwd`, `source`, `transcript_path` | `additionalContext` (startup/clear/compact) ou `systemMessage` (resume) | détecte projet, auto-scaffold si projet neuf (0 commit), sinon propose init, rappel court + titre de session suggéré + injecte le handoff de la session précédente puis le marque consommé ; sans handoff, le plan de lots sert de filet (2 lignes) ; au `resume`, si occupation ≥ 300k, `systemMessage` d'occupation (lot B5, zéro token injecté) |
+| `session-start.js` | SessionStart `startup\|resume\|clear\|compact` (injecte au `startup`/`clear` ; `compact` → réinjection **enrichie** sous budget chiffré (`COMPACT_RESUME_CAP`, #72) : lot+verify + `pmz:skip` + résumés connus + todos ; `resume` → nudge occupation seul, voir ci-dessous) | `cwd`, `source`, `transcript_path` | `additionalContext` (startup/clear/compact) ou `systemMessage` (resume) | détecte projet, auto-scaffold si projet neuf (0 commit), sinon propose init, rappel court + injecte le handoff de la session précédente puis le marque consommé ; sans handoff, le plan de lots sert de filet (2 lignes) ; au `resume`, si occupation ≥ 300k, `systemMessage` d'occupation (lot B5, zéro token injecté) |
 | `user-prompt-submit.js` | UserPromptSubmit | `prompt`, `cwd`, `transcript_path` | `additionalContext` | auto-`git init`+scaffold si aucun `.git` et prompt de démarrage, détecte init/large (anti-spam 1×/session), nudge occupation ≥ 500k en 2 lignes (anti-spam 1×/palier, lot B5), vigie modèle réel vs préconisé du lot en cours (anti-spam 1×/session, lot #42), **budget de tours** au palier de prescription (≥ 20 tours par défaut → consigne d'amener le lot à un point de commit et de proposer la clôture ; anti-spam 1×/palier, `lib/turnbudget.js`, lot #124), **marque de session de plan** si `permission_mode: "plan"` (lot #130) |
 | `pre-tool-use.js` | PreToolUse `Bash` (+ `Edit`/`Write`/`MultiEdit` en vague, + `ExitPlanMode`/`EnterPlanMode` en trace seule) | `tool_input.command` / `.file_path` | `permissionDecision` allow/ask/deny **ou** `updatedInput` (réécriture RTK, sans `permissionDecision`) | sûreté commandes + périmètre fleet-fille + **bridge RTK optionnel** (default OFF, lot #81) + **marque de session de plan** (`plan_session`, aucun verdict changé, lot #130) |
 | `post-tool-use.js` | PostToolUse `Read\|Edit\|Write\|TodoWrite\|Bash` | `tool_input.file_path`, `tool_input.todos`, `tool_input.command` + `tool_response` (Bash) | `additionalContext` (rare, advisory) **ou** `updatedToolOutput` (réduction sortie Bash, lot #84) + effet de bord ledgers | auto-crée le ledger si absent, journalise lectures/édits, capture la todo-list (`todo-snapshot.json`, écrasé à chaque TodoWrite), signale une relecture complète redondante (lot B4), **réduit une sortie Bash volumineuse** hors RTK (lot #84) |
@@ -1064,15 +1064,18 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   (`lotClosedBySession`) > marque **Plan** > lot **en cours** — une session de scope démarre le lot
   #1 en dernière étape, la titrer par ce lot annoncerait un travail pas encore commencé ; à
   l'inverse, une session qui a réellement **clos** un lot est décrite par ce lot même si elle a
-  aussi planifié la suite. **Renommage transparent** (2026-10-12) : nomenclature posée (fichier
-  `.vibe-agent/trigram` présent) → l'assistant renomme la session précédente **en silence**, sans
-  question ni annonce ; et la session **courante** se nomme elle-même (`session_id: "self"`) dès que son
-  lot en cours est connu ou change (`lot.currentSessionTitle`, injecté par `user-prompt-submit.js`
-  seulement si le titre diffère de `self_title` ; jamais pour un lot piloté `master/lot-*`, le maître a
-  son propre titre). **Seule exception, la 1re session du projet** (trigramme non posé) : question à
-  choix IMMÉDIATE en tout début de 1er tour (valider / autre trigramme / non), `trigram --set`, puis
-  renommage. L'outil de titre de l'app ne demande plus d'approbation pour un titre qu'elle a généré
-  (« Epicmaster », etc.) ; il en demande une pour un titre posé par la personne (sauf en mode bypass).
+  aussi planifié la suite. **Titre de la session COURANTE** (2026-10-12, v2.8.3) : plus aucune
+  session ne renomme la **précédente** — chaque session se titre **elle-même** (`session_id: "self"`),
+  injecté par `user-prompt-submit.js` au 1er prompt puis seulement quand le titre change (`self_title`).
+  `lot.currentSessionTitle` : session de conception (`plan_session`) → « [XXX · Plan] epic » ; lot en
+  cours attribuable (le sien, ou l'unique en cours) → titre du lot ; sinon « [XXX] Session Libre · … »
+  que l'assistant complète d'après la demande. Silence si un lot `master/lot-*` est en cours ou si le
+  prompt est `/epicmaster` (le maître a son propre titre). Nomenclature posée → en silence ; trigramme
+  **non posé** → question à choix IMMÉDIATE une fois par session (valider / autre trigramme / non),
+  `trigram --set`, puis renommage de cette session. `suggestedTitle` (description de la session
+  précédente, ci-dessus) n'est plus appelé par les hooks. L'outil de titre de l'app ne demande pas
+  d'approbation pour un titre qu'elle a généré ; il en demande une pour un titre posé par la personne
+  (sauf en mode bypass).
   Un hook ne peut pas appeler l'outil lui-même : ce reste une instruction, pas une garantie.
 - **Rappel SessionStart slim vs plein** (`lib/messages.js`, `MSG_ACTIF` / `MSG_ACTIF_SLIM`) : quand
   le CLAUDE.md du projet porte déjà le bloc `pmz:rules` (`project.js: carriesRules`, fail-open), les

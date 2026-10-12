@@ -506,37 +506,31 @@ function backlogResumeMessage(cur, next, prog, blockedBy) {
   return msg;
 }
 
-// Protocole de renommage compressé (~400 o max). NE PAS casser : proposition en clair +
-// question à choix IMMÉDIATE (tout début du 1er tour, avant la demande — retour utilisateur
-// 2026-07-12 : un renommage proposé en fin de tour ou sans dialogue = jamais traité),
-// renommage de la session PRÉCÉDENTE (jamais la courante), accusé de résultat explicite.
-function sessionTitleMessage(title, opts) {
-  // Nomenclature à poser (1re session du projet : .vibe-agent/trigram absent) : SEUL cas où l'on
-  // demande — le trigramme fixe le préfixe de tous les titres à venir.
-  if (opts && opts.nomenclature) {
+// Titre de la session COURANTE — elle se nomme elle-même (session_id "self"), jamais une autre
+// (retour utilisateur 2026-10-12 : renommer la session PRÉCÉDENTE ne servait pas, c'est la session
+// active qu'on veut lire dans la barre latérale). opts.compose : aucun lot ne décrit encore la
+// session, l'assistant complète le résumé d'après la demande. opts.nomenclature : 1re session du
+// projet (.vibe-agent/trigram absent) — SEUL cas où l'on demande, le trigramme fixe le préfixe de
+// tous les titres à venir ; question à choix IMMÉDIATE en tout début de tour (un renommage proposé
+// en fin de tour = jamais traité), accusé de résultat explicite. Sinon : en silence.
+function selfTitleMessage(title, opts) {
+  const o = opts || {};
+  const head = o.compose
+    ? `Titre de CETTE session : « ${title} · <objet de la demande, 6 mots max> ».`
+    : `Titre de CETTE session : « ${title} ».`;
+  if (o.nomenclature) {
     return [
-      `Titre suggéré (session PRÉCÉDENTE) : « ${title} » — nomenclature du projet à poser.`,
-      'AVANT la demande, tout début du 1er tour : titre en clair + question à choix IMMÉDIATE',
+      head + ' Nomenclature du projet à poser.',
+      'AVANT la demande, tout début du tour : titre en clair + question à choix IMMÉDIATE',
       '(valider / autre trigramme / non) — jamais en fin de tour. Sur accord : fixe le trigramme',
-      '(backlog.js trigram --set XXX), puis renomme la session PRÉCÉDENTE (jamais la courante).',
-      'Confirme le résultat (réussi / échec + raison), jamais muet.',
+      '(backlog.js trigram --set XXX), puis renomme CETTE session (outil de titre, session_id "self").',
+      'Jamais une autre session. Confirme le résultat (réussi / échec + raison), jamais muet.',
     ].join('\n');
   }
-  // Nomenclature posée : renommage TRANSPARENT — ni question ni annonce.
   return [
-    `Titre de la session PRÉCÉDENTE : « ${title} ».`,
-    'Renomme-la en silence, sans question ni annonce (outil de titre de session ; la plus récente',
-    'du même dossier, jamais la courante). Hors app desktop : ignore. Échec : une ligne, sans insister.',
-  ].join('\n');
-}
-
-// Titre de la session COURANTE (son lot en cours) : elle se nomme elle-même, en silence, dès que
-// son lot est connu ou change. Jamais de question (la nomenclature est déjà posée).
-function selfTitleMessage(title) {
-  return [
-    `Titre de CETTE session : « ${title} ».`,
-    'Renomme-la en silence, sans question ni annonce (outil de titre de session, session_id "self").',
-    'Hors app desktop : ignore. Échec : une ligne, sans insister.',
+    head,
+    'Renomme-la en silence, sans question ni annonce (outil de titre de session, session_id "self" ;',
+    'jamais une autre session). Hors app desktop : ignore. Échec : une ligne, sans insister.',
   ].join('\n');
 }
 
@@ -788,7 +782,7 @@ function rtkStartupLine(status) {
 
 module.exports = {
   MSG_ACTIF, MSG_ACTIF_SLIM, MSG_NON_INIT, MSG_LECTURE, MSG_CLOTURE, MSG_HANDOFF, MSG_LARGE, MSG_INIT_BEFORE_CODE,
-  occupancyMessage, occupancyPromptMessage, compactionNudgeMessage, redZonePrescriptionMessage, sessionTitleMessage, selfTitleMessage, autoInitMessage,
+  occupancyMessage, occupancyPromptMessage, compactionNudgeMessage, redZonePrescriptionMessage, selfTitleMessage, autoInitMessage,
   turnBudgetWarnMessage, turnBudgetPrescriptionMessage, turnBudgetPromptMessage,
   turnSplitGainRange, TURN_SCALING_MIN, TURN_SCALING_MAX,
   compactResumeMessage, COMPACT_RESUME_CAP, backlogResumeMessage, BACKLOG_RESUME_CAP, largeWithPlanMessage,

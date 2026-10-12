@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — La session active se titre elle-même (v2.8.3)
+
+- Corrige : PMZ renommait toujours la session précédente, jamais la session active. Le démarrage n'injecte plus de titre ; au 1er prompt, la session courante se renomme elle-même (`session_id: "self"`).
+- Titre : lot en cours → titre du lot ; session de conception → « [XXX · Plan] epic » ; sinon « [XXX] Session Libre · objet de la demande », complété par l'assistant. Réinjecté seulement s'il change (lot démarré, scope posé).
+- Trigramme non posé : une seule question par session pour le fixer, puis renommage de cette session. Silence pour `/epicmaster`, qui a son propre titre.
+- `pending_title_rename` retiré de l'état ; `suggestedTitle` n'est plus appelé par les hooks.
+- Tests T2 et Q réécrits (Q1–Q7) ; suite à 2490 OK. VERSION 2.8.3.
+
 ## 2026-10-12 — Renommage de session transparent (v2.8.2)
 
 - Nomenclature posée (`.vibe-agent/trigram` présent) : la session précédente est renommée en silence, sans question ni annonce.
