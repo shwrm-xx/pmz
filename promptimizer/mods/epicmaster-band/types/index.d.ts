@@ -10,6 +10,8 @@ declare module 'claude-code' {
       dismissed: EpicmasterBandDismissed
       /** Instant (ms) où /epicmaster a été saisi : la bande s'affiche aussitôt, même sans fichier live. */
       armedAt: number | null
+      /** Copie globale de projet (<config>/promptimizer/epicmaster-live/<slug>.json) suivie par cette session, ou null. */
+      boundFile: string | null
     }
   }
 }

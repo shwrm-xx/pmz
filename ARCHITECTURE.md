@@ -838,9 +838,17 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   la bande sur un fichier produit par le vrai writer (`mods/epicmaster-band/tests/band.test.ts`).
 - **Bande immédiate et indépendante du dossier** : `register.tsx` arme l'atom `armedAt` sur `command.run`
   (`epicmaster`, `pmz:epicmaster`) et `prompt.submit` (`/epicmaster`) → ligne « plan en préparation… » sans
-  fichier live (15 min max). `readLive` lit `.vibe-agent/epicmaster-live.json` puis, en repli, la copie
-  globale `<CLAUDE_CONFIG_DIR ou ~/.claude>/promptimizer/epicmaster-live.json` que `save()` écrit à chaque
-  mise à jour (best-effort ; `PMZ_NO_LIVE_MIRROR=1` la coupe).
+  fichier live (15 min max).
+- **Une bande par session et par projet** : sans `armedAt` (aucun `/epicmaster` saisi dans la session,
+  atom de session), la bande n'affiche rien. `readLive` ne retient qu'un plan **semé après** cet instant
+  (`seeded_at`, posé par `seedFromPlan`, marge 5 s ; un fichier local sans le champ reste admis) : d'abord
+  `.vibe-agent/epicmaster-live.json` du dossier de session, sinon une copie **par projet**
+  `<CLAUDE_CONFIG_DIR ou ~/.claude>/promptimizer/epicmaster-live/<basename>-<fnv1a>.json` (porte `root`
+  et `seeded_at`) que `save()` écrit à chaque mise à jour — la plus ancienne semée depuis l'armement,
+  retenue (atom `boundFile`) au sondage, jamais pendant `ui.render` (qui n'écrit pas d'état). L'ancienne
+  copie unique partagée `promptimizer/epicmaster-live.json` (dernier écrivain gagnant : la bande d'un
+  projet affichait le plan d'un autre) est supprimée à la première écriture. Best-effort ;
+  `PMZ_NO_LIVE_MIRROR=1` coupe la copie (tests).
 - **Bande epicmaster embarquée dans le plugin pmz** (lot #140, un seul plugin à installer sur un
   autre poste) : `build-plugin.js` **fusionne** le mod dans `dist/marketplace/promptimizer/` — plus de
   second plugin, `marketplace.json` n'expose que `pmz`. **Cohabitation vérifiée empiriquement** : un

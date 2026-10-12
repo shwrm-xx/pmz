@@ -11,19 +11,32 @@ const PROPS = {
 }
 const BAND = { plugin: 'epicmaster-band', component: 'AbovePrompt', props: PROPS } as const
 
-type FileBox = { text: string | null }
+type FileBox = { text: string | null; global?: Record<string, string> }
+const GDIR = '/home/u/.claude/promptimizer/epicmaster-live'
 
-// Le fichier live tel que le test le sert à $.fs.read (null = absent).
+// Le fichier live tel que le test le sert à $.fs.read (null = absent) ; `global` = copies de
+// projet sous <config>/promptimizer/epicmaster-live/ (nom -> contenu), listées par $.fs.list.
 function serve(on: On, box: FileBox) {
   on('fs.read', ($, e) => {
-    if (box.text === null || !String(e.path).endsWith('.vibe-agent/epicmaster-live.json')) {
+    const p = String(e.path)
+    if (box.global && p.startsWith(GDIR + '/') && box.global[p.slice(GDIR.length + 1)] !== undefined) {
+      return { value: box.global[p.slice(GDIR.length + 1)] } as never
+    }
+    if (box.text === null || !p.endsWith('.vibe-agent/epicmaster-live.json')) {
       throw new Error('ENOENT')
     }
     return { value: box.text } as never // un hook sous un appel $ répond { value }
   })
+  on('fs.list', ($, e) => {
+    if (String(e.path) !== GDIR || !box.global) throw new Error('ENOENT')
+    return { value: Object.keys(box.global).map(name => ({ name, kind: 'file', size: 1, mtimeMs: 0, isLink: false })) } as never
+  })
+  mock.env(on, { HOME: '/home/u' })
   bottom(on)
   mockClock = mock.clock(on, { now: NOW })
 }
+// La bande est celle de la session qui a saisi /epicmaster : les tests l'arment d'abord.
+const arm = ($: { prompt: { submit: (e: { text: string }) => Promise<unknown> } }) => $.prompt.submit({ text: '/epicmaster' })
 let mockClock: ReturnType<typeof mock.clock>
 
 // Ce que le moteur ferait sous les plugins : la saisie passe, la bande reste vide.
@@ -65,6 +78,7 @@ const segments = async (ui: UI) => (await ui.findAll({ type: 'Text', text: /^[�
 describe('bande epicmaster', () => {
   test('critère 1 : une ligne compacte (epic, vague, barre, compteurs)', async ($, on) => {
     serve(on, { text: live() })
+    await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       expect((await ui.find({ key: 'em-line' }))).toBeDefined()
@@ -87,6 +101,7 @@ describe('bande epicmaster', () => {
         42: { id: 42, title: 'B', status: 'done', verify: 'failed', started_at: iso(9) },
       }),
     })
+    await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       const red = await text(ui, /1 ✗ verify rouge #42/)
@@ -98,6 +113,7 @@ describe('bande epicmaster', () => {
 
   test('critère 4 : Détails déplie (lots en vol + en attente), Masquer replie', async ($, on) => {
     serve(on, { text: live() })
+    await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       await ui.press(toggle)
@@ -115,6 +131,7 @@ describe('bande epicmaster', () => {
   test('critère 5 : absent, illisible, invalide ou périmé -> rien, sans erreur', async ($, on) => {
     const box: FileBox = { text: null }
     serve(on, box)
+    await arm($)
     const cases: (string | null)[] = [
       null,
       '{ pas du json',
@@ -128,7 +145,6 @@ describe('bande epicmaster', () => {
       for (const t of cases) {
         box.text = t
         const ui = await $.ui.mount({ ...BAND, surface })
-        expect(await ui.find(ENGINE)).toBeDefined()
         expect(await ui.find({ key: 'em-line' })).toBeUndefined()
         expect(await ui.find(toggle)).toBeUndefined()
         await ui.unmount()
@@ -144,6 +160,7 @@ describe('bande epicmaster', () => {
         3: { id: 3, title: 'C', status: 'done', started_at: iso(10) },
       }),
     })
+    await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       expect(await text(ui, /^◆ epicmaster terminé · 3\/3 ✓ · 2 à trancher$/)).toBeDefined()
@@ -164,6 +181,7 @@ describe('bande epicmaster', () => {
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       expect(await text(ui, /plan en préparation/)).toBeUndefined()
+      // (pas d'arm ici : c'est l'objet du test)
       await ui.unmount()
     }
     await $.prompt.submit({ text: '/epicmaster' })
@@ -178,6 +196,7 @@ describe('bande epicmaster', () => {
     const box: FileBox = { text: live() }
     serve(on, box)
     on('session.start', ($, e) => ({ cwd: e.cwd }))
+    await arm($)
     await $.session.start({ cwd: '/projet', surface: 'terminal', isInteractive: true })
     const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
     expect(await text(ui, /^ ✓2 ⟳1 ⧗1$/)).toBeDefined()
@@ -194,6 +213,7 @@ describe('bande epicmaster', () => {
   })
   test('lot #142 : fichier du vrai writer — vague, à trancher, verify rouge, tokens', async ($, on) => {
     serve(on, { text: REAL_WRITER })
+    await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       expect(await text(ui, /◆ Plan · vague 2\/2/)).toBeDefined()
@@ -202,5 +222,48 @@ describe('bande epicmaster', () => {
       expect(red?.props.color).toBe('error')
       await ui.unmount()
     }
+  })
+  test('une bande par session : sans /epicmaster saisi dans la session, rien (même avec un fichier live)', async ($, on) => {
+    serve(on, { text: live() })
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      expect(await ui.find({ key: 'em-line' })).toBeUndefined()
+      expect(await ui.find(ENGINE)).toBeDefined()
+      await ui.unmount()
+    }
+  })
+
+  test('plan local semé AVANT le /epicmaster de la session -> ignoré', async ($, on) => {
+    serve(on, { text: live({ seeded_at: iso(30) }) })
+    await arm($)
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await ui.find({ key: 'em-line' })).toBeUndefined()
+    expect(await text(ui, /plan en préparation/)).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('copie de projet : seule celle semée après le /epicmaster de la session, puis retenue', async ($, on) => {
+    const box: FileBox = {
+      text: null,
+      global: {
+        'cocina-aaaa.json': live({ epic: 'Autre projet', seeded_at: iso(20) }), // semée avant : autre session
+      },
+    }
+    serve(on, box)
+    await arm($)
+    let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /Autre projet/)).toBeUndefined()
+    await ui.unmount()
+    box.global!['promptimiser-bbbb.json'] = live({ epic: 'Mon projet', seeded_at: iso(0), updated_at: iso(0) })
+    ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /◆ Mon projet/)).toBeDefined()
+    await ui.unmount()
+    // un autre projet sème ensuite : la session garde le sien
+    await mockClock.advance(60000)
+    box.global!['cocina-aaaa.json'] = live({ epic: 'Autre projet', seeded_at: new Date(NOW + 30000).toISOString(), updated_at: new Date(NOW + 30000).toISOString() })
+    ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /◆ Mon projet/)).toBeDefined()
+    expect(await text(ui, /Autre projet/)).toBeUndefined()
+    await ui.unmount()
   })
 })

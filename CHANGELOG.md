@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Une bande epicmaster par session et par projet
+
+- Corrige : la bande d'une session affichait le plan d'une autre session maître, d'un autre projet. La copie globale unique `promptimizer/epicmaster-live.json` était partagée, et le dernier à écrire gagnait.
+- Copie globale **par projet** `promptimizer/epicmaster-live/<basename>-<hash>.json`, avec `root` et `seeded_at`. L'ancienne copie unique est supprimée.
+- La bande n'apparaît que dans la session qui a saisi `/epicmaster`, et ne suit qu'un plan semé après cet instant. Elle prend le fichier du dossier de session, sinon la copie de son projet, retenue (`boundFile`) pour la session.
+- Tests : la bande passe à 11 tests (sans `/epicmaster` → rien ; plan antérieur ignoré ; copie d'un autre projet ignorée). Lib : BS-1 à BS-5. Suite à 2478 OK.
+
 ## 2026-10-12 — Doc et release install sans couture (lot #146, epic Install sans couture) — v2.8.0
 
 - README : section « Nouveau poste en un double-clic », une étape par OS.

@@ -1,4 +1,8 @@
 // Bande epicmaster au-dessus de la saisie (lot #137, variante C « compacte dépliable »).
+// Une bande PAR SESSION : rien ne s'affiche tant que /epicmaster n'a pas été saisi dans la session
+// (armedAt, état de session), et la bande ne suit qu'un plan semé après cet instant — celui du
+// dossier de session, sinon la copie de SON projet sous <config>/promptimizer/epicmaster-live/,
+// retenue (boundFile) pour le reste de la session. Jamais le plan d'une autre session ou d'un autre projet.
 // Source : .vibe-agent/epicmaster-live.json (lot #136), lu par $.fs ; rafraîchie par un sondage
 // léger (2 s) qui ne redessine que si le fichier change (+ une fois par minute pour les durées).
 // Fail-open absolu : hors epicmaster, fichier absent / illisible / invalide -> next(e), rien d'affiché.
@@ -8,18 +12,21 @@ import type { Register } from 'claude-code'
 import type { EpicmasterBandDismissed } from '../types'
 
 import {
-  LIVE_PATH, failedLabel, finishedLabel, parseLive, pendingLine, runningLine,
+  LIVE_PATH, failedLabel, finishedLabel, parseLive, pendingLine, runningLine, seededAt,
   type LiveLot,
 } from './live'
 
 const expanded = atom({ plugin: 'epicmaster-band', key: 'expanded' } as const, false)
 const armedAt = atom({ plugin: 'epicmaster-band', key: 'armedAt' } as const, null as number | null)
+const boundFile = atom({ plugin: 'epicmaster-band', key: 'boundFile' } as const, null as string | null)
 const dismissed = atom({ plugin: 'epicmaster-band', key: 'dismissed' } as const, null as EpicmasterBandDismissed)
 
 const POLL_MS = 2000
 const MINUTE_TICKS = 30 // 30 × 2 s : redessin périodique des temps écoulés
 const MAX_SEGMENTS = 40
 const ARM_MS = 15 * 60 * 1000 // l'attente « préparation du plan » expire seule
+const SEED_SLACK_MS = 5000 // horloges du moteur et de node : même machine, marge de sûreté
+const GLOBAL_DIR = 'promptimizer/epicmaster-live'
 const CALL_RE = /^\s*\/(?:pmz:)?epicmaster(?![\w-])/
 
 const SEG: Record<LiveLot['status'], { glyph: string; color: string }> = {
@@ -29,20 +36,64 @@ const SEG: Record<LiveLot['status'], { glyph: string; color: string }> = {
   failed: { glyph: '■', color: 'error' },
 }
 
-type Fs = { read: (p: string) => Promise<unknown> }
+type Fs = {
+  read: (p: string) => Promise<unknown>
+  list: (p?: string) => Promise<{ name: string; kind: string }[]>
+}
 type Env = { get: (n: string) => Promise<string | undefined> }
+type Dollar = Parameters<typeof read>[0] & { fs: Fs; env: Env }
 
-// Fichier live : celui du dossier de session, sinon la copie globale (<config>/promptimizer/…)
-// écrite par backlog.js — la bande marche alors quel que soit le dossier où la session est ouverte.
-async function readLive($: { fs: Fs; env: Env }, now: number): Promise<string | null> {
-  const asText = (t: unknown) => (typeof t === 'string' ? t : null)
-  const local = asText(await $.fs.read(LIVE_PATH).catch(() => null))
-  if (parseLive(local, now)) return local
+const asText = (t: unknown) => (typeof t === 'string' ? t : null)
+// Plan semé après le /epicmaster de cette session ? Un fichier local sans seeded_at (antérieur au
+// champ) est admis ; une copie globale doit le porter (sinon rien ne la rattache à la session).
+const seededSince = (text: string, armed: number, required: boolean) => {
+  const s = seededAt(text)
+  return s === null ? !required : s >= armed - SEED_SLACK_MS
+}
+
+async function globalDir($: Dollar): Promise<string | null> {
   const cfg = await $.env.get('CLAUDE_CONFIG_DIR').catch(() => undefined)
-  const home = cfg || ((await $.env.get('HOME').catch(() => undefined)) ?? '') + '/.claude'
-  if (!cfg && home === '/.claude') return local
-  const global = asText(await $.fs.read(`${home}/promptimizer/epicmaster-live.json`).catch(() => null))
-  return parseLive(global, now) ? global : local
+  if (cfg) return `${cfg}/${GLOBAL_DIR}`
+  const home = await $.env.get('HOME').catch(() => undefined)
+  return home ? `${home}/.claude/${GLOBAL_DIR}` : null
+}
+
+// Fichier live de CETTE session : null tant que /epicmaster n'y a pas été saisi. D'abord celui du
+// dossier de session ; sinon la copie de projet déjà retenue ; sinon la première copie semée après
+// le /epicmaster de la session (retenue ensuite, même si un autre projet sème plus tard).
+async function readLive($: Dollar, now: number, bind = false): Promise<string | null> {
+  const armed = await read($, armedAt)
+  if (armed === null) return null
+  const local = asText(await $.fs.read(LIVE_PATH).catch(() => null))
+  if (local && parseLive(local, now) && seededSince(local, armed, false)) return local
+  const bound = await read($, boundFile)
+  if (bound) {
+    const text = asText(await $.fs.read(bound).catch(() => null))
+    return text && parseLive(text, now) ? text : null
+  }
+  const dir = await globalDir($)
+  if (!dir) return null
+  const entries = await $.fs.list(dir).catch(() => [])
+  let best: { path: string; text: string; at: number } | null = null
+  for (const ent of entries) {
+    if (ent.kind !== 'file' || !ent.name.endsWith('.json')) continue
+    const path = `${dir}/${ent.name}`
+    const text = asText(await $.fs.read(path).catch(() => null))
+    if (!text || !parseLive(text, now) || !seededSince(text, armed, true)) continue
+    const at = seededAt(text) as number
+    if (!best || at < best.at) best = { path, text, at }
+  }
+  if (!best) return null
+  // Retenue hors dessin seulement (sondage, saisie) : un ui.render n'écrit pas d'état. Sans elle le
+  // choix reste le même (la plus ancienne copie semée depuis le /epicmaster de la session).
+  const chosen = best
+  if (bind) await update($, boundFile, () => chosen.path).catch(() => undefined)
+  return chosen.text
+}
+
+const arm = async ($: Dollar, now: number) => {
+  await update($, armedAt, () => now)
+  await update($, boundFile, () => null) // nouveau /epicmaster : on relie au prochain plan semé
 }
 
 export const register: Register = on => {
@@ -55,7 +106,7 @@ export const register: Register = on => {
       if (e.surface !== null) {
         $.clock.every(POLL_MS, () => {
           $.clock.now()
-            .then(now => readLive($, now))
+            .then(now => readLive($, now, true))
             .then(text => {
               ticks = (ticks + 1) % MINUTE_TICKS
               if (text !== lastText || (text !== null && ticks === 0)) {
@@ -80,7 +131,7 @@ export const register: Register = on => {
         await update($, expanded, () => false)
       }
       // /epicmaster saisi : la bande s'affiche tout de suite (plan en préparation), sans attendre le fichier.
-      if (CALL_RE.test(e.text)) await update($, armedAt, () => now)
+      if (CALL_RE.test(e.text)) await arm($, now)
     } catch (_) { /* fail-open */ }
     return next(e)
   }).catch(($, e, next) => next(e)) // jamais de refus : la saisie passe toujours
@@ -89,7 +140,7 @@ export const register: Register = on => {
   // On arme la bande à cet instant puis on laisse la commande tourner, inchangée.
   for (const command of ['epicmaster', 'pmz:epicmaster']) {
     on('command.run', { command }, async ($, e, next) => {
-      try { const now = await $.clock.now(); await update($, armedAt, () => now) } catch (_) { /* fail-open */ }
+      try { await arm($, await $.clock.now()) } catch (_) { /* fail-open */ }
       return next(e)
     }).catch(($, e, next) => next(e))
   }

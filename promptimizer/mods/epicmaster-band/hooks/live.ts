@@ -83,6 +83,18 @@ function byId(a: LiveLot, b: LiveLot): number {
   return Number.isFinite(x) && Number.isFinite(y) ? x - y : a.id.localeCompare(b.id)
 }
 
+// Instant (ms) où le plan a été semé (`seeded_at`, lib/epicmaster-live.js seedFromPlan), ou null
+// (fichier antérieur au champ, illisible). Sert à lier la bande au /epicmaster de SA session.
+export function seededAt(text: unknown): number | null {
+  try {
+    if (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT) return null
+    const raw: unknown = JSON.parse(text)
+    return isRec(raw) ? time(raw.seeded_at) : null
+  } catch (_) {
+    return null
+  }
+}
+
 export function parseLive(text: unknown, now: number): LiveView | null {
   try {
     if (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT) return null

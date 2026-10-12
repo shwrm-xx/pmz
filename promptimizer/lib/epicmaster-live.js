@@ -15,6 +15,7 @@
 // valeur vide. Écriture atomique (fsjson). Course possible entre deux sous-agents qui écrivent au
 // même instant : on relit juste avant d'écrire, au pire une mise à jour est perdue (état indicatif,
 // jamais source de vérité — celle-ci reste backlog.json).
+const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { readJson, writeAtomic } = require('./fsjson');
@@ -52,6 +53,7 @@ function load(root) {
     if (raw.wave && typeof raw.wave === 'object' && !Array.isArray(raw.wave)) st.wave = raw.wave;
     if (typeof raw.finished === 'boolean') st.finished = raw.finished;
     if (Array.isArray(raw.to_decide)) st.to_decide = raw.to_decide;
+    if (typeof raw.seeded_at === 'string') st.seeded_at = raw.seeded_at;
     return st;
   } catch (_) { return emptyState(); }
 }
@@ -85,22 +87,39 @@ function prune(st, now) {
 function save(root, st, now) {
   try {
     st.updated_at = nowIso(now);
+    st.root = path.resolve(root);
     prune(st, now);
     const ok = writeAtomic(livePath(root), st);
-    mirrorGlobal(st);
+    mirrorGlobal(root, st);
     return ok;
   } catch (_) { return false; }
 }
 
-// Copie globale <config>/promptimizer/epicmaster-live.json : la bande (lue depuis n'importe quel
-// dossier de session) la prend en repli quand le dossier de session n'a pas de .vibe-agent live.
+// Copie globale PAR PROJET <config>/promptimizer/epicmaster-live/<slug>.json (`root` + `seeded_at`
+// dedans) : une session maître ouverte hors du dépôt qu'elle pilote retrouve SON plan (la bande ne
+// prend qu'une copie semée après le /epicmaster de sa propre session). Une copie par projet : deux
+// sessions maître de projets différents ne s'écrasent plus. L'ancienne copie unique
+// (<config>/promptimizer/epicmaster-live.json, partagée par tous les projets) est supprimée.
 // Best-effort, jamais bloquant ; PMZ_NO_LIVE_MIRROR=1 la désactive (tests).
-function globalLivePath() {
-  const cfg = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-  return path.join(cfg, 'promptimizer', LIVE_FILE);
+function configDir() {
+  return process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
 }
-function mirrorGlobal(st) {
-  try { if (!process.env.PMZ_NO_LIVE_MIRROR) writeAtomic(globalLivePath(), st); } catch (_) { /* indicatif */ }
+function globalLiveDir() { return path.join(configDir(), 'promptimizer', 'epicmaster-live'); }
+function liveSlug(root) {
+  const abs = path.resolve(String(root));
+  let h = 0x811c9dc5; // FNV-1a 32 bits : stable, sans dépendance
+  for (let i = 0; i < abs.length; i++) { h ^= abs.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  const base = path.basename(abs).replace(/[^\w.-]+/g, '-').slice(0, 40) || 'projet';
+  return `${base}-${h.toString(16).padStart(8, '0')}`;
+}
+function globalLivePath(root) { return path.join(globalLiveDir(), liveSlug(root) + '.json'); }
+function mirrorGlobal(root, st) {
+  try {
+    if (process.env.PMZ_NO_LIVE_MIRROR) return;
+    fs.mkdirSync(globalLiveDir(), { recursive: true });
+    writeAtomic(globalLivePath(root), st);
+    try { fs.unlinkSync(path.join(configDir(), 'promptimizer', LIVE_FILE)); } catch (_) { /* absente */ }
+  } catch (_) { /* indicatif */ }
 }
 
 // ── Plan complet : vague courante + fin de plan (lot #141) ────────────────────────────────
@@ -190,6 +209,7 @@ function seedFromPlan(root, plan, b, opts, now) {
     const t = nowIso(now);
     const st = emptyState();
     st.updated_at = t;
+    st.seeded_at = t; // la bande d'une session n'adopte qu'un plan semé après son propre /epicmaster
     for (const l of plan.lots) {
       let tokens = baseTokens, basis = 'base';
       try {
@@ -362,6 +382,6 @@ function statusSegment(root, now) {
 }
 
 module.exports = {
-  LIVE_FILE, globalLivePath, OWNER_RE, STALE_MS, NO_STATE, isMasterOwner, livePath, load, summarize, isActive,
+  LIVE_FILE, globalLivePath, globalLiveDir, liveSlug, OWNER_RE, STALE_MS, NO_STATE, isMasterOwner, livePath, load, summarize, isActive,
   recordStart, recordDone, recordNote, recordSubagent, seedFromPlan, refreshProgress, renderCompact, renderDetailed, renderLive, statusSegment,
 };
