@@ -10135,6 +10135,126 @@ section('Lot #140 — bande fusionnée dans le plugin pmz (build), migrate retir
   }
 }
 
+section('install-plugin.js — installeur plugin en un clic (lot #143, bac à sable)');
+{
+  const IP = path.join(PKG, 'install', 'install-plugin.js');
+  const IDIR = path.join(PKG, 'install');
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-ip-'));
+  const NOCLAUDE = { PMZ_CLAUDE_BIN: path.join(base, 'absent-claude') };
+  const envFor = (cfg, extra) => Object.assign({ CLAUDE_CONFIG_DIR: cfg, PMZ_STATE_DIR: path.join(cfg, 'state'),
+    CLAUDE_PLUGIN_ROOT: '', CLAUDE_PLUGIN_DATA: '' }, extra || {});
+  const rd = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
+  const backups = (cfg) => (fs.existsSync(cfg) ? fs.readdirSync(cfg).filter((f) => f.includes('.pmz-backup-')) : []);
+  const pmzHookCount = (sp) => (fs.existsSync(sp) ? (fs.readFileSync(sp, 'utf8').match(/promptimizer\/hooks\//g) || []).length : 0);
+
+  // B143-1 : lanceurs fins (vérif node + délégation, aucune logique métier).
+  for (const ext of ['command', 'sh', 'ps1']) {
+    const f = path.join(IDIR, 'install-plugin.' + ext);
+    const txt = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+    ok(!!txt, 'B143-1 : lanceur install-plugin.' + ext + ' présent');
+    ok(/install-plugin\.js/.test(txt) && (ext === 'ps1' ? /Get-Command node/.test(txt) : /command -v node/.test(txt)),
+      'B143-1 : install-plugin.' + ext + ' vérifie node puis délègue à install-plugin.js');
+    ok(txt.split('\n').length <= 12, 'B143-1 : install-plugin.' + ext + ' reste fin (≤ 12 lignes)');
+    if (txt && ext !== 'ps1' && process.platform !== 'win32') {
+      ok((fs.statSync(f).mode & 0o111) !== 0, 'B143-1 : install-plugin.' + ext + ' exécutable');
+    }
+  }
+
+  // B143-2 : CLAUDE_CONFIG_DIR vierge, claude introuvable -> repli déclaratif + doctor + « relance ».
+  const cfg = path.join(base, 'blank');
+  const sp = path.join(cfg, 'settings.json');
+  const market = path.join(cfg, 'pmz-plugin', 'build', 'marketplace');
+  const r1 = runNode(IP, ['--no-pause'], envFor(cfg, NOCLAUDE));
+  ok(r1.code === 0, 'B143-2 : config vierge sans claude -> exit 0');
+  ok(fs.existsSync(path.join(market, '.claude-plugin', 'marketplace.json')), 'B143-2 : plugin assemblé dans le dossier stable <claudeDir>/pmz-plugin/build');
+  const s1 = fs.existsSync(sp) ? rd(sp) : {};
+  ok(s1.enabledPlugins && s1.enabledPlugins['pmz@pmz-local'] === true, 'B143-2 : enabledPlugins["pmz@pmz-local"] déclaré');
+  ok(s1.extraKnownMarketplaces && s1.extraKnownMarketplaces['pmz-local'] &&
+    s1.extraKnownMarketplaces['pmz-local'].source.source === 'directory' &&
+    s1.extraKnownMarketplaces['pmz-local'].source.path === market, 'B143-2 : extraKnownMarketplaces.pmz-local -> source directory stable');
+  ok(/relance Claude Code/i.test(r1.out), 'B143-2 : affiche « relance Claude Code »');
+  ok(/Statut : (vert|orange|rouge)/.test(r1.out) && /verdict : (VERT|ORANGE|ROUGE)/.test(r1.out), 'B143-2 : le doctor tourne et le verdict est affiché');
+  ok(!fs.existsSync(path.join(cfg, 'promptimizer')), 'B143-2 : aucun fichier du canal manuel créé');
+
+  // B143-3 : idempotence — relance = settings.json identique à l'octet, aucun backup de plus.
+  const before = fs.readFileSync(sp, 'utf8');
+  const nb = backups(cfg).length;
+  const r2 = runNode(IP, ['--no-pause'], envFor(cfg, NOCLAUDE));
+  ok(r2.code === 0 && fs.readFileSync(sp, 'utf8') === before, 'B143-3 : relance -> settings.json inchangé (aucun doublon)');
+  ok(backups(cfg).length === nb, 'B143-3 : relance -> aucun backup supplémentaire');
+  ok(/déjà/.test(r2.out), 'B143-3 : relance annonce que tout est déjà déclaré');
+
+  // B143-4 : préservation de l'existant + backup + réversibilité (--remove restaure à l'identique).
+  const cfg2 = path.join(base, 'existing');
+  fs.mkdirSync(cfg2, { recursive: true });
+  const sp2 = path.join(cfg2, 'settings.json');
+  const orig = { permissions: { allow: ['Bash(ls)'] }, statusLine: { type: 'command', command: 'tiers' },
+    enabledPlugins: { 'x@y': true }, extraKnownMarketplaces: { tiers: { source: { source: 'github', repo: 'a/b' } } } };
+  fs.writeFileSync(sp2, JSON.stringify(orig));
+  ok(runNode(IP, ['--no-pause'], envFor(cfg2, NOCLAUDE)).code === 0, 'B143-4 : install sur settings existant -> exit 0');
+  const s2 = rd(sp2);
+  ok(JSON.stringify(s2.permissions) === JSON.stringify(orig.permissions) && JSON.stringify(s2.statusLine) === JSON.stringify(orig.statusLine) &&
+    s2.enabledPlugins['x@y'] === true && !!s2.extraKnownMarketplaces.tiers, 'B143-4 : permissions/statusLine/plugins et marketplaces tiers préservés');
+  ok(backups(cfg2).length === 1, 'B143-4 : backup horodaté créé avant écriture');
+  const rRm = runNode(IP, ['--no-pause', '--remove'], envFor(cfg2, NOCLAUDE));
+  ok(rRm.code === 0 && JSON.stringify(rd(sp2)) === JSON.stringify(orig), 'B143-4 : --remove restaure settings.json à l\'identique');
+  ok(!fs.existsSync(path.join(cfg2, 'pmz-plugin', 'build')), 'B143-4 : --remove supprime le plugin assemblé');
+
+  // B143-5 : settings.json invalide -> abort, aucune écriture.
+  const cfg3 = path.join(base, 'broken');
+  fs.mkdirSync(cfg3, { recursive: true });
+  fs.writeFileSync(path.join(cfg3, 'settings.json'), '{ cassé');
+  const r5 = runNode(IP, ['--no-pause'], envFor(cfg3, NOCLAUDE));
+  ok(r5.code === 1 && fs.readFileSync(path.join(cfg3, 'settings.json'), 'utf8') === '{ cassé', 'B143-5 : JSON invalide -> exit 1, fichier intact');
+
+  // B143-6 : migration d'une install manuelle -> plus aucun hook legacy, entrées déclarées une fois.
+  const cfg4 = path.join(base, 'manual');
+  const sp4 = path.join(cfg4, 'settings.json');
+  runNode(path.join(IDIR, 'install.js'), ['--no-pause'], envFor(cfg4));
+  ok(pmzHookCount(sp4) > 0, 'B143-6 (setup) : install manuelle -> hooks PMZ legacy présents');
+  const r6 = runNode(IP, ['--no-pause'], envFor(cfg4, NOCLAUDE));
+  ok(r6.code === 0 && pmzHookCount(sp4) === 0, 'B143-6 : install-plugin migre -> plus aucun hook PMZ legacy (pas de double-firing)');
+  ok(rd(sp4).enabledPlugins['pmz@pmz-local'] === true, 'B143-6 : plugin déclaré après migration');
+  ok(!/Étape suivante/.test(r6.out), 'B143-6 : les consignes manuelles de migrate-to-plugin ne sont pas réaffichées');
+
+  // B143-7 : CLI claude (stub, posix) — add + install au 1er passage, update au 2e, repli si échec.
+  if (process.platform !== 'win32') {
+    const stub = path.join(base, 'claude-stub');
+    const logf = path.join(base, 'stub.log');
+    fs.writeFileSync(stub, '#!' + process.execPath + '\n' + [
+      "const fs=require('fs'),path=require('path');const a=process.argv.slice(2);",
+      "fs.appendFileSync(process.env.STUB_LOG,JSON.stringify(a)+'\\n');",
+      "if(a[0]==='--version'){console.log('9.9.9 (stub)');process.exit(0);}",
+      "const d=path.join(process.env.CLAUDE_CONFIG_DIR,'plugins');fs.mkdirSync(d,{recursive:true});",
+      "if(process.env.STUB_FAIL&&(a[1]==='install'||a[1]==='update'))process.exit(1);",
+      "if(a[1]==='marketplace'&&a[2]==='add')fs.writeFileSync(path.join(d,'known_marketplaces.json'),JSON.stringify({'pmz-local':{source:{source:'directory',path:a[3]}}}));",
+      "if(a[1]==='install')fs.writeFileSync(path.join(d,'installed_plugins.json'),JSON.stringify({version:2,plugins:{[a[2]]:[{scope:'user',installPath:'/nulle-part',version:'0.0.0'}]}}));",
+    ].join('\n'));
+    fs.chmodSync(stub, 0o755);
+    const cfg5 = path.join(base, 'cli');
+    const env5 = envFor(cfg5, { PMZ_CLAUDE_BIN: stub, STUB_LOG: logf });
+    const calls = () => fs.readFileSync(logf, 'utf8').trim().split('\n').map((l) => JSON.parse(l).join(' '));
+    const r7 = runNode(IP, ['--no-pause'], env5);
+    const c1 = calls();
+    ok(r7.code === 0, 'B143-7 : CLI disponible -> exit 0');
+    ok(c1.includes('plugin marketplace add ' + path.join(cfg5, 'pmz-plugin', 'build', 'marketplace')), 'B143-7 : marketplace ajoutée depuis le dossier stable');
+    ok(c1.includes('plugin install pmz@pmz-local'), 'B143-7 : pmz installé via la CLI');
+    ok(!fs.existsSync(path.join(cfg5, 'settings.json')) || !rd(path.join(cfg5, 'settings.json')).enabledPlugins,
+      'B143-7 : pas de repli déclaratif quand la CLI réussit');
+    fs.writeFileSync(logf, '');
+    runNode(IP, ['--no-pause'], env5);
+    const c2 = calls();
+    ok(c2.includes('plugin marketplace update pmz-local') && c2.includes('plugin update pmz@pmz-local') &&
+      !c2.some((c) => c.startsWith('plugin install') || c.startsWith('plugin marketplace add')),
+      'B143-7 : déjà installé -> mise à jour (marketplace update + plugin update), jamais d\'échec ni de ré-ajout');
+    const cfg6 = path.join(base, 'cli-fail');
+    const r8 = runNode(IP, ['--no-pause'], envFor(cfg6, { PMZ_CLAUDE_BIN: stub, STUB_LOG: logf, STUB_FAIL: '1' }));
+    ok(r8.code === 0 && rd(path.join(cfg6, 'settings.json')).enabledPlugins['pmz@pmz-local'] === true,
+      'B143-7 : CLI en échec -> repli déclaratif dans settings.json');
+  }
+  try { fs.rmSync(base, { recursive: true, force: true }); } catch (_) { /* ignore */ }
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);
