@@ -10,6 +10,9 @@ armFailOpen(watchdogMs(SETTINGS_TIMEOUT_S.default));
 const { disabled } = require('../lib/env');
 if (disabled()) process.exit(0);
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { parseHookInput } = require('../lib/stdin');
 const { injectContext, passThrough } = require('../lib/output');
 const { gitRoot, isFullyInitialized } = require('../lib/project');
@@ -78,14 +81,36 @@ function main() {
   // Injecté au 1er prompt, puis seulement quand le titre change (lot démarré, scope posé) — jamais à
   // chaque tour. Nomenclature non posée : question une seule fois par session. Session maître
   // (/epicmaster) : elle se titre elle-même, on se tait.
-  if (initialized && !/^\s*\/(pmz:)?epicmaster\b/.test(prompt)) {
+  const isMasterPrompt = /^\s*\/(pmz:)?epicmaster\b/.test(prompt);
+  if (isMasterPrompt) st.master_session = true; // seule exclue : la session maître se titre elle-même
+  if (initialized && !st.master_session) {
     const nomenclature = !lotLib.nomenclatureSet(root);
     const t = lotLib.currentSessionTitle(root, sid, { plan: st.plan_session === true });
-    if (t && t.title !== st.self_title && !(nomenclature && st.prompt_reminders.nomenclature)) {
-      if (nomenclature) st.prompt_reminders.nomenclature = true;
-      st.self_title = t.title;
-      parts.push(selfTitleMessage(t.title, { compose: t.compose, nomenclature }));
+    if (t) {
+      if (nomenclature && st.prompt_reminders.nomenclature) {
+        // Question déjà posée, toujours sans trigramme : sans réponse on renomme quand même
+        // (trigramme par défaut), une seule fois — jamais muet (US#151).
+        if (!st.prompt_reminders.nomenclature_fallback) {
+          st.prompt_reminders.nomenclature_fallback = true;
+          st.self_title = t.title;
+          parts.push(selfTitleMessage(t.title, { compose: t.compose, fallback: true }));
+        }
+      } else if (t.title !== st.self_title) {
+        if (nomenclature) st.prompt_reminders.nomenclature = true;
+        st.self_title = t.title;
+        parts.push(selfTitleMessage(t.title, { compose: t.compose, nomenclature }));
+      }
     }
+  } else if (!initialized && !isMasterPrompt) {
+    // Projet non initialisé (US#151) : « [XXX? · HS] … » une fois par session. L'état n'étant pas
+    // persisté sans .vibe-agent, anti-spam par marqueur temporaire (fail-open : au pire on redit).
+    try {
+      const mk = path.join(os.tmpdir(), `pmz-title-${String(sid || 'nosid').replace(/[^A-Za-z0-9_-]/g, '_')}`);
+      if (!fs.existsSync(mk)) {
+        fs.writeFileSync(mk, '1');
+        parts.push(selfTitleMessage(lotLib.uninitSessionTitle(root), { uninit: true }));
+      }
+    } catch (_) { /* fail-open */ }
   }
 
   let msg = null;

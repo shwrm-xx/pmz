@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — US#151 Renommage systématique de chaque session
+
+- Toute session se renomme au 1er prompt, y compris pendant un lot `master/lot-*` ; seule la session maître est exclue.
+- Les lots `master/lot-*` ne sont plus attribués aux sessions non maîtres.
+- Trigramme non choisi : question, puis renommage avec le trigramme par défaut au prompt suivant (message `fallback`).
+- Projet non initialisé : titre « [XXX? · HS] » via `uninitSessionTitle`.
+- Tests Q7 à Q10 ; 2539 OK.
+
 ## 2026-10-12 — US#150 Un dossier par US : spec et maquettes harmonisées
 
 - Un dossier par US : `docs/us/US-<id>/spec.md` + `docs/us/US-<id>/maquettes/*.html` (et `INDEX.md` par US).
