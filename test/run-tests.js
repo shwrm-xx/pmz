@@ -9950,6 +9950,36 @@ section('À trancher et tokens réels dans le fichier live — note --decide, do
   ok(/--live-seed/.test(em) && /note[^\n]*--decide/.test(em) && /--verify-verdict failed/.test(em) && /--tokens/.test(em), 'TK-3 : epicmaster.md appelle --live-seed, note --decide, done failed, --tokens');
 }
 
+section('Bande par session/projet — copie globale par projet, seeded_at, ancienne copie unique retirée');
+{
+  const live = require(path.join(PKG, 'lib', 'epicmaster-live'));
+  const cfg = path.join(SANDBOX, 'live-cfg');
+  const legacy = path.join(cfg, 'promptimizer', 'epicmaster-live.json');
+  fs.mkdirSync(path.dirname(legacy), { recursive: true });
+  fs.writeFileSync(legacy, '{"v":1,"epic":"autre projet","lots":{}}');
+  const saved = { cfg: process.env.CLAUDE_CONFIG_DIR, off: process.env.PMZ_NO_LIVE_MIRROR };
+  process.env.CLAUDE_CONFIG_DIR = cfg;
+  delete process.env.PMZ_NO_LIVE_MIRROR;
+  try {
+    const plan = (epic) => ({ lots: [{ id: 1, title: 'a', epic, model: 'sonnet', effort: 'low' }], waves: [{ index: 1, ids: [1] }] });
+    const rA = path.join(SANDBOX, 'proj-a'), rB = path.join(SANDBOX, 'proj b');
+    for (const r of [rA, rB]) fs.mkdirSync(path.join(r, '.vibe-agent'), { recursive: true });
+    const T0 = Date.parse('2026-10-12T10:00:00.000Z');
+    ok(live.seedFromPlan(rA, plan('A'), null, {}, T0).ok && live.seedFromPlan(rB, plan('B'), null, {}, T0 + 60000).ok, 'BS-1 : deux projets semés');
+    const gA = live.globalLivePath(rA), gB = live.globalLivePath(rB);
+    ok(gA !== gB && path.dirname(gA) === live.globalLiveDir() && fs.existsSync(gA) && fs.existsSync(gB), 'BS-1 : une copie globale PAR projet (pas d\'écrasement)');
+    const a = JSON.parse(fs.readFileSync(gA, 'utf8')), b = JSON.parse(fs.readFileSync(gB, 'utf8'));
+    ok(a.epic === 'A' && b.epic === 'B' && a.root === path.resolve(rA) && a.seeded_at === new Date(T0).toISOString(), 'BS-2 : copie de projet porte epic, root et seeded_at');
+    ok(!fs.existsSync(legacy), 'BS-3 : ancienne copie unique partagée supprimée');
+    live.recordStart(rA, { id: 1, title: 'a' }, 'master/lot-1', T0 + 120000);
+    ok(JSON.parse(fs.readFileSync(gA, 'utf8')).seeded_at === a.seeded_at, 'BS-4 : start conserve seeded_at (la bande reste liée)');
+    ok(live.liveSlug(rA) === live.liveSlug(rA + path.sep) && /^proj-b-[0-9a-f]{8}$/.test(live.liveSlug(rB)), 'BS-5 : slug stable et lisible');
+  } finally {
+    if (saved.cfg === undefined) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = saved.cfg;
+    if (saved.off === undefined) delete process.env.PMZ_NO_LIVE_MIRROR; else process.env.PMZ_NO_LIVE_MIRROR = saved.off;
+  }
+}
+
 // ============ Lot #139 — chargement automatique de la bande epicmaster ============
 section('Lot #139 — env.CLAUDE_CODE_PLUGIN_DIRS (merge-settings), filtre types/, plugin epicmaster-band');
 {
