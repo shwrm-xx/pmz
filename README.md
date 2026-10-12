@@ -148,8 +148,9 @@ Statut : vert
 
 En **canal manuel**, les lignes détaillent `Hooks globaux` / `Skill globale`. Un statut
 `plugin + manuel (CONFLIT)` signale une double installation à résoudre (`migrate-to-plugin.js`).
-Sous le plugin, la santé se lit aussi via `claude plugin details pmz` (le doctor CLI n'est pas
-embarqué dans le plugin ; lance-le depuis le dépôt : `node promptimizer/install/doctor.js`).
+Sous le plugin, lance **`/pmz:doctor`** (le doctor est embarqué dans le plugin, aucun dépôt cloné
+requis) ; la santé se lit aussi via `claude plugin details pmz`. Au **premier démarrage** après
+l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
 
 ## Comportement dans Claude Code
 
@@ -330,9 +331,9 @@ failed` passe le lot en rouge. `/epicmaster` enchaîne ces quatre gestes.
 
 `/help` liste toutes les commandes disponibles avec leur description, **dérivée des fichiers
 `commands/` réellement installés** (jamais une liste codée en dur) : sur le canal plugin,
-`statusline` n'y figure pas (exclue du build, cf. ci-dessous).
+`doctor` et `statusline` y figurent aussi (livrées dans le plugin depuis le lot #144).
 
-`/statusline` **(opt-in, canal manuel)** pose la barre d'état PMZ dans `settings.json` :
+`/statusline` **(opt-in)** pose la barre d'état PMZ dans `settings.json` :
 `PMZ v<version> · <epic> · lot #<id> <titre> · <faits>/<total> · ctx <occupation>` (occupation
 temps réel). Posée **uniquement sur demande explicite** ; **jamais** si une `statusLine` tierce
 existe (préservée) ; retrait propre via la même commande (`--statusline-remove`) et à la

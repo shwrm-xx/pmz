@@ -1485,8 +1485,18 @@ posée) ; (3) `--statusline-remove` et la désinstallation (`--remove`) ne retir
 `statusline: none|pmz|third-party`. **Chemin stable** : le renderer pointé dans `settings.json` vit
 sous `pmzDir()` = **miroir manuel** `~/.claude/promptimizer/scripts/`, HORS du dossier versionné du
 plugin → survit aux updates. Conséquence : la statusline est une feature du **canal manuel** (comme
-les hooks-dans-`settings.json` — le canal plugin ne touche jamais `settings.json`) ; `statusline.md`
-est **exclu du build plugin** (il invoque `install/merge-settings.js`, absent du plugin).
+les hooks-dans-`settings.json` — le canal plugin ne touche jamais `settings.json`). Depuis le lot #144,
+`statusline.md` est **livré dans le plugin** : le build y embarque le sous-ensemble `install/`
+(`doctor.js`, `lib-io.js`, `merge-settings.js` — `INSTALL_SHIPPED`), le reste de `install/` restant exclu.
+Le renderer pointé est alors celui du plugin (chemin versionné : à reposer après un update) ; le tag
+d'identification accepte aussi `…/pmz/<version>/scripts/statusline.js`.
+
+**Doctor dans le plugin + accueil (lot #144)** : `/pmz:doctor` (`commands/doctor.md`) lance
+`${CLAUDE_PLUGIN_ROOT}/install/doctor.js` sans dépôt cloné ; sans canal manuel, il exerce le hook du
+plugin voisin (`<doctor>/../hooks/session-start.js`). `lib/welcome.js` : au premier `SessionStart`
+`startup` après install, `session-start.js` injecte UN message (`/init`, `/statusline`, `/doctor`;
+préfixe `/pmz:` en plugin) ; marqueur `welcomed.json` sous `stateDir()` (atomique `wx`) ; un dossier
+d'état déjà peuplé (install existante) pose le marqueur en silence.
 
 ### Canal plugin Claude Code (lot D2, alternatif à l'install manuelle)
 
