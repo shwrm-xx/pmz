@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 150,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-12T14:20:49.077Z",
+  "updated_at": "2026-10-12T14:34:47.691Z",
   "lots": [
     {
       "id": 1,
@@ -4239,23 +4239,23 @@
       "id": 148,
       "title": "Intégration maquettes dans scope et epicmaster",
       "scope": "fait quand : /scope détecte les US à écrans, propose la liste à maquetter dans la question unique et, sur oui, ajoute une US « Maquettes » en vague 1 dont dépendent les US à écrans ; epicmaster remonte les maquettes à valider et impose aux sous-agents de suivre les maquettes liées ; tests verts",
-      "status": "in_progress",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Maquettes d'écrans",
       "verify": "node test/run-tests.js",
       "us": null,
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_commit": "cf400fa",
+      "closed_at": "2026-10-12T14:34:47.510Z",
+      "closed_session_id": "4abaa7de-cb7b-4cef-93dc-b02529671f28",
+      "closed_occupancy": 92992,
+      "closed_verify": "ok",
       "cost_tokens": 0,
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
       "started_at": "2026-10-12T14:20:49.075Z",
-      "lot_number": null,
+      "lot_number": 618,
       "note": "ajout demandé : epicmaster.md impose de renommer la session maître (set_session_title self, format de backlog.js --session-title) dès le plan confirmé, avant la vague 1",
       "session_touches": 0,
       "perimeter": [
@@ -4267,21 +4267,13 @@
       "depends_on": [
         147
       ],
-      "session_owner": "master/lot-148",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
+      "session_owner": "master/lot-148"
     },
     {
       "id": 149,
       "title": "Doc et release maquettes v2.10.0",
       "scope": "fait quand : README, ARCHITECTURE, CHANGELOG à jour et VERSION 2.10.0 ; tests verts",
-      "status": "todo",
+      "status": "in_progress",
       "model_hint": "sonnet",
       "effort_hint": "low",
       "epic": "Maquettes d'écrans",
@@ -4296,7 +4288,7 @@
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
-      "started_at": null,
+      "started_at": "2026-10-12T14:34:47.689Z",
       "lot_number": null,
       "note": null,
       "session_touches": 0,
@@ -4305,7 +4297,15 @@
         147,
         148
       ],
-      "session_owner": null
+      "session_owner": "master/lot-149",
+      "integrations": {
+        "command_optimizer": {
+          "snapshot_start": {
+            "commands": 0,
+            "delivered_tokens": 0
+          }
+        }
+      }
     }
   ]
 }

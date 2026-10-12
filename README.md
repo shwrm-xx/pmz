@@ -312,9 +312,16 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
 
 ## Slash commands (secours)
 
-`/init` · `/scope` · `/epicmaster` · `/parallelize` · `/reintegrate` · `/budget` · `/check-context` ·
+`/init` · `/scope` · `/maquette` · `/epicmaster` · `/parallelize` · `/reintegrate` · `/budget` · `/check-context` ·
 `/close-batch` · `/fresh-session` · `/archive` · `/dashboard` · `/rtk` · `/about` · `/help` ·
 `/statusline`
+
+`/maquette` **(v2.10.0)** propose écrans × états × tailles en **une question** avant toute écriture,
+puis génère des maquettes HTML autonomes (zéro CDN, bascule mobile 375 / desktop, 4 états) dans
+`docs/maquettes/` (index `INDEX.md`) via `scripts/maquette.js` (`new`/`link`/`validate`/`open`/`list`,
+refus d'écrasement) ; `link` ajoute une section « Maquettes » à la spec de l'US. `/scope` statue
+« écrans : oui/non » par US et propose une US « Maquettes » en vague 1 ; `/epicmaster` remonte les
+« maquettes à valider » en à-trancher et impose aux sous-agents de suivre les maquettes liées.
 
 `/epicmaster` **(session maître)** lance **toutes les US ouvertes** du backlog — une epic ou
 plusieurs — en **sous-agents**, chacune au **modèle + effort préconisés** par l'US, après **une**
