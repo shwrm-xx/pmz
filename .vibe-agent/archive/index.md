@@ -153,5 +153,6 @@
 #0148 | 2026-10-12 | cf400fa | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Intégration maquettes dans scope et epicmaster
 #0149 | 2026-10-12 | 9e37b56 | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Doc et release maquettes v2.10.0
 #0150 | 2026-10-12 | 31f6cd3 | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Un dossier par US : spec et maquettes harmonisées
+#0151 | 2026-10-12 | 42de2aa | epic:Titres de session | verify:inconnu | fiche:non | Renommage systématique de chaque session
 
 # Archive PMZ — index des lots clos
