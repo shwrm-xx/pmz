@@ -263,13 +263,27 @@ log('node  : ' + process.version);
 if (typeof fs.cpSync !== 'function') fatal('Node trop ancien (' + process.version + ') : installe Node ≥ 18 (nodejs.org).');
 log('');
 
-// 1. Build du plugin dans le dossier stable.
-log('1/4 Assemblage du plugin…');
-const rb = runNodeScript(path.join(__dirname, 'build-plugin.js'), [OUT_ROOT]);
-if (rb.error || rb.status !== 0 || !fs.existsSync(path.join(MARKET, '.claude-plugin', 'marketplace.json'))) {
-  fatal('assemblage du plugin échoué.\n' + indent((rb.stderr || '') + (rb.stdout || '')));
+// 1. Plugin dans le dossier stable : marketplace PRÉ-ASSEMBLÉE embarquée dans l'archive hors-ligne
+//    (lot #145 : <racine archive>/marketplace/, aucun build requis) sinon build-plugin.js (dépôt source).
+const PREBUILT = path.resolve(__dirname, '..', '..', 'marketplace');
+const hasPrebuilt = fs.existsSync(path.join(PREBUILT, '.claude-plugin', 'marketplace.json'));
+if (hasPrebuilt) {
+  log('1/4 Copie de la marketplace embarquée (hors-ligne, sans build)…');
+  try {
+    fs.rmSync(OUT_ROOT, { recursive: true, force: true });
+    fs.mkdirSync(OUT_ROOT, { recursive: true });
+    fs.cpSync(PREBUILT, MARKET, { recursive: true });
+  } catch (e) { fatal('copie de la marketplace embarquée échouée (' + e.message + ').'); }
+  if (!fs.existsSync(path.join(MARKET, '.claude-plugin', 'marketplace.json'))) fatal('marketplace embarquée incomplète.');
+  log('  Plugin en place : ' + path.join(MARKET, 'promptimizer'));
+} else {
+  log('1/4 Assemblage du plugin…');
+  const rb = runNodeScript(path.join(__dirname, 'build-plugin.js'), [OUT_ROOT]);
+  if (rb.error || rb.status !== 0 || !fs.existsSync(path.join(MARKET, '.claude-plugin', 'marketplace.json'))) {
+    fatal('assemblage du plugin échoué.\n' + indent((rb.stderr || '') + (rb.stdout || '')));
+  }
+  log('  Plugin assemblé : ' + path.join(MARKET, 'promptimizer'));
 }
-log('  Plugin assemblé : ' + path.join(MARKET, 'promptimizer'));
 log('');
 
 // 2. Marketplace + plugin (CLI, sinon repli déclaratif).

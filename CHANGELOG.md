@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Archive hors-ligne poste vierge (lot #145, epic Install sans couture)
+
+- `package.js` embarque la marketplace plugin pré-assemblée (`marketplace/`) à la racine de l'archive.
+- `install-plugin.js` utilise la marketplace embarquée si présente : sans build, sans réseau, sans git.
+- `LIRE-MOI.txt` : voie plugin hors-ligne documentée (mac, linux, windows) ; droits +x posés.
+- Tests : install de bout en bout depuis le zip décompressé en bac à sable (repli déclaratif) ; suite à 2472 OK.
+
 ## 2026-10-12 — Doctor dans le plugin + accueil 1er démarrage (lot #144, epic Install sans couture)
 
 - `/pmz:doctor` livré dans le plugin : fonctionne sans le dépôt cloné.

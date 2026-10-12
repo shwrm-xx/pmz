@@ -3672,6 +3672,33 @@ section('Autonomie du package — package.js → unzip hors dépôt → install 
     ok(leaked.length === 0,
       'grep de garde : 0 référence au chemin du dépôt source dans $DEST/promptimizer (' + leaked.length + ' trouvée(s))');
 
+    // Lot #145 : archive hors-ligne — marketplace pré-assemblée + installeur plugin (#143).
+    ok(fs.existsSync(path.join(stageRoot, 'marketplace', '.claude-plugin', 'marketplace.json')),
+      'archive #145 : marketplace pré-assemblée embarquée (marketplace/.claude-plugin/marketplace.json)');
+    ok(fs.existsSync(path.join(stageRoot, 'marketplace', 'promptimizer', 'hooks', 'hooks.json')),
+      'archive #145 : plugin assemblé embarqué (hooks/hooks.json)');
+    ok(fs.existsSync(path.join(stageRoot, 'promptimizer', 'install', 'install-plugin.js')),
+      'archive #145 : installeur plugin (install-plugin.js) embarqué');
+    const lire = fs.readFileSync(path.join(stageRoot, 'LIRE-MOI.txt'), 'utf8');
+    ok(/install-plugin\.command/.test(lire), 'archive #145 : LIRE-MOI.txt documente install-plugin.command');
+
+    const fh2 = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-fakehome2-'));
+    const cfg2 = path.join(fh2, '.claude');
+    const env2 = { CLAUDE_CONFIG_DIR: cfg2, PMZ_STATE_DIR: path.join(fh2, 'state'), HOME: fh2,
+      CLAUDE_PLUGIN_ROOT: '', CLAUDE_PLUGIN_DATA: '', PMZ_CLAUDE_BIN: path.join(fh2, 'absent-claude') };
+    const rIp = runNode(path.join(stageRoot, 'promptimizer', 'install', 'install-plugin.js'), ['--no-pause'], env2);
+    ok(rIp.code === 0, 'install-plugin.js (archive décompressée, sans réseau ni git) : exit 0');
+    ok(/marketplace embarquée/.test(rIp.out) && !/Assemblage du plugin/.test(rIp.out),
+      'install-plugin.js (archive) : utilise la marketplace embarquée, sans build');
+    ok(fs.existsSync(path.join(cfg2, 'pmz-plugin', 'build', 'marketplace', 'promptimizer', 'hooks', 'hooks.json')),
+      'install-plugin.js (archive) : plugin copié dans le dossier stable <claudeDir>/pmz-plugin');
+    let st2 = {};
+    try { st2 = JSON.parse(fs.readFileSync(path.join(cfg2, 'settings.json'), 'utf8')); } catch (_) { /* ignore */ }
+    ok(!!(st2.extraKnownMarketplaces && st2.extraKnownMarketplaces['pmz-local'] && st2.enabledPlugins && st2.enabledPlugins['pmz@pmz-local'] === true),
+      'install-plugin.js (archive) : plugin déclaré dans settings.json (repli sans CLI claude)');
+    ok(/verdict : (VERT|ORANGE)/.test(rIp.out), 'install-plugin.js (archive) : verdict doctor affiché');
+    fs.rmSync(fh2, { recursive: true, force: true });
+
     fs.rmSync(extractDir, { recursive: true, force: true });
     fs.rmSync(fakeHome, { recursive: true, force: true });
   }

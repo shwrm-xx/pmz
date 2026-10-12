@@ -46,6 +46,7 @@ log('');
 //   Promptimizer-YYYYMMDD/
 //     promptimizer/         (package Claude Code complet)
 //     skills/promptimizer/  (skill globale Claude Code)
+//     marketplace/          (marketplace plugin PRÉ-ASSEMBLÉE : install hors-ligne, lot #145)
 //     codex/                (delta Codex : AGENTS.md + pmz-codex + install-codex.command)
 fs.mkdirSync(path.join(STAGE, 'skills'), { recursive: true });
 fs.cpSync(PMZ_SRC, path.join(STAGE, 'promptimizer'), { recursive: true });
@@ -53,6 +54,19 @@ const skillSrc = path.join(REPO, 'skills', 'promptimizer');
 if (fs.existsSync(skillSrc)) fs.cpSync(skillSrc, path.join(STAGE, 'skills', 'promptimizer'), { recursive: true });
 const codexSrc = path.join(REPO, 'codex');
 if (fs.existsSync(codexSrc)) fs.cpSync(codexSrc, path.join(STAGE, 'codex'), { recursive: true });
+
+// Marketplace plugin pré-assemblée (build-plugin.js) : embarquée telle quelle, pour que
+// promptimizer/install/install-plugin.* installe sans réseau, sans git, sans build.
+{
+  const rb = spawnSync(process.execPath, [path.join(__dirname, 'build-plugin.js'), path.join(WORK, 'plugin-build')],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const built = path.join(WORK, 'plugin-build', 'marketplace');
+  if (rb.error || rb.status !== 0 || !fs.existsSync(path.join(built, '.claude-plugin', 'marketplace.json'))) {
+    err('ERREUR : assemblage de la marketplace plugin échoué.\n' + String(rb.stderr || rb.stdout || '').trim());
+    pause(1);
+  }
+  fs.cpSync(built, path.join(STAGE, 'marketplace'), { recursive: true });
+}
 
 // Permissions +x (posix) sur les scripts embarqués
 if (process.platform !== 'win32') {
@@ -64,6 +78,10 @@ if (process.platform !== 'win32') {
     } catch (_) { /* ignore */ }
   };
   chmodInDir(path.join(STAGE, 'promptimizer', 'install'), ['.command', '.sh']);
+  chmodInDir(path.join(STAGE, 'marketplace', 'promptimizer', 'hooks'), ['.js']);
+  chmodInDir(path.join(STAGE, 'marketplace', 'promptimizer', 'scripts'), ['.js']);
+  chmodInDir(path.join(STAGE, 'marketplace', 'promptimizer', 'install'), ['.command', '.sh', '.js']);
+  chmodInDir(path.join(STAGE, 'marketplace', 'promptimizer', 'bin'), ['pmz-hook']);
   chmodInDir(path.join(STAGE, 'promptimizer', 'hooks'), ['.js']);
   chmodInDir(path.join(STAGE, 'promptimizer', 'scripts'), ['.js']);
   for (const f of ['install-codex.command', 'pmz-codex']) {
@@ -91,12 +109,15 @@ fs.writeFileSync(path.join(STAGE, 'LIRE-MOI.txt'),
   'Prérequis : Node.js installé (nodejs.org).\n\n' +
   'macOS :\n' +
   '  ÉTAPE 0 (une seule fois) — double-clic : debloquer.command\n' +
-  '  Claude Code → double-clic : promptimizer/install/install.command\n' +
+  '  Plugin (recommandé, hors-ligne) → double-clic : promptimizer/install/install-plugin.command\n' +
+  '  Claude Code (canal manuel) → double-clic : promptimizer/install/install.command\n' +
   '  Codex (opt) → double-clic : codex/install-codex.command\n\n' +
   'Linux :\n' +
-  '  Claude Code → bash promptimizer/install/install.sh\n\n' +
+  '  Plugin (recommandé, hors-ligne) → bash promptimizer/install/install-plugin.sh\n' +
+  '  Claude Code (canal manuel) → bash promptimizer/install/install.sh\n\n' +
   'Windows (PowerShell) :\n' +
-  '  Claude Code → promptimizer\\install\\install.ps1\n');
+  '  Plugin (recommandé, hors-ligne) → promptimizer\\install\\install-plugin.ps1\n' +
+  '  Claude Code (canal manuel) → promptimizer\\install\\install.ps1\n');
 
 // Archivage cross-platform
 fs.mkdirSync(OUT_DIR, { recursive: true });
