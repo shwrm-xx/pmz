@@ -647,7 +647,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   déprécié `--us` ; sous-commande `spec`, alias `us` ; affichage `[Spec : …]` ; colonne d'export
   `spec`) et les backlogs existants portant `us` sont **migrés au chargement**. Gabarit :
   `promptimizer/templates/spec-template.md` (ex-`us-template.md`, part tel quel dans le canal
-  plugin). CLI : `add --spec docs/specs/SPEC-42.md` avec **garde d'existence doublée** (refus
+  plugin). CLI : `add --spec docs/us/US-42/spec.md` avec **garde d'existence doublée** (refus
   explicite côté CLI *et* revalidation dans `addLot` — défense en profondeur) : un chemin
   introuvable est refusé, jamais avalé — un pointeur mort serait pire qu'aucune spec.
   `show`/`export` réaffichent le pointeur tel quel (`[Spec : …]`, colonne `spec`) ; vide, jamais
@@ -1624,7 +1624,8 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
 
 Commande `maquette.md` (`REQUIRED_COMMANDS`, embarquée par le plugin) → `scripts/maquette.js`
 (`new`/`link`/`validate`/`open`/`list`, stdlib, fail-open, refus d'écrasement) ; gabarit autonome
-`templates/maquette.html` (zéro CDN, bascule 375/desktop, 4 états) ; index `docs/maquettes/INDEX.md` ;
+`templates/maquette.html` (zéro CDN, bascule 375/desktop, 4 états) ; **un dossier par US** `docs/us/US-<id>/` (`spec.md` + `maquettes/*.html` + `maquettes/INDEX.md`,
+lot #150 ; `new`/`validate`/`open` prennent `--id`) ;
 `link` ajoute la section « Maquettes » (optionnelle dans `spec-template.md`) à la spec de l'US.
 `/scope` statue « écrans : oui/non » par US et propose une US « Maquettes » en vague 1 dont
 dépendent les US à écrans ; `/epicmaster` remonte les « maquettes à valider » en à-trancher, impose

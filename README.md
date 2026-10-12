@@ -257,7 +257,7 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
   renommé le 2026-10-12 depuis que « US » désigne l'item du backlog) — **pointeur seul, jamais
   le contenu**. C'est un fichier du dépôt (gabarit `promptimizer/templates/spec-template.md` :
   récit persona/besoin/bénéfice, critères d'acceptation vérifiables, hors périmètre, preuve de
-  clôture) posé via `backlog.js add --spec docs/specs/SPEC-42.md` — chemin **vérifié à l'ajout** (un
+  clôture) posé via `backlog.js add --spec docs/us/US-42/spec.md` — chemin **vérifié à l'ajout** (un
   pointeur mort est refusé ; `--us` reste accepté comme alias déprécié). Pas de spec sous la main ?
   `backlog.js spec --id N --new` **écrit** le fichier depuis le gabarit (titre et epic de l'US déjà
   remplis) et le rattache à l'US ; il refuse d'écraser un fichier existant, et
@@ -317,8 +317,8 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
 `/statusline`
 
 `/maquette` **(v2.10.0)** propose écrans × états × tailles en **une question** avant toute écriture,
-puis génère des maquettes HTML autonomes (zéro CDN, bascule mobile 375 / desktop, 4 états) dans
-`docs/maquettes/` (index `INDEX.md`) via `scripts/maquette.js` (`new`/`link`/`validate`/`open`/`list`,
+puis génère des maquettes HTML autonomes (zéro CDN, bascule mobile 375 / desktop, 4 états) dans le
+**dossier de l'US** (`docs/us/US-<id>/` : `spec.md` + `maquettes/*.html`, index `maquettes/INDEX.md`) via `scripts/maquette.js` (`new`/`link`/`validate`/`open`/`list`,
 refus d'écrasement) ; `link` ajoute une section « Maquettes » à la spec de l'US. `/scope` statue
 « écrans : oui/non » par US et propose une US « Maquettes » en vague 1 ; `/epicmaster` remonte les
 « maquettes à valider » en à-trancher et impose aux sous-agents de suivre les maquettes liées.

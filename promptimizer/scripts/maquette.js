@@ -5,12 +5,15 @@
 // Le jugement (quels écrans, quels états, quel contenu) vit dans commands/maquette.md : ce script
 // ne fait que poser le gabarit, tenir l'index, lier la spec d'US et marquer le statut.
 //
-//   new      --slug X --title "…"   docs/maquettes/X.html depuis templates/maquette.html + ligne d'INDEX.md
+// Un dossier par US : docs/us/US-<id>/spec.md (la spec) + docs/us/US-<id>/maquettes/*.html (n maquettes).
+//
+//   new      --id N --slug X --title "…"   docs/us/US-N/maquettes/X.html depuis templates/maquette.html
+//                                    + ligne de docs/us/US-N/maquettes/INDEX.md
 //                                    (refus si le fichier existe : on n'écrase JAMAIS une maquette)
 //   link     --id N --slug X        section « ## Maquettes » de la spec de l'US (idempotent ; refus sans spec)
-//   validate --slug X               statut « validée » dans INDEX.md
-//   open     --slug X               chemin + URL file:// ; ouvre l'aperçu (sauf PMZ_NO_OPEN=1)
-//   list                            INDEX.md tel quel
+//   validate --id N --slug X        statut « validée » dans l'INDEX.md de l'US
+//   open     --id N --slug X        chemin + URL file:// ; ouvre l'aperçu (sauf PMZ_NO_OPEN=1)
+//   list     [--id N]               INDEX.md de l'US (sans --id : celui de chaque US)
 //
 // Toujours exit 0 (fail-open) : un refus est un message « Refusé : … », jamais un crash.
 // stdlib seule. Commun : --cwd <dossier> (défaut : répertoire courant ; racine git si dispo).
@@ -18,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
-const DIR_REL = 'docs/maquettes';
+const US_ROOT = 'docs/us';
 const INDEX_NAME = 'INDEX.md';
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const INDEX_HEAD = [
@@ -50,9 +53,10 @@ function projectRoot() {
   } catch (_) { /* repli sur cwd */ }
   return path.resolve(cwd);
 }
-function dirOf(root) { return path.join(root, DIR_REL); }
-function indexPath(root) { return path.join(dirOf(root), INDEX_NAME); }
-function maquettePath(root, slug) { return path.join(dirOf(root), slug + '.html'); }
+function dirRel(id) { return `${US_ROOT}/US-${id}/maquettes`; }
+function dirOf(root, id) { return path.join(root, dirRel(id)); }
+function indexPath(root, id) { return path.join(dirOf(root, id), INDEX_NAME); }
+function maquettePath(root, id, slug) { return path.join(dirOf(root, id), slug + '.html'); }
 
 function wantedSlug() {
   const s = arg('slug');
@@ -66,8 +70,8 @@ function wantedId() {
   return raw != null && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 }
 
-function readIndex(root) {
-  try { return fs.readFileSync(indexPath(root), 'utf8'); } catch (_) { return null; }
+function readIndex(root, id) {
+  try { return fs.readFileSync(indexPath(root, id), 'utf8'); } catch (_) { return null; }
 }
 const lineRe = (slug) => new RegExp('^- `' + slug + '` ·.*$', 'm');
 
@@ -77,12 +81,14 @@ function indexLine(slug, title, statut, date) {
 
 // --- new ------------------------------------------------------------------------------------
 function cmdNew(root) {
+  const id = wantedId();
+  if (!id) { out('Refusé : --id <n° d\'US> requis (les maquettes vivent dans le dossier de l\'US).'); return; }
   const slug = wantedSlug();
   if (!slug) return;
   const title = cleanTitle(arg('title'));
   if (!title) { out('Refusé : --title "…" requis (titre lisible de la maquette).'); return; }
-  const abs = maquettePath(root, slug);
-  const rel = path.posix.join(DIR_REL, slug + '.html');
+  const abs = maquettePath(root, id, slug);
+  const rel = path.posix.join(dirRel(id), slug + '.html');
   if (fs.existsSync(abs)) {
     out(`Refusé : ${rel} existe déjà — une maquette n'est jamais écrasée. Édite-la, ou choisis un autre slug.`);
     return;
@@ -98,27 +104,27 @@ function cmdNew(root) {
     .replace(/\{\{SLUG\}\}/g, slug)
     .replace(/\{\{DATE\}\}/g, date);
   try {
-    fs.mkdirSync(dirOf(root), { recursive: true });
+    fs.mkdirSync(dirOf(root, id), { recursive: true });
     fs.writeFileSync(abs, html, { flag: 'wx' }); // wx : refus atomique si apparu entre-temps
   } catch (e) {
     out(`Refusé : écriture de ${rel} impossible (${e.code || 'erreur'}).`);
     return;
   }
-  let idx = readIndex(root);
+  let idx = readIndex(root, id);
   if (idx == null) idx = INDEX_HEAD.join('\n');
   if (!lineRe(slug).test(idx)) {
     idx = idx.replace(/\s*$/, '\n') + indexLine(slug, title, 'brouillon', date) + '\n';
-    try { fs.writeFileSync(indexPath(root), idx); } catch (_) {
-      out(`Attention : ${rel} créé mais ${DIR_REL}/${INDEX_NAME} non mis à jour.`);
+    try { fs.writeFileSync(indexPath(root, id), idx); } catch (_) {
+      out(`Attention : ${rel} créé mais ${dirRel(id)}/${INDEX_NAME} non mis à jour.`);
       return;
     }
   }
-  out(`Créé : ${rel} (gabarit autonome, statut brouillon) · référencé dans ${DIR_REL}/${INDEX_NAME}.`);
+  out(`Créé : ${rel} (gabarit autonome, statut brouillon) · référencé dans ${dirRel(id)}/${INDEX_NAME}.`);
 }
 
 // --- link -----------------------------------------------------------------------------------
-// Spec de l'US : pointeur `spec` du backlog s'il existe, sinon conventions docs/us/US-N.md puis
-// docs/specs/SPEC-N.md. null si aucune n'existe sur disque.
+// Spec de l'US : pointeur `spec` du backlog s'il existe, sinon la convention du dossier de l'US
+// (docs/us/US-N/spec.md). null si aucune n'existe sur disque.
 function specFor(root, id) {
   const cands = [];
   try {
@@ -128,7 +134,7 @@ function specFor(root, id) {
     const lot = lots.find((l) => Number(l && l.id) === id);
     if (lot && typeof lot.spec === 'string' && lot.spec && !/^https?:/i.test(lot.spec)) cands.push(lot.spec);
   } catch (_) { /* backlog absent/illisible : conventions seules */ }
-  cands.push(`docs/us/US-${id}.md`, `docs/specs/SPEC-${id}.md`);
+  cands.push(`${US_ROOT}/US-${id}/spec.md`);
   for (const rel of cands) {
     const abs = path.resolve(root, rel);
     try { if (fs.statSync(abs).isFile()) return abs; } catch (_) { /* suivant */ }
@@ -141,11 +147,11 @@ function cmdLink(root) {
   if (!id) { out('Refusé : --id <n° d\'US> requis.'); return; }
   const slug = wantedSlug();
   if (!slug) return;
-  const mq = maquettePath(root, slug);
-  if (!fs.existsSync(mq)) { out(`Refusé : maquette ${DIR_REL}/${slug}.html introuvable (crée-la d'abord : maquette.js new).`); return; }
+  const mq = maquettePath(root, id, slug);
+  if (!fs.existsSync(mq)) { out(`Refusé : maquette ${dirRel(id)}/${slug}.html introuvable (crée-la d'abord : maquette.js new).`); return; }
   const spec = specFor(root, id);
   if (!spec) {
-    out(`Refusé : aucune spec pour l'US#${id} (docs/us/US-${id}.md, docs/specs/SPEC-${id}.md ni pointeur backlog). Rien n'est créé.`);
+    out(`Refusé : aucune spec pour l'US#${id} (${US_ROOT}/US-${id}/spec.md ni pointeur backlog). Rien n'est créé.`);
     return;
   }
   const specRel = path.relative(root, spec).split(path.sep).join('/');
@@ -183,26 +189,30 @@ function cmdLink(root) {
 
 // --- validate -------------------------------------------------------------------------------
 function cmdValidate(root) {
+  const id = wantedId();
+  if (!id) { out('Refusé : --id <n° d\'US> requis.'); return; }
   const slug = wantedSlug();
   if (!slug) return;
-  const idx = readIndex(root);
+  const idx = readIndex(root, id);
   const m = idx && lineRe(slug).exec(idx);
-  if (!m) { out(`Refusé : ${slug} absent de ${DIR_REL}/${INDEX_NAME} (crée-la avec maquette.js new).`); return; }
+  if (!m) { out(`Refusé : ${slug} absent de ${dirRel(id)}/${INDEX_NAME} (crée-la avec maquette.js new).`); return; }
   if (/statut : validée/.test(m[0])) { out(`Déjà validée : ${slug} (aucun changement).`); return; }
   const line = m[0].replace(/statut : [^·]+?( ·|$)/, 'statut : validée$1').replace(/ · \d{4}-\d{2}-\d{2}\s*$/, ' · ' + today());
-  try { fs.writeFileSync(indexPath(root), idx.replace(m[0], line)); } catch (_) {
-    out(`Refusé : écriture de ${DIR_REL}/${INDEX_NAME} impossible.`);
+  try { fs.writeFileSync(indexPath(root, id), idx.replace(m[0], line)); } catch (_) {
+    out(`Refusé : écriture de ${dirRel(id)}/${INDEX_NAME} impossible.`);
     return;
   }
-  out(`Validée : ${slug} (${DIR_REL}/${INDEX_NAME}).`);
+  out(`Validée : ${slug} (${dirRel(id)}/${INDEX_NAME}).`);
 }
 
 // --- open -----------------------------------------------------------------------------------
 function cmdOpen(root) {
+  const id = wantedId();
+  if (!id) { out('Refusé : --id <n° d\'US> requis.'); return; }
   const slug = wantedSlug();
   if (!slug) return;
-  const abs = maquettePath(root, slug);
-  if (!fs.existsSync(abs)) { out(`Refusé : ${DIR_REL}/${slug}.html introuvable.`); return; }
+  const abs = maquettePath(root, id, slug);
+  if (!fs.existsSync(abs)) { out(`Refusé : ${dirRel(id)}/${slug}.html introuvable.`); return; }
   const url = 'file://' + (process.platform === 'win32' ? '/' : '') + abs.split(path.sep).join('/');
   out(`Maquette : ${abs}`);
   out(`URL : ${url}`);
@@ -218,8 +228,24 @@ function cmdOpen(root) {
 }
 
 function cmdList(root) {
-  const idx = readIndex(root);
-  out(idx ? idx.replace(/\s*$/, '') : `Aucune maquette (${DIR_REL}/${INDEX_NAME} absent).`);
+  let ids = [];
+  if (arg('id') != null) {
+    const id = wantedId();
+    if (!id) { out('Refusé : --id invalide (attendu : n° d\'US).'); return; }
+    ids = [id];
+  } else {
+    try {
+      ids = fs.readdirSync(path.join(root, US_ROOT))
+        .map((d) => /^US-(\d+)$/.exec(d)).filter(Boolean).map((m) => Number(m[1])).sort((a, b) => a - b);
+    } catch (_) { /* pas de docs/us */ }
+  }
+  const blocks = [];
+  for (const id of ids) {
+    const idx = readIndex(root, id);
+    if (idx) blocks.push(`## US #${id}\n\n` + idx.replace(/^#.*\n/, '').replace(/<!--[\s\S]*?-->\s*/g, '').trim());
+  }
+  if (arg('id') != null && blocks.length) { out(readIndex(root, ids[0]).replace(/\s*$/, '')); return; }
+  out(blocks.length ? blocks.join('\n\n') : `Aucune maquette (${US_ROOT}/US-<id>/maquettes/${INDEX_NAME} absent).`);
 }
 
 function main() {
@@ -232,7 +258,7 @@ function main() {
     case 'open': return cmdOpen(root);
     case 'list': return cmdList(root);
     default:
-      out('Usage : maquette.js new --slug X --title "…" | link --id N --slug X | validate --slug X | open --slug X | list  [--cwd dir]');
+      out('Usage : maquette.js new --id N --slug X --title "…" | link --id N --slug X | validate --id N --slug X | open --id N --slug X | list [--id N]  [--cwd dir]');
   }
 }
 

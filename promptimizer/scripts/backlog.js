@@ -652,7 +652,7 @@ function main() {
     const specPath = specFlag();
     if (specPath && !fs.existsSync(path.join(root, specPath))) {
       return out(`Refusé : ${specFlagName()} pointe vers un chemin inexistant (« ${specPath} », relatif à la racine du dépôt « ${root} »). `
-        + `Crée le fichier d'abord (cf. templates/spec-template.md, ex. docs/specs/SPEC-42.md), ou omets ${specFlagName()} si la spec n'est pas encore rédigée.`);
+        + `Crée le fichier d'abord (cf. templates/spec-template.md, ex. docs/us/US-42/spec.md), ou omets ${specFlagName()} si la spec n'est pas encore rédigée.`);
     }
     const newLot = backlog.addLot(root, flag('title'), flag('scope'), model, flag('epic'), flag('verify'), effort, flagList('perimeter'), dep.ids, specPath);
     if (!newLot) {
@@ -686,7 +686,7 @@ function main() {
   // Lot #106 : le champ `spec` (ex-`us`, lot #101) n'avait qu'une porte d'entrée, `add --spec`,
   // et supposait la spec déjà rédigée. Trois régimes ici, sur le modèle de `verify` :
   //  - sans flag : LECTURE du pointeur (coût zéro, pas d'ouverture du fichier) ;
-  //  - --new : pose docs/specs/SPEC-<id>.md depuis le gabarit ET rattache le pointeur ;
+  //  - --new : pose docs/us/US-<id>/spec.md depuis le gabarit ET rattache le pointeur ;
   //  - --set <chemin> : rattache une spec déjà écrite ailleurs (issue du refus doux « existe déjà »).
   // Sous-commande `us` gardée en alias déprécié de `spec`.
   if (cmd === 'spec' || cmd === 'us') {

@@ -52,7 +52,7 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    comme **session de conception** : la session suivante la titrera `[XXX · Plan] Nom de l'epic`.
 4. Persister chaque US validée (un appel par US), avec sa préconisation de modèle, son
    effort, si présent l'epic, et si validé son périmètre/ses dépendances :
-   `node ~/.claude/promptimizer/scripts/backlog.js add --title "…" --scope "fait quand : …" --model sonnet --effort medium --verify "npm test" --epic "Nom de l'epic" --perimeter "src/a/**" --depends 12 --spec "docs/specs/SPEC-42.md"`
+   `node ~/.claude/promptimizer/scripts/backlog.js add --title "…" --scope "fait quand : …" --model sonnet --effort medium --verify "npm test" --epic "Nom de l'epic" --perimeter "src/a/**" --depends 12 --spec "docs/us/US-42/spec.md"`
    (`--model` est **obligatoire** — l'ajout est refusé sans lui ; `--effort` doit valoir
    `low`/`medium`/`high`/`xhigh` sinon l'ajout est refusé ; `--epic` reste optionnel ;
    `--perimeter`/`--depends` répétables, optionnels, omis si aucun périmètre net).
@@ -61,7 +61,7 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    preuve » — à réserver aux US réellement non vérifiables par commande (doc, choix visuel).
    Elle est éditable après coup : `backlog.js verify --set "…" --id <id>`.
    **Maquettes** : sur **oui**, persister d'abord l'US « Maquettes — <epic> » **en vague 1**
-   (sans `--depends`, périmètre `docs/maquettes/**`), puis poser `--depends <id Maquettes>` sur
+   (sans `--depends`, périmètre `docs/us/**`), puis poser `--depends <id Maquettes>` sur
    **chaque** US à écrans (en plus de leurs autres dépendances) ; les écrans validés à l'étape 2
    figurent dans le « fait quand » ou la spec de l'US Maquettes. Sur **non** : n'ajouter aucune
    US ni dépendance, et **noter le choix** (« maquettes écartées ») dans le handoff écrit à
@@ -74,7 +74,7 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    aussitôt** (outil Edit) le contenu rédigé et validé dans ce fichier, à la place des
    placeholders du gabarit.
    Un fichier de spec déjà écrit ailleurs se rattache après coup : `backlog.js spec --id <id> --set
-   "docs/specs/SPEC-42.md"`.
+   "docs/us/US-42/spec.md"`.
 5. **Préparer la session maître — systématique, dès qu'une US est persistée** :
    `node ~/.claude/promptimizer/scripts/backlog.js epicmaster --epic "Nom de l'epic" --write-handoff`
    (sans `--epic` si aucun n'a été posé). Le script calcule et le handoff maître est **écrit**
