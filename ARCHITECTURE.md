@@ -849,6 +849,14 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   copie unique partagée `promptimizer/epicmaster-live.json` (dernier écrivain gagnant : la bande d'un
   projet affichait le plan d'un autre) est supprimée à la première écriture. Best-effort ;
   `PMZ_NO_LIVE_MIRROR=1` coupe la copie (tests).
+- **Bande par vagues + panneau Plan** : `seedFromPlan` sème `wave_plan` (`index`, `ids`, `parallel`,
+  `label` — `--wave-labels "1=…;2=…"` du maître, sinon titre du lot seul ou « N lots en parallèle ») et
+  le « fait quand » (`scope`) de chaque lot. La bande groupe les segments par vague (une espace entre
+  deux) ; dépliée, une ligne par vague `✓|⟳|⧗|✗ Vague N (#a, #b) · libellé` (état agrégé), les lots en
+  vol et rouges de la vague en cours indentés dessous ; sans `wave_plan` ni `wave` : lignes par lot
+  (rétrocompatible). Bouton **Plan** (à gauche de Détails/Masquer, et sur le récap terminé) :
+  `$.ui.open({ id: 'epicmaster-plan' })`, panneau rendu en `Markdown` par `planMarkdown` (une section
+  par vague, une puce par lot), suivi en direct par le même sondage.
 - **Bande epicmaster embarquée dans le plugin pmz** (lot #140, un seul plugin à installer sur un
   autre poste) : `build-plugin.js` **fusionne** le mod dans `dist/marketplace/promptimizer/` — plus de
   second plugin, `marketplace.json` n'expose que `pmz`. **Cohabitation vérifiée empiriquement** : un

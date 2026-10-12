@@ -9973,6 +9973,16 @@ section('Bande par session/projet — copie globale par projet, seeded_at, ancie
     ok(!fs.existsSync(legacy), 'BS-3 : ancienne copie unique partagée supprimée');
     live.recordStart(rA, { id: 1, title: 'a' }, 'master/lot-1', T0 + 120000);
     ok(JSON.parse(fs.readFileSync(gA, 'utf8')).seeded_at === a.seeded_at, 'BS-4 : start conserve seeded_at (la bande reste liée)');
+    const plan3 = { lots: [{ id: 1, title: 'Socle', epic: 'E' }, { id: 2, title: 'P1', epic: 'E' }, { id: 3, title: 'P2', epic: 'E' }], waves: [{ index: 1, ids: [1] }, { index: 2, ids: [2, 3] }] };
+    const b3 = { lots: [{ id: 1, scope: 'fait quand : socle vert' }, { id: 2 }, { id: 3 }] };
+    live.seedFromPlan(rA, plan3, b3, {}, T0);
+    let wp = JSON.parse(fs.readFileSync(gA, 'utf8'));
+    ok(wp.wave_plan.length === 2 && wp.wave_plan[0].label === 'Socle' && wp.wave_plan[1].label === '2 lots en parallèle' && wp.wave_plan[1].parallel === true,
+      'BS-6 : wave_plan semé (libellé dérivé : titre du lot seul / « N lots en parallèle »)');
+    ok(wp.lots['1'].scope === 'socle vert' && wp.lots['2'].scope === null, 'BS-6 : « fait quand » du lot semé (préfixe retiré)');
+    live.seedFromPlan(rA, plan3, b3, { waveLabels: '2=Providers; x=ignoré' }, T0);
+    wp = JSON.parse(fs.readFileSync(gA, 'utf8'));
+    ok(wp.wave_plan[1].label === 'Providers' && wp.wave_plan[0].label === 'Socle', 'BS-6 : --wave-labels fixe le libellé d\'une vague, entrée invalide ignorée');
     ok(live.liveSlug(rA) === live.liveSlug(rA + path.sep) && /^proj-b-[0-9a-f]{8}$/.test(live.liveSlug(rB)), 'BS-5 : slug stable et lisible');
   } finally {
     if (saved.cfg === undefined) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = saved.cfg;

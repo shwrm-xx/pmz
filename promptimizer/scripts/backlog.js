@@ -504,6 +504,7 @@ function fleetCmd(root, sub, json) {
 //   --live [--detailed]   état live de la session maître (lecture seule, lot #136)
 //   --live-seed           sème le plan COMPLET dans .vibe-agent/epicmaster-live.json (lot #141) : epic,
 //                         vagues, lots pending (modèle·effort, depends_on, tokens est.) — mêmes filtres que le plan
+//                         [--wave-labels "1=Socle;2=Providers"] : libellé de chaque vague affiché par la bande
 function epicmaster(root, json) {
   // --live [--detailed] (lot #136) : état LIVE de la session maître (.vibe-agent/epicmaster-live.json),
   // lecture seule — ne calcule ni plan ni handoff. Compact par défaut ; --detailed : une ligne par lot/agent.
@@ -537,7 +538,7 @@ function epicmaster(root, json) {
   // --live-seed (lot #141) : écrit le plan complet dans le fichier live (la bande l'affiche dès le
   // lancement, avant tout `start`). N'écrit QUE ce fichier — aucun lot démarré, aucun handoff.
   if (process.argv.includes('--live-seed')) {
-    const r = require('../lib/epicmaster-live').seedFromPlan(root, plan, b, { epic: opts.epic });
+    const r = require('../lib/epicmaster-live').seedFromPlan(root, plan, b, { epic: opts.epic, waveLabels: flag('wave-labels') });
     if (json) return out(JSON.stringify({ seeded: r.ok, epic: r.epic, waves: r.waves, lots: r.lots, file: '.vibe-agent/epicmaster-live.json' }, null, 2));
     if (!plan.lots.length) return out('Aucun lot à semer : état live NON écrit (rien à embarquer).');
     return out(r.ok

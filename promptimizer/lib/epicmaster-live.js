@@ -54,6 +54,7 @@ function load(root) {
     if (typeof raw.finished === 'boolean') st.finished = raw.finished;
     if (Array.isArray(raw.to_decide)) st.to_decide = raw.to_decide;
     if (typeof raw.seeded_at === 'string') st.seeded_at = raw.seeded_at;
+    if (Array.isArray(raw.wave_plan)) st.wave_plan = raw.wave_plan;
     return st;
   } catch (_) { return emptyState(); }
 }
@@ -196,6 +197,17 @@ const recordNote = (root, lot, owner, now, decide) => recordLot(root, 'note', lo
 // `pending`, avec vague, modèle·effort, depends_on, tokens estimés), vagues, epic ; les agents et
 // lots d'une session précédente sont écartés. Les lots bloqués du plan passent en `to_decide`.
 // Retourne { ok, lots, waves, epic } ; ok=false (rien écrit) si le plan est vide ou l'E/S échoue.
+// « 1=Socle;2=Providers » -> { 1: 'Socle', 2: 'Providers' } ; entrée invalide ignorée.
+function parseWaveLabels(spec) {
+  const out = {};
+  if (typeof spec !== 'string') return out;
+  for (const part of spec.split(';')) {
+    const m = /^\s*(\d+)\s*=\s*(.+?)\s*$/.exec(part);
+    if (m) out[Number(m[1])] = m[2];
+  }
+  return out;
+}
+
 function seedFromPlan(root, plan, b, opts, now) {
   try {
     const o = opts || {};
@@ -216,8 +228,10 @@ function seedFromPlan(root, plan, b, opts, now) {
         const est = estimate && full.get(l.id) ? estimate(b, full.get(l.id)) : null;
         if (est && Number.isFinite(est.avg) && est.avg > 0) { tokens = Math.round(est.avg); basis = 'comparable'; }
       } catch (_) { /* plancher */ }
+      const scope = full.get(l.id) && typeof full.get(l.id).scope === 'string'
+        ? clipStr(full.get(l.id).scope.replace(/^\s*fait quand\s*:\s*/i, ''), MAX_NOTE) : null;
       st.lots[String(l.id)] = {
-        id: l.id, title: clipStr(l.title, MAX_STR), status: 'pending', wave: waveOf.get(l.id) || null,
+        id: l.id, title: clipStr(l.title, MAX_STR), status: 'pending', wave: waveOf.get(l.id) || null, scope,
         model: l.model || null, effort: l.effort || null, tokens, tokens_basis: basis,
         depends_on: Array.isArray(l.depends_on) ? l.depends_on.slice() : [],
         started_at: null, done_at: null, updated_at: t,
@@ -227,6 +241,15 @@ function seedFromPlan(root, plan, b, opts, now) {
     st.epic = clipStr(o.epic || epics.join(' + ') || 'epicmaster', 60);
     const total = (plan.waves || []).length || 1;
     st.wave = { current: 1, total };
+    // Plan des vagues (bande : « Vague N (#a, #b) libellé ») : libellé fourni par le maître
+    // (--wave-labels "1=…;2=…"), sinon titre du lot seul, sinon « N lots en parallèle ».
+    const labels = parseWaveLabels(o.waveLabels);
+    st.wave_plan = (plan.waves || []).map((w) => {
+      const ids = (w.ids || []).slice();
+      const one = ids.length === 1 ? plan.lots.find((l) => l.id === ids[0]) : null;
+      const label = labels[w.index] || (one ? one.title : `${ids.length} lots en parallèle`);
+      return { index: w.index, ids, parallel: ids.length > 1, label: clipStr(label, 80) };
+    });
     st.finished = false;
     st.to_decide = (plan.blocked || []).map((x) => ({ id: x.id, title: clipStr(x.title, MAX_STR), reason: clipStr(x.reason, MAX_NOTE) }));
     refreshProgress(st);
