@@ -2,6 +2,12 @@
 
 Capture la couche **stable** et le non-greppable. Le code fait foi pour le détail volatil.
 
+> **Vocabulaire (2026-10-12)** : l'item du backlog s'appelle désormais **US** à l'affichage
+> (« US#105 », « l'US en cours ») ; le code et les données gardent `lot` (`lots`, `lib/lot.js`,
+> `lot-counter.json`, trailer `PMZ-Lot`…). Les références historiques datées (« lot #101 »,
+> « lot D2 ») sont laissées telles quelles. L'ancien pointeur `us` vers une User Story détaillée
+> est renommé `spec`.
+
 ## Vue d'ensemble
 
 PMZ = un package installé dans `~/.claude/` qui branche **6 hooks Claude Code** + une **skill
@@ -29,12 +35,12 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 
 | Hook | Event / matcher | Lit (stdin) | Émet | Rôle |
 |------|-----------------|-------------|------|------|
-| `session-start.js` | SessionStart `startup\|resume\|clear\|compact` (injecte au `startup`/`clear` ; `compact` → réinjection **enrichie** sous budget chiffré (`COMPACT_RESUME_CAP`, #72) : lot+verify + `pmz:skip` + résumés connus + todos ; `resume` → nudge occupation seul, voir ci-dessous) | `cwd`, `source`, `transcript_path` | `additionalContext` (startup/clear/compact) ou `systemMessage` (resume) | détecte projet, auto-scaffold si projet neuf (0 commit), sinon propose init, rappel court + injecte le handoff de la session précédente puis le marque consommé ; sans handoff, le plan de lots sert de filet (2 lignes) ; au `resume`, si occupation ≥ 300k, `systemMessage` d'occupation (lot B5, zéro token injecté) |
-| `user-prompt-submit.js` | UserPromptSubmit | `prompt`, `cwd`, `transcript_path` | `additionalContext` | auto-`git init`+scaffold si aucun `.git` et prompt de démarrage, détecte init/large (anti-spam 1×/session), nudge occupation ≥ 500k en 2 lignes (anti-spam 1×/palier, lot B5), vigie modèle réel vs préconisé du lot en cours (anti-spam 1×/session, lot #42), **budget de tours** au palier de prescription (≥ 20 tours par défaut → consigne d'amener le lot à un point de commit et de proposer la clôture ; anti-spam 1×/palier, `lib/turnbudget.js`, lot #124), **marque de session de plan** si `permission_mode: "plan"` (lot #130) |
+| `session-start.js` | SessionStart `startup\|resume\|clear\|compact` (injecte au `startup`/`clear` ; `compact` → réinjection **enrichie** sous budget chiffré (`COMPACT_RESUME_CAP`, #72) : US+verify + `pmz:skip` + résumés connus + todos ; `resume` → nudge occupation seul, voir ci-dessous) | `cwd`, `source`, `transcript_path` | `additionalContext` (startup/clear/compact) ou `systemMessage` (resume) | détecte projet, auto-scaffold si projet neuf (0 commit), sinon propose init, rappel court + injecte le handoff de la session précédente puis le marque consommé ; sans handoff, le plan d'US sert de filet (2 lignes) ; au `resume`, si occupation ≥ 300k, `systemMessage` d'occupation (lot B5, zéro token injecté) |
+| `user-prompt-submit.js` | UserPromptSubmit | `prompt`, `cwd`, `transcript_path` | `additionalContext` | auto-`git init`+scaffold si aucun `.git` et prompt de démarrage, détecte init/large (anti-spam 1×/session), nudge occupation ≥ 500k en 2 lignes (anti-spam 1×/palier, lot B5), vigie modèle réel vs préconisé de l'US en cours (anti-spam 1×/session, lot #42), **budget de tours** au palier de prescription (≥ 20 tours par défaut → consigne d'amener l'US à un point de commit et de proposer la clôture ; anti-spam 1×/palier, `lib/turnbudget.js`, lot #124), **marque de session de plan** si `permission_mode: "plan"` (lot #130) |
 | `pre-tool-use.js` | PreToolUse `Bash` (+ `Edit`/`Write`/`MultiEdit` en vague, + `ExitPlanMode`/`EnterPlanMode` en trace seule) | `tool_input.command` / `.file_path` | `permissionDecision` allow/ask/deny **ou** `updatedInput` (réécriture RTK, sans `permissionDecision`) | sûreté commandes + périmètre fleet-fille + **bridge RTK optionnel** (default OFF, lot #81) + **marque de session de plan** (`plan_session`, aucun verdict changé, lot #130) |
 | `post-tool-use.js` | PostToolUse `Read\|Edit\|Write\|TodoWrite\|Bash` | `tool_input.file_path`, `tool_input.todos`, `tool_input.command` + `tool_response` (Bash) | `additionalContext` (rare, advisory) **ou** `updatedToolOutput` (réduction sortie Bash, lot #84) + effet de bord ledgers | auto-crée le ledger si absent, journalise lectures/édits, capture la todo-list (`todo-snapshot.json`, écrasé à chaque TodoWrite), signale une relecture complète redondante (lot B4), **réduit une sortie Bash volumineuse** hors RTK (lot #84) |
-| `stop.js` | Stop | `stop_hook_active`, `transcript_path` | `systemMessage` | alerte coût (paliers fixes + flottant), **métrologie par tour** (tour coûteux + cache-busts, `lib/turnstats.js`), **détecteur de dérive de session** (coût↑ + hitRate↓ sur 6 tours → prescrit la clôture, lot #62), **budget de tours par session** (rappel ⚠ à 12 tours, prescription ⛔ en coda hors arbitre à 20 puis tous les +10 — réglable par `budget.warn_after_session_turns`/`recommend_fresh_session_after_turns`, `lib/turnbudget.js`, lot #124), **frein sur la sortie relue** (nudge ⚠ 1×/session quand la sortie cumulée ET sa moyenne par tour dépassent toutes deux leur seuil — défauts 30000/1500, réglable par `budget.warn_after_output_tokens`/`warn_after_output_per_turn`, `lib/outputbudget.js`, lot #125), **vigie des tours en boucle** (commande Bash qui échoue ≥ 3 fois d'affilée → nudge « change d'approche », anti-spam par commande, `lib/loopwatch.js`, lot #69), **vigie de dette git non commitée** (diff significatif qui grossit sur ≥ 3 tours sans commit → nudge « commit/clôture », anti-spam par palier, `lib/gitdebt.js`, lot #73), **vigie de gouvernance du CLAUDE.md** (absent ou hypertrophié > 10 Ko → nudge créer / dégraisser, 1×/session, `lib/claudemd.js`, lot #74), **notification OS opt-in** sur zone rouge et clôture de lot (`PMZ_NOTIFY=1`, `lib/notify.js`, lot #75), **borne d'occupation réglable par projet** (`budget.red_zone_tokens`/`red_zone_ratio` de `rules.yaml` via `lib/rules.js` — au franchissement, clôture prescrite y compris **en milieu de lot**, lot #112), hygiène de lecture, **nudge subagent** à haute occupation + lectures (lot #52), **palier de gaspillage auto-surfacé** avec top-3 coupables (`waste_bucket` persisté, lot #52), rappel de clôture nommant les skills **et embarquant un brouillon d'entrée CHANGELOG pré-mâché** (en-tête daté + lot/epic/titre, scope sans son préfixe « fait quand : », fichiers modifiés plafonnés à 6, verify — `closureWithDraftMessage`, soudé au rappel pour rester atomique sous l'arbitre, lot #68), incrémente le compteur de lot, agrège le coût réel du lot en cours (`cost_tokens`) — **coût des tours délégués à un sous-agent inclus** (`lib/subagentcost.js`, lot #119) et imputé **nominativement** au lot de la session (`costLotFor`, fin du vol de coût en vague) — et alerte à l'approche du budget ~300k avec proposition de redécoupage (lot #43), auto-clôt le lot backlog en cours (cas univoque : exactement un `in_progress`) et annonce le suivant, exécute la `verify` du lot à l'auto-clôture (timeout court `VERIFY_AUTOCLOSE_MS`, résultat visible, verdict calculé **avant** `doneLot` depuis le lot #111 — un `timeout` empêche la clôture, un `failed` non) + rappel doux si le commit de clôture ne touche pas `CHANGELOG.md` (lot #44), **plafonne les nudges du tour par sévérité** (`lib/arbiter.js`, ≤ 3, lot #57), écrit le handoff auto (écrasé à chaque tour) |
-| `pre-compact.js` | PreCompact `manual\|auto` | `cwd`, `trigger`, `transcript_path` | `systemMessage` (manual) ou — (auto : effet de bord handoff seul) | sauve le handoff auto (plan de lots + todos compris) AVANT compaction ; la réinjection minimale se fait au SessionStart(compact). Sur `manual` (/compact), ajoute un rappel **chiffré** visible : compacter ≈ réécriture de l'occupation en cache-write (×1,25) + résumé lossy, vs clôture + handoff (~8k) — TTL prudent, aucun prix en dur (lot T1). `auto` reste silencieux (compaction subie) |
+| `stop.js` | Stop | `stop_hook_active`, `transcript_path` | `systemMessage` | alerte coût (paliers fixes + flottant), **métrologie par tour** (tour coûteux + cache-busts, `lib/turnstats.js`), **détecteur de dérive de session** (coût↑ + hitRate↓ sur 6 tours → prescrit la clôture, lot #62), **budget de tours par session** (rappel ⚠ à 12 tours, prescription ⛔ en coda hors arbitre à 20 puis tous les +10 — réglable par `budget.warn_after_session_turns`/`recommend_fresh_session_after_turns`, `lib/turnbudget.js`, lot #124), **frein sur la sortie relue** (nudge ⚠ 1×/session quand la sortie cumulée ET sa moyenne par tour dépassent toutes deux leur seuil — défauts 30000/1500, réglable par `budget.warn_after_output_tokens`/`warn_after_output_per_turn`, `lib/outputbudget.js`, lot #125), **vigie des tours en boucle** (commande Bash qui échoue ≥ 3 fois d'affilée → nudge « change d'approche », anti-spam par commande, `lib/loopwatch.js`, lot #69), **vigie de dette git non commitée** (diff significatif qui grossit sur ≥ 3 tours sans commit → nudge « commit/clôture », anti-spam par palier, `lib/gitdebt.js`, lot #73), **vigie de gouvernance du CLAUDE.md** (absent ou hypertrophié > 10 Ko → nudge créer / dégraisser, 1×/session, `lib/claudemd.js`, lot #74), **notification OS opt-in** sur zone rouge et clôture d'US (`PMZ_NOTIFY=1`, `lib/notify.js`, lot #75), **borne d'occupation réglable par projet** (`budget.red_zone_tokens`/`red_zone_ratio` de `rules.yaml` via `lib/rules.js` — au franchissement, clôture prescrite y compris **en milieu d'US**, lot #112), hygiène de lecture, **nudge subagent** à haute occupation + lectures (lot #52), **palier de gaspillage auto-surfacé** avec top-3 coupables (`waste_bucket` persisté, lot #52), rappel de clôture nommant les skills **et embarquant un brouillon d'entrée CHANGELOG pré-mâché** (en-tête daté + lot/epic/titre, scope sans son préfixe « fait quand : », fichiers modifiés plafonnés à 6, verify — `closureWithDraftMessage`, soudé au rappel pour rester atomique sous l'arbitre, lot #68), incrémente le compteur d'US, agrège le coût réel de l'US en cours (`cost_tokens`) — **coût des tours délégués à un sous-agent inclus** (`lib/subagentcost.js`, lot #119) et imputé **nominativement** à l'US de la session (`costLotFor`, fin du vol de coût en vague) — et alerte à l'approche du budget ~300k avec proposition de redécoupage (lot #43), auto-clôt l'US backlog en cours (cas univoque : exactement un `in_progress`) et annonce le suivant, exécute la `verify` de l'US à l'auto-clôture (timeout court `VERIFY_AUTOCLOSE_MS`, résultat visible, verdict calculé **avant** `doneLot` depuis le lot #111 — un `timeout` empêche la clôture, un `failed` non) + rappel doux si le commit de clôture ne touche pas `CHANGELOG.md` (lot #44), **plafonne les nudges du tour par sévérité** (`lib/arbiter.js`, ≤ 3, lot #57), écrit le handoff auto (écrasé à chaque tour) |
+| `pre-compact.js` | PreCompact `manual\|auto` | `cwd`, `trigger`, `transcript_path` | `systemMessage` (manual) ou — (auto : effet de bord handoff seul) | sauve le handoff auto (plan d'US + todos compris) AVANT compaction ; la réinjection minimale se fait au SessionStart(compact). Sur `manual` (/compact), ajoute un rappel **chiffré** visible : compacter ≈ réécriture de l'occupation en cache-write (×1,25) + résumé lossy, vs clôture + handoff (~8k) — TTL prudent, aucun prix en dur (lot T1). `auto` reste silencieux (compaction subie) |
 
 ### Invariants NON négociables
 1. **Fail-open** : toute erreur/timeout/JSON → `exit 0` ; jamais `exit 2` ; doute → `allow`.
@@ -82,7 +88,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   large. `windowForModel(model)` résout la fenêtre par sous-chaîne (même méthode que
   `modelwatch.js: modelsDiffer`), repli `DEFAULT_WINDOW` (200k) si modèle inconnu/absent.
   `redZoneThreshold(model)` = fenêtre × `RED_ZONE_RATIO` (0,85) — marge avant l'auto-compact du
-  modèle. Lib pure, **aucun branchement hooks** dans ce lot (prescription au fil de la session :
+  modèle. Lib pure, **aucun branchement hooks** dans cette US (prescription au fil de la session :
   lot #71).
 - **Prescription zone-rouge en fin de tour** (`lib/occupancy.js: evaluateRedZone` /
   `resyncRedZone`, `messages.js: redZonePrescriptionMessage`, câblés dans `stop.js`, lot #71) :
@@ -117,28 +123,28 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   régression pour un projet existant (les clés sont livrées **commentées** dans le template) ;
   (b) `source` (`'config'` | `'window'`) accompagne le seuil jusqu'au message, qui change d'en-tête
   — annoncer « l'auto-compact approche » à 400k sur 1M serait faux, et une alerte fausse finit par
-  être ignorée ; (c) le lot **en cours** est joint à la prescription, qui propose alors la clôture
-  **en milieu de lot** (commit intermédiaire + `/fresh-session`, le lot reste ouvert) au lieu
-  d'arbitrer « lot fini → … sinon → … » ; (d) `stop.js` résout la racine git **avant** la branche
+  être ignorée ; (c) l'US **en cours** est jointe à la prescription, qui propose alors la clôture
+  **en milieu d'US** (commit intermédiaire + `/fresh-session`, l'US reste ouverte) au lieu
+  d'arbitrer « US finie → … sinon → … » ; (d) `stop.js` résout la racine git **avant** la branche
   (a1) — un appel `gitRoot` déplacé, pas ajouté ; (e) **un seul épisode pour les deux régimes**
   (même fichier d'état `redzone`) : une borne basse consomme l'unique prescription de la session, et
   la zone haute reste couverte par les paliers absolus `BUCKETS` (500k/750k) + la dérive de session.
 - **Second consommateur de `lib/rules.js`** (lot #120) : `budget.verify_close_ms` — budget de la
   **verify de clôture**, même contrat de lecture (scalaire numérique, bornes traitées comme
-  absence, fail-open). Détail et raison dans la puce « Plan de lots » / verify plus bas ; le
+  absence, fail-open). Détail et raison dans la puce « Plan d'US » / verify plus bas ; le
   point d'architecture ici est que `rules.yaml` reste la **surface de réglage unique** du projet :
   une deuxième borne n'a introduit ni fichier de config, ni variable d'env de production.
 - **Réinjection post-compact enrichie** (`session-start.js` branche `src === 'compact'` +
   `messages.compactResumeMessage(lot, prog, { todos, skips, decisions })`, lot #72) : après une
   compaction le contexte survit mais a perdu le **plan** ET la **mémoire des relectures déjà
   faites**. On restitue donc, sous un **budget explicite chiffré** (`COMPACT_RESUME_CAP` = 1200
-  chars), des blocs par priorité **décroissante** : identité du lot + `verify` (direction +
+  chars), des blocs par priorité **décroissante** : identité de l'US + `verify` (direction +
   preuve de clôture) → `pmz:skip` (ne pas relire, cœur de l'économie de contexte) → résumés
   connus (décisions, servis au lieu de relire) → todos. Le budget **empile bloc par bloc et
-  s'arrête avant dépassement** — le 1er bloc (identité du lot) passe toujours, les blocs
+  s'arrête avant dépassement** — le 1er bloc (identité de l'US) passe toujours, les blocs
   secondaires sont rognés **en bloc**, jamais coupés au milieu d'un chemin. Sources : `skips` =
   `ledger.avoidRereadNotes(root, 5)` (liste canonique « ne pas relire », tail = plus récent) ;
-  `decisions` = `ledger.topSummaries(root, 3)` (`pmz:summary` connus). Silence total sans lot en
+  `decisions` = `ledger.topSummaries(root, 3)` (`pmz:summary` connus). Silence total sans US en
   cours (comme avant). Remplace la réinjection minimale ≤ 300 chars.
 - **Nudges haute occupation avant/à la reprise du tour** (`user-prompt-submit.js` /
   `session-start.js`, lot B5) : distincts de l'alerte de fin de tour (`stop.js`) ci-dessus,
@@ -186,9 +192,9 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   `<sha1>-turnbudget-prompt`) : sans cette séparation, le premier hook du tour à franchir le seuil
   consommerait l'anti-spam de l'autre. Deux canaux, deux rôles :
   - `stop.js` : rappel ⚠ dans les `parts` (constat, soumis à l'arbitre) au 1er seuil ; prescription
-    ⛔ en **coda hors arbitre** au 2nd (nomme le lot en cours, propose le commit intermédiaire +
+    ⛔ en **coda hors arbitre** au 2nd (nomme l'US en cours, propose le commit intermédiaire +
     session fraîche). Évalué **en toute fin de tour** et **muet si la coda de clôture est déjà
-    posée** — le lot vient d'être clos, la reco de session fraîche y est déjà.
+    posée** — l'US vient d'être close, la reco de session fraîche y est déjà.
   - `user-prompt-submit.js` : injection `additionalContext` **au seul palier de prescription**,
     1×/palier. C'est le **canal décisif** : un `systemMessage` est visible par l'utilisateur mais
     jamais réinjecté au modèle, donc Claude ne le lit pas et continue d'étirer la session. Le
@@ -206,7 +212,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   ensemble. **Plancher `MIN_MEASURED_TURNS` (3)** : sous ce plancher, un seul tour massif suffit à
   franchir les deux seuils et fait doublon avec `costlyTurnMessage` — les deux se disputaient une
   place de l'arbitre de tour (plafond 3, `lib/arbiter.js`), évinçant parfois un diagnostic distinct
-  (repéré en bout-en-bout : le nudge évinçait l'alerte de coût par lot du lot #43 sur un scénario
+  (repéré en bout-en-bout : le nudge évinçait l'alerte de coût par US du lot #43 sur un scénario
   existant). Nudge ⚠ dans les `parts` (soumis à l'arbitre, ce n'est pas une prescription de
   clôture) — à la différence du budget de tours, jamais en coda. Fail-open partout, indépendant
   du projet pour la lecture (transcript + état seuls).
@@ -261,7 +267,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   Il n'ajoute **aucun calcul** — il appelle `analyzeWindow()` et met en forme. Frontière : le moteur
   mesure, le script rend et recommande (3 recos classées par argent récupérable ; celle du découpage
   ne sort que si `k > 1`, sinon elle serait une reco inventée). Rendu par substitution de jetons
-  `{{TITLE}}`/`{{SUBTITLE}}`/`{{BODY}}`/`{{FOOTER}}` — même mécanique que `templates/us-template.md`
+  `{{TITLE}}`/`{{SUBTITLE}}`/`{{BODY}}`/`{{FOOTER}}` — même mécanique que `templates/spec-template.md`
   dans `lib/backlog.js`, mais avec une **fonction** de remplacement et jamais une chaîne : une
   valeur (chemin, identifiant de session…) peut contenir un « $ » que `String.replace`
   interpréterait comme une référence.
@@ -347,7 +353,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   la branche `if (root)` de `stop.js` (b0bis). Fail-open total (toute erreur → `null`).
 - **Notifications OS opt-in** (`lib/notify.js: send`, lot #75) : relaie les **2 événements
   graves** de `stop.js` en dehors du terminal — **zone rouge** (franchissement du seuil #71) et
-  **clôture de lot** (auto-clôture #43/#59) — via une notification native (`osascript` mac,
+  **clôture d'US** (auto-clôture #43/#59) — via une notification native (`osascript` mac,
   `notify-send` linux, toast PowerShell win32 sans dépendance). **Opt-in strict** (`PMZ_NOTIFY=1`,
   sinon aucun spawn) : le `systemMessage` reste le seul canal par défaut. Aucun anti-spam propre —
   s'appuie sur celui déjà en place à la source (zone rouge 1×/épisode, clôture = événement
@@ -355,7 +361,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   pour permettre aux tests de stuber le lanceur sans jamais déclencher de vraie notification.
   Fail-open total (plateforme non gérée, outil absent, `spawn` qui lève → `false`, jamais
   d'exception vers `stop.js`). **Vigies de vague** (lot #80) : deux événements supplémentaires,
-  câblés par `runPipeline` (cf. `pmz:reintegrate`) — `notifyLotReady` (un lot fille prêt à merger)
+  câblés par `runPipeline` (cf. `pmz:reintegrate`) — `notifyLotReady` (une US fille prête à merger)
   et `notifyWaveClosed` (vague entièrement réintégrée), mêmes garanties opt-in/fail-open.
 - **Hygiène de lecture** (`lib/occupancy.js: evaluateReadMix`) : même principe (lit le transcript
   brut, fenêtre fixe 1,5 Mo, aucune dépendance au ledger), tally les blocs `tool_use` récents pour
@@ -372,7 +378,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **Vigie modèle réel vs préconisé** (`lib/modelwatch.js`, lot #42) : `user-prompt-submit.js`
   lit le `model` du dernier message assistant du transcript (même méthode fenêtrée que
   `occupancy.js: readLastOccupancy` — lecture seule, aucune dépendance ledger) et le compare
-  au `model_hint` du lot backlog `in_progress`. Correspondance par **sous-chaîne** insensible
+  au `model_hint` de l'US backlog `in_progress`. Correspondance par **sous-chaîne** insensible
   à la casse (`modelsDiffer` : le hint est un mot-clé libre — « sonnet » — le modèle réel un id
   complet — « claude-sonnet-5 ») plutôt qu'une énum à resynchroniser à chaque nouveau modèle.
   Nudge `additionalContext` court (suggère `/model`, lot #55), plafonné **1×/session** (clé
@@ -382,25 +388,25 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   tiers** (`modelwatch.js: hintResolvableClaude` — allow-list `claude`/`opus`/`sonnet`/`haiku`/
   `fable` ; un hint « ollama/… », « gpt-4o »… présumé non-Claude) : CC ne peut pas s'y basculer,
   donc ni vigie ni `/model` (lot #55). Fail-open total (backlog absent, transcript illisible,
-  aucun lot en cours ou sans `model_hint` → silence, jamais de blocage).
-- **Coût réel par lot** (`backlog.js: addCost`, lot #43) : `stop.js` agrège chaque tour les
-  **tokens de sortie** du tour (`turnstats.computeTurn().out`) sur le lot `in_progress`, dans
-  le champ `cost_tokens` du lot lui-même — donc **agrégat trans-session** (porté par le lot,
+  aucune US en cours ou sans `model_hint` → silence, jamais de blocage).
+- **Coût réel par US** (`backlog.js: addCost`, lot #43) : `stop.js` agrège chaque tour les
+  **tokens de sortie** du tour (`turnstats.computeTurn().out`) sur l'US `in_progress`, dans
+  le champ `cost_tokens` de l'US elle-même — donc **agrégat trans-session** (porté par l'US,
   pas par l'état de session), figé de fait à la clôture et affiché par `backlog.js show`. La
   sortie est choisie plutôt que l'occupation car elle est **monotone, sommable et robuste à la
   compaction** (l'occupation est un instantané remis à zéro en session fraîche). Au-delà de
   `COST_WARN` (250k), `stop.js` émet un nudge `systemMessage` proposant un **redécoupage**
-  (budget `COST_BUDGET` = ~300k/lot, aligné sur la règle de découpe de `scope.md`), message
-  durci au-delà de 300k. Plafonné **1× par lot·session** (`cost_reminded_for_batch`, réarmé
-  quand le working tree redevient propre — nouveau lot). Fail-open dédié : une erreur
-  d'agrégation ne casse jamais la clôture. `cost_tokens` ne s'accumule que sur un lot
-  `in_progress` (un lot à faire/clos ne consomme pas) ; `addCost` est un no-op sur `tokens ≤ 0`.
+  (budget `COST_BUDGET` = ~300k/US, aligné sur la règle de découpe de `scope.md`), message
+  durci au-delà de 300k. Plafonné **1× par US·session** (`cost_reminded_for_batch`, réarmé
+  quand le working tree redevient propre — nouvelle US). Fail-open dédié : une erreur
+  d'agrégation ne casse jamais la clôture. `cost_tokens` ne s'accumule que sur une US
+  `in_progress` (une US à faire/close ne consomme pas) ; `addCost` est un no-op sur `tokens ≤ 0`.
 - **Coût des tours DÉLÉGUÉS** (`lib/subagentcost.js`, lot #119) : un sous-agent (outil Agent/Task)
   n'écrit pas dans le transcript de la session — Claude Code lui ouvre son propre fichier sous
   `<transcript sans .jsonl>/subagents/agent-<id>.jsonl` (vérifié sur transcripts réels : aucun
   `uuid` d'usage du sous-agent dans le transcript parent, aucune ligne `isSidechain` côté parent).
   `stop.js` ne scannant que le transcript de session, ce coût était **structurellement invisible** :
-  un lot mené en sous-agents sortait à `cost_tokens` ≈ 0. `computeSubagentCost(transcriptPath, sid)`
+  une US menée en sous-agents sortait à `cost_tokens` ≈ 0. `computeSubagentCost(transcriptPath, sid)`
   scanne ces fichiers avec la **même** méthode que `turnstats` (offset persisté **par fichier** dans
   `<sha1(sid)>-subagents.json` ; `parseUsage`/`scanRange` sont réutilisés, pas dupliqués) et rend le
   delta de sortie apparu depuis le Stop précédent — corpus **disjoint** du transcript parent, donc
@@ -411,85 +417,85 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   gardant leur offset. La part déléguée est **ventilée** dans `cost_subagent_tokens` (comprise dans
   `cost_tokens`, jamais en plus) et restituée par le trailer `PMZ-Cost` de `/close-batch`.
 - **À QUI imputer le coût — `backlog.js: costLotFor(b, sid)`** (lot #119) : `currentLot` répond
-  « quel lot **afficher** ? » et son erreur se voit ; l'imputation, elle, **fausse une mesure** en
-  silence. En vague, N lots sont `in_progress` en même temps et `currentLot` renvoyait le **premier
-  du tableau** : toutes les sessions créditaient le même lot (coût volé, et `estimateCost` empoisonné
-  pour les lots suivants). `costLotFor` est **pur** : un seul lot en cours → lui (y compris si son
+  « quelle US **afficher** ? » et son erreur se voit ; l'imputation, elle, **fausse une mesure** en
+  silence. En vague, N US sont `in_progress` en même temps et `currentLot` renvoyait le **premier
+  du tableau** : toutes les sessions créditaient la même US (coût volé, et `estimateCost` empoisonné
+  pour les US suivantes). `costLotFor` est **pur** : une seule US en cours → elle (y compris si son
   `session_owner` est celui d'une session antérieure — l'agrégat est explicitement trans-session) ;
   plusieurs → **celui dont `session_owner === sid`**, et **rien** si aucun ne correspond (un trou de
   mesure est visible et réparable, une imputation au hasard non). `stop.js` complète par un repli sur
   le **registre de vague** (`fleet.lotForSession`) quand le `session_owner` du backlog est périmé,
-  le lot n'étant retenu que s'il est réellement `in_progress` au backlog.
-- **Estimation prédictive du coût d'un lot** (`backlog.js: estimateCost(b, lot)`, lot #63) :
-  avant même qu'un lot n'ait consommé le moindre token, moyenne des `cost_tokens` des lots
+  l'US n'étant retenu que s'il est réellement `in_progress` au backlog.
+- **Estimation prédictive du coût d'une US** (`backlog.js: estimateCost(b, lot)`, lot #63) :
+  avant même qu'une US n'ait consommé le moindre token, moyenne des `cost_tokens` des US
   **clos** comparables — famille décroissante (1) `model_hint`+`effort_hint` (2) `model_hint`
-  seul (3) `epic` — `null` dès qu'aucune famille n'a de lot clos avec `cost_tokens > 0` (pas de
+  seul (3) `epic` — `null` dès qu'aucune famille n'a d'US close avec `cost_tokens > 0` (pas de
   chiffre fabriqué à partir de zéro échantillon). Affiché en texte par `scripts/backlog.js`
-  à la suite du message `add` (au `/scope`) **et** `start` (au démarrage réel du lot).
+  à la suite du message `add` (au `/scope`) **et** `start` (au démarrage réel de l'US).
 - **`depends_on` en SÉRIE — `nextLot` / `blockedByOf`** (lot #97) : `depends_on` n'était exploité
   que par le canal **parallèle** (`planWaves`, `planReintegration`) ; le flux série renvoyait le
-  premier `todo` **dans l'ordre du tableau**, donc pouvait proposer un lot avant sa dépendance — et
+  premier `todo` **dans l'ordre du tableau**, donc pouvait proposer une US avant sa dépendance — et
   l'auto-clôture propageait cette proposition aveugle. `nextLot(b)` renvoie désormais le premier
   `todo` **débloqué** ; `blockedByOf(b, lot)` (pur) donne les dépendances encore **ouvertes**.
-  Sémantique alignée sur `planWaves` : une dépendance ne bloque que si elle pointe un lot
+  Sémantique alignée sur `planWaves` : une dépendance ne bloque que si elle pointe une US
   **présent** au statut `todo`/`in_progress` — `done`, `dropped` ou id inconnu = **satisfaite**
-  (sans cette tolérance, un `depends_on` vers un lot abandonné gèlerait le plan pour toujours).
-  Deux invariants : (1) le marqueur n'est **jamais persisté** (aucune annotation de l'objet lot —
+  (sans cette tolérance, un `depends_on` vers une US abandonnée gèlerait le plan pour toujours).
+  Deux invariants : (1) le marqueur n'est **jamais persisté** (aucune annotation de l'objet US —
   un `saveBacklog` l'écrirait dans `backlog.json`), il se calcule à la volée, ce qui le rend sûr
   pour les consommateurs chauds (`statusline` à chaque refresh) ; (2) **jamais `null` tant qu'il
   reste des `todo`** — sur cycle, on renvoie quand même le premier avec son marqueur, sinon
-  la carte de clôture annoncerait « Plan de lots terminé » à tort. La **forme de retour reste un lot
+  la carte de clôture annoncerait « Plan des US terminé » à tort. La **forme de retour reste un objet US
   nu** : les 8 consommateurs de `nextLot` gardent leur contrat et affichent le marqueur là où il y
   a la place (`stop`, `session-start`, CLI `next`, `about`, `audit-batch`, `⚠` en statusline).
 - **Parallélisation gouvernée — schéma backlog v2** (lot #76, épic « Vagues parallèles », 1ʳᵉ
-  brique de la décision [D3](docs/decisions/D3-parallelisation-gouvernee.md)) : chaque lot porte
+  brique de la décision [D3](docs/decisions/D3-parallelisation-gouvernee.md)) : chaque US porte
   trois champs **inertes tant qu'aucune vague n'est active** — `perimeter` (globs de chemins que
-  le lot a le droit de modifier), `depends_on` (ids de lots, ordre de réintégration) et
-  `session_owner` (session qui tient le lot en cours). `startLot(root, id, sessionOwner)` a deux
-  régimes : **classique** (owner absent ou lot sans périmètre) = au plus un `in_progress`, les
-  autres rétrogradent (comportement historique **strictement** préservé) ; **fleet** (owner + lot
-  avec périmètre) = les lots en cours d'une **autre** session et de **périmètre disjoint**
+  l'US a le droit de modifier), `depends_on` (ids d'US, ordre de réintégration) et
+  `session_owner` (session qui tient l'US en cours). `startLot(root, id, sessionOwner)` a deux
+  régimes : **classique** (owner absent ou US sans périmètre) = au plus un `in_progress`, les
+  autres rétrogradent (comportement historique **strictement** préservé) ; **fleet** (owner + US
+  avec périmètre) = les US en cours d'une **autre** session et de **périmètre disjoint**
   coexistent, seuls les conflictuels rétrogradent. La disjonction de périmètres vit dans
   `lib/perimeter.js` (normalisation + `disjoint`, matching **conservateur** au niveau des préfixes
   statiques ; l'appartenance d'un fichier à un périmètre = lot #78). `reconcile` préserve une
   vague valide (coexistence 2 à 2) mais répare tout multi-`in_progress` invalide.
   **Zone partagée additive** (`perimeter.SHARED_SEGMENTS` / `isShared`, lot #119) : les globs dont le
   premier segment est `test`/`tests`/`__tests__`/`spec` sont **retirés du test de disjonction**. Sans
-  cette exception, `test/**` — présent dans presque tous les périmètres, par construction (un lot
-  livre ses tests) — rendait **toute** paire de lots non disjointe et sérialisait la vague entière :
-  un lot par vague, la parallélisation annulée en silence. Deux garde-fous : un périmètre réduit à la
+  cette exception, `test/**` — présent dans presque tous les périmètres, par construction (une US
+  livre ses tests) — rendait **toute** paire d'US non disjointe et sérialisait la vague entière :
+  une US par vague, la parallélisation annulée en silence. Deux garde-fous : un périmètre réduit à la
   **seule** zone partagée redevient vide donc **non disjoint** (pas de coexistence sur « chacun ses
   tests »), et `memberVerdict` est **inchangé** (une fille garde le droit d'écrire dans son
   `test/**`). Compromis assumé et **annoncé** par `/pmz:parallelize` : le conflit de merge y est
-  attendu, et c'est la réintégration en pipeline qui l'annule en nommant le lot coupable.
+  attendu, et c'est la réintégration en pipeline qui l'annule en nommant l'US coupable.
 - **Registre de vague — `fleet.json`** (lot #77, épic « Vagues parallèles », 2ᵉ brique de
   [D3](docs/decisions/D3-parallelisation-gouvernee.md)) : `.vibe-agent/fleet.json` est l'état
   **partagé** d'une vague — le handoff commun (pas de duplication du handoff par session). Géré
-  par `lib/fleet.js` (JSON plat via `lib/fsjson`, zéro dépendance). Une entrée par lot en vol :
+  par `lib/fleet.js` (JSON plat via `lib/fsjson`, zéro dépendance). Une entrée par US en vol :
   `{ id, session_owner, branch, worktree, perimeter, state, ext_requests }` où `state ∈ in_flight |
   ready | reintegrated` et `ext_requests` = demandes d'extension de périmètre tracées (lot #78,
   cf. « Garde de périmètre ») ; plus, au niveau vague, `wave_id` et la **tête de la branche d'intégration**
   (`integration_branch` + `integration_head`, dont l'avance est le futur déclencheur de rebase).
   **Inerte par défaut** : sans fichier, `loadFleet().active === false` et les sessions restent
-  autonomes (mono-session inchangé). **Fail-open absolu** : fichier absent / JSON corrompu / lot
+  autonomes (mono-session inchangé). **Fail-open absolu** : fichier absent / JSON corrompu / US
   sans `session_owner` → vague désactivée, jamais d'exception (un fleet cassé rend la session
-  autonome, il ne la gêne jamais). Mutations **par lot** (`upsertLot`/`setLotState`/`removeLot`/
+  autonome, il ne la gêne jamais). Mutations **par US** (`upsertLot`/`setLotState`/`removeLot`/
   `setIntegrationHead`) en lecture-modification-écriture atomique (temp+rename) pour réduire les
   fenêtres de course ; la perte-de-MàJ résiduelle est assumée au palier 2 (lancement manuel).
   `session-start.js` injecte les lignes **courtes** de `fleetLines(root, sessionId)` (périmètre
   exclusif + **consigne sous-agents** — le garde-fou d'écriture ne couvre que la session
   propriétaire, pas ses sous-agents Task/Agent qui écrivent sous un autre `session_id`, donc elle
-  doit leur transmettre le périmètre (lot #87) — + branche + tête d'intégration + nb de lots
+  doit leur transmettre le périmètre (lot #87) — + branche + tête d'intégration + nb d'US
   sœurs, `< 10` lignes) — et **uniquement**
-  si la session tient un lot en vol ; sinon silence total. Deux points d'ancrage : au
+  si la session tient une US en vol ; sinon silence total. Deux points d'ancrage : au
   **startup/clear** (via `withFleet`, en plus de MSG_ACTIF/handoff) **et après compaction** (bloc
   **prioritaire** de `compactResumeMessage`, placé en 2ᵉ position pour survivre au rognage du cap —
   c'est là que la garantie de périmètre compte le plus, le contexte compacté ayant perdu la
   contrainte « ne modifie que X »). Le hook installé v1.3.0 **ignore** ces champs : sans impact tant qu'aucune vague n'est
   posée, mais la 1ʳᵉ vague réelle exigera un redéploiement du plugin.
   **Écriture outillée du registre** (lot #99, FIA-21 ; `leave` au lot #100) : `backlog.js fleet join|ready|leave|show`
-  enveloppe `upsertLot`/`setLotState`/`loadFleet`. Avant, s'inscrire dans la vague ou passer un
-  lot « prêt » se faisait **à la main dans le JSON** : une faute de frappe et `loadFleet`
+  enveloppe `upsertLot`/`setLotState`/`loadFleet`. Avant, s'inscrire dans la vague ou passer une
+  US « prête » se faisait **à la main dans le JSON** : une faute de frappe et `loadFleet`
   (fail-open, contrat hooks) désactivait TOUTE la vague **en silence** — garde de périmètre et
   injection éteintes sans un mot. Comme c'est une **commande** et non un hook, les refus sont
   explicites (`--id` absent, `--state` hors `STATES`, propriétaire introuvable, fleet illisible)
@@ -497,15 +503,15 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   `session-state.json` (l'assistant n'a aucun autre moyen de connaître le sien) — repli **fiable
   seulement après le 1er SessionStart**, avant quoi le fichier porte encore l'id de la session
   *précédente* : le lot #100 rend donc ce repli **visible** (mention « session DÉDUITE » dans la
-  sortie) et le **refuse** quand l'id déduit tient déjà un autre lot en vol, symptôme direct de
+  sortie) et le **refuse** quand l'id déduit tient déjà une autre US en vol, symptôme direct de
   l'id périmé (avec `--session` explicite, aucune de ces deux gardes ne s'applique). `fleet leave
   --id` (lot #100) est la réciproque de `join` : retire l'entrée du registre **et** son
   `handoff-lot-<id>.md`, sans toucher au backlog — quitter la vague ne fait que rendre la session
-  autonome (plus de garde de périmètre, plus d'injection), le lot reste au plan. `fleet show`
+  autonome (plus de garde de périmètre, plus d'injection), l'US reste au plan. `fleet show`
   **distingue** « absent » de « JSON corrompu » — que `loadFleet` confond — en lisant le fichier
   **avant** tout `loadFleet` (`readJson` met un JSON invalide en quarantaine dès la 1ʳᵉ lecture) :
   le fail-open des hooks reste muet, le diagnostic passe par la commande.
-  **Purge de fin de vague** (lot #99, FIA-20) : `lotForSession` ignore les lots `reintegrated` —
+  **Purge de fin de vague** (lot #99, FIA-20) : `lotForSession` ignore les US `reintegrated` —
   sans ce filtre l'ex-fille restait **bridée** par la garde de périmètre et recevait une injection
   périmée « tu tiens le lot #X (état : reintegrated) ». Et à la clôture, `runPipeline` **range** :
   `fleet.clearWave` (vidage en UNE écriture — une boucle `removeLot` ferait N fenêtres de course)
@@ -515,21 +521,21 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   **Purge d'une vague ABANDONNÉE** (lot #101, dette #100) : `purgeLotHandoffs` n'était appelé que
   par `closeWave` (réintégration réussie) ou `fleet leave` — une vague redevenue inerte par un
   autre chemin (`clearWave` direct, reset manuel) laissait ses `handoff-lot-*.md` orphelins pour
-  toujours. `handoff.purgeOrphanLotHandoffs(root)` détecte ce cas (fleet inactif + fichiers de lot
+  toujours. `handoff.purgeOrphanLotHandoffs(root)` détecte ce cas (fleet inactif + fichiers d'US
   encore présents) et purge alors tout ; no-op si la vague est encore en vol. Câblé au
   `SessionStart` (`startup`/`clear`, projet initialisé) : rangement muet, jamais dans le message
   injecté — un simple point de passage garanti suffit, pas besoin d'un job dédié.
   **`fleet.waveHandoffLines(root)`** (lot #91) : pointeur d'**une** ligne pour la session
   **orchestratrice** (pas d'inscription dans la vague, contrairement à `fleetLines` ci-dessus) —
-  wave_id + décompte de lots + renvoi vers `/pmz:parallelize`, jamais le plan complet (celui-ci
+  wave_id + décompte d'US + renvoi vers `/pmz:parallelize`, jamais le plan complet (celui-ci
   se recalcule depuis le backlog, cf. « Plan de vagues » plus bas). Intégré par
   `handoff.writeAutoHandoff` juste après la branche (survit à la troncature 6000c). `[]` si
   vague inactive.
 - **Garde de périmètre — PreToolUse mode fleet-fille** (lot #78, 3ᵉ brique de
   [D3](docs/decisions/D3-parallelisation-gouvernee.md)) : `pre-tool-use.js` s'étend à
   `Edit`/`Write`/`MultiEdit` **pour le seul test d'appartenance au périmètre**, et **uniquement**
-  quand une vague est active ET que la session courante y tient un lot (« session fille »). Hors
-  vague, session non inscrite, ou lot sans périmètre déclaré : **zéro friction** (le chemin Bash
+  quand une vague est active ET que la session courante y tient une US (« session fille »). Hors
+  vague, session non inscrite, ou US sans périmètre déclaré : **zéro friction** (le chemin Bash
   et le mode `acceptEdits` restent inchangés). Le verdict s'appuie sur `fleet.lotForSession` +
   `perimeter.memberVerdict(globs, filePath, root)`, à trois issues **conservatrices** :
   `inside`/`unknown` → `allow` ; `outside` (chemin résolu CERTAINEMENT hors de tous les globs) →
@@ -540,14 +546,14 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   forker `git` à chaque écriture hors vague, `fleet.findFleetRoot(cwd)` court-circuite en
   remontant l'arbo (pur `fs`) — sans `.vibe-agent/fleet.json`, retour immédiat, aucun subprocess.
   `MultiEdit` est gardé au même titre qu'`Edit`/`Write` (même champ `file_path`) pour fermer le
-  contournement trivial ; `NotebookEdit` (champ distinct, rare ici) reste hors périmètre du lot.
+  contournement trivial ; `NotebookEdit` (champ distinct, rare ici) reste hors périmètre de l'US.
   **Demande d'extension tracée** : sur un `deny`, le hook appelle `fleet.requestExtension(root,
   id, relPath)`, qui note le chemin hors-zone (POSIX relatif, dédupliqué, capé) dans un champ
-  `ext_requests` de l'entrée du lot — trace **passive** pour l'orchestrateur (jamais un droit
+  `ext_requests` de l'entrée de l'US — trace **passive** pour l'orchestrateur (jamais un droit
   d'écriture : l'écriture reste refusée). L'appel est **best-effort** (try/catch, jamais
   bloquant), idempotent (même chemin déjà tracé → pas de réécriture), et no-op hors fleet actif.
   **Remontée à l'orchestrateur** (lot #87) : `fleet.pendingExtensions(root)` agrège ces demandes
-  par lot (`{ id, title, paths }`, lots sans demande écartés) et `/reintegrate` (proposition, texte
+  par US (`{ id, title, paths }`, US sans demande écartées) et `/reintegrate` (proposition, texte
   + `--json.extensions`) les **affiche pour arbitrage avant merge** — la friction cesse d'être une
   simple trace dans le fichier, elle devient visible là où l'orchestrateur décide d'élargir ou non.
 - **Bridge RTK — réécriture de commande sûre** (lot #81, 1re brique de l'epic « Bridge RTK ») :
@@ -595,8 +601,8 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   reste préservé intact) — OpenCode/Codex restent à traiter manuellement (formats tiers).
   Commande `/pmz:rtk [status|enable|disable|migrate]` → `scripts/rtk.js`.
 - **Métrologie honnête des gains RTK** (lot #83, 3ᵉ brique de l'epic « Bridge RTK ») :
-  `lib/rtk-metrics.js` rattache au lot clos une mesure du travail confié à RTK, **avec son niveau
-  de preuve** — jamais une valeur inventée (contrainte cardinale du lot). Trois niveaux :
+  `lib/rtk-metrics.js` rattache à l'US close une mesure du travail confié à RTK, **avec son niveau
+  de preuve** — jamais une valeur inventée (contrainte cardinale de l'US). Trois niveaux :
   (1) **`measured`** = chiffres issus de RTK lui-même (sorties brutes vs transmises → économie
   réelle + ratio). Couture **activée depuis le lot #117** : `rtk-metrics.rtkGainSnapshot()`
   interroge le contrat CLI **confirmé** `rtk gain -p -f json` (RTK 0.43.0 ; `-p` filtre au projet
@@ -610,95 +616,98 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   (`PMZ_STATE_DIR/rtk-metrics.json`, survit aux updates) des commandes **effectivement réécrites**
   + le volume de commande **livré** (tokens estimés du texte transmis). **Aucun `tokens_saved`
   ici** : la compression opère sur la SORTIE terminale, invisible du hook — on ne prétend donc à
-  aucune économie. (3) **rien** : aucune activité RTK sur le lot → aucun champ écrit, rien
-  d'affiché. **Attribution par lot** = delta du compteur (spec §11 : `snapshot_clôture −
+  aucune économie. (3) **rien** : aucune activité RTK sur l'US → aucun champ écrit, rien
+  d'affiché. **Attribution par US** = delta du compteur (spec §11 : `snapshot_clôture −
   snapshot_démarrage`) : `pre-tool-use.js` incrémente le compteur **uniquement** quand une
   réécriture est réellement livrée (rare, default OFF) ; `backlog.startLot` fige le snapshot de
-  démarrage sur le lot (`integrations.command_optimizer.snapshot_start`, transitoire),
+  démarrage sur l'US (`integrations.command_optimizer.snapshot_start`, transitoire),
   `backlog.doneLot` calcule le delta et **fige le gain final** (le snapshot transitoire est retiré ;
   aucun champ si le delta est nul). Le champ **`integrations` est optionnel et rétro-compatible** :
-  les lots legacy sans lui restent lus sans crash, et un lot clos sans activité RTK n'écrit rien
+  les US legacy sans lui restent lus sans crash, et une US close sans activité RTK n'écrit rien
   (choix assumé, **divergent de la suggestion `evidence: unavailable` de la spec §11** : « rien »
   est préféré au bruit, RTK étant default OFF → la quasi-totalité des clôtures n'a pas d'activité).
   **Imprécision assumée** : en vague parallèle (plusieurs `in_progress`), le compteur global ne
-  sait pas imputer une réécriture à un lot précis — d'où le nom `local` (preuve faible, étiquetée).
+  sait pas imputer une réécriture à une US précise — d'où le nom `local` (preuve faible, étiquetée).
   **Bilan de clôture** (`scripts/close-batch.js`) : bloc « Gain RTK » calculé **en direct** depuis
-  le snapshot de démarrage + le compteur courant (le lot n'est pas encore clos), via
+  le snapshot de démarrage + le compteur courant (l'US n'est pas encore close), via
   `rtk-metrics.gainLines` ; rien si aucune preuve. **Export** (`backlog.exportCsv/Markdown`) :
   4 colonnes dérivées ajoutées — `command_optimizer_provider`, `command_tokens_saved`
   (mesuré seulement), `command_saving_ratio` (mesuré seulement), `command_evidence` — vides pour
-  un lot sans métrologie. **Tableau de bord** (lot #117, `scripts/dashboard.js`) : section « Gain
-  RTK par lot » lue directement depuis `backlog.json` (indépendante de la fenêtre de transcripts
-  des autres sections) — un lot clos sans preuve RTK est absent de la liste (jamais affiché à
+  une US sans métrologie. **Tableau de bord** (lot #117, `scripts/dashboard.js`) : section « Gain
+  RTK par US » lue directement depuis `backlog.json` (indépendante de la fenêtre de transcripts
+  des autres sections) — une US close sans preuve RTK est absente de la liste (jamais affichée à
   zéro), le niveau de preuve (`measured`/`local`) est toujours affiché à côté du chiffre.
-- **Champ `us` : pointeur US vérifié** (lot #101, epic « US & Jira ») : un lot peut porter un
-  **chemin** (relatif à la racine du dépôt, `MAX_US=200`) vers une User Story détaillée —
-  persona/besoin/bénéfice, critères d'acceptation numérotés, hors-périmètre — jamais son
-  **contenu** : même pattern « résumé court + fichier référencé » déjà imposé pour un
-  scope/note qui déborde. Gabarit : `promptimizer/templates/us-template.md` (part tel quel
-  dans le canal plugin). CLI : `add --us docs/us/US-42.md` avec **garde d'existence doublée**
-  (refus explicite côté CLI *et* revalidation dans `addLot` — défense en profondeur) : un
-  chemin introuvable est refusé, jamais avalé — un pointeur mort serait pire qu'aucune US.
-  `show`/`export` réaffichent le pointeur tel quel (`[US : …]`, colonne `us`) ; vide, jamais
-  inventé, pour un lot sans US. `/pmz:scope` **statue** sur l'US de chaque lot (chemin existant
-  ou « pas d'US » assumé), jamais en silence — et n'invente jamais de chemin : US pas encore
-  rédigée → l'écrire d'abord dans le dépôt, sinon omettre `--us`.
-- **Commande `us` : gabarit généré + pointeur éditable** (lot #106, epic « Formalisation US ») :
-  `add --us` (#101) était l'unique porte d'entrée du champ et **supposait l'US déjà rédigée** —
-  un lot créé sans elle ne pouvait en recevoir une qu'en éditant `backlog.json` à la main, hors
-  gardes. Trois régimes, sur le modèle exact de `verify` : sans flag → **lecture** du pointeur
-  (le fichier US n'est jamais ouvert : coût de contexte nul) ; `--new` → pose
-  `docs/us/US-<id>.md` depuis le gabarit **et** rattache le pointeur dans le même geste
-  (`backlog.createUsFile`) ; `--set <chemin>` → rattache une US écrite ailleurs
-  (`backlog.setUs`, **même garde d'existence** qu'`addLot`). Décisions :
-  **chemin conventionnel sans slug de titre** (`usPathFor` → `docs/us/US-<id>.md`) — un titre
-  bouge, le chemin resterait faux ; **refus doux si le fichier existe** — la commande *génère*,
-  elle n'écrase jamais une US rédigée, et le refus propose `--set` comme issue ;
-  **lot clos = lecture seule** (une US écrite après la clôture ne gouverne plus rien) ;
-  **gabarit résolu depuis le code** (`lib/backlog.js` → `../templates/us-template.md`), jamais
-  depuis le dépôt utilisateur — il part tel quel dans les deux canaux d'install. Le gabarit
-  (`templates/us-template.md`) est **enrichi et sobre** : jetons `{{ID}}`/`{{TITRE}}`/`{{EPIC}}`
-  substitués au rendu, sections Récit / Critères d'acceptation / Hors périmètre / Preuve de
-  clôture / Notes, et une borne explicite (**< 60 lignes** — au-delà, ce n'est pas une US mal
-  rédigée, c'est un lot à redécouper).
-- **Validation de structure de l'US à la clôture** (lot #107, epic « Formalisation US ») : la
-  commande `us` (lot #106) pose un pointeur mais ne garantit rien sur ce qui est écrit derrière —
-  une US pouvait être rattachée puis vidée à la main sans que rien ne le remarque avant la
-  clôture du lot. `lib/backlog.js#checkUsStructure` vérifie la présence des **titres** des 5
-  sections obligatoires du gabarit (Récit, Critères d'acceptation, Hors périmètre, Preuve de
-  clôture, Notes) dans le fichier pointé — jamais le **contenu** d'un critère (un « ... » resté
-  en l'état reste un problème de rédaction humaine, hors de portée d'une garde syntaxique).
-  `done` refuse en **refus doux** (message actionnable listant les sections manquantes, aucun
-  fail-hard, aucun blocage de session) si le lot pointe vers une US incomplète ;
-  `--allow-incomplete-us` débloque une clôture assumée malgré tout, sur le modèle exact
-  d'`--allow-no-gate`. Un lot sans pointeur `us` n'est pas concerné (aucune régression sur le cas
-  majoritaire) ; un fichier illisible est traité comme « pas de vérification possible », pas
-  comme un refus (`checkUsStructure` retourne `null`, fail-silent).
-- **`/pmz:scope` rédige l'US, ne la laisse plus « à remplir à la main »** (lot #126, epic
-  « Sessions courtes ») : jusqu'ici, un lot dont l'US restait à créer se voyait poser le
-  gabarit vierge (`us --id <id> --new`) sans que son contenu ne soit jamais rédigé par la
+- **Champ `spec` (ex-`us`) : pointeur de spec vérifié** (lot #101, epic « US & Jira » ; renommé
+  `us` → `spec` le 2026-10-12) : une US du backlog peut porter un **chemin** (relatif à la racine
+  du dépôt, `MAX_SPEC=200`) vers une **spec détaillée** de cette US — persona/besoin/bénéfice,
+  critères d'acceptation numérotés, hors-périmètre — jamais son **contenu** : même pattern
+  « résumé court + fichier référencé » déjà imposé pour un scope/note qui déborde. **Renommage
+  2026-10-12** : depuis que « US » désigne l'item du backlog à l'affichage, garder `us` pour le
+  pointeur aurait fait dire « l'US de l'US » ; le champ devient `spec` (`add --spec`, alias
+  déprécié `--us` ; sous-commande `spec`, alias `us` ; affichage `[Spec : …]` ; colonne d'export
+  `spec`) et les backlogs existants portant `us` sont **migrés au chargement**. Gabarit :
+  `promptimizer/templates/spec-template.md` (ex-`us-template.md`, part tel quel dans le canal
+  plugin). CLI : `add --spec docs/specs/SPEC-42.md` avec **garde d'existence doublée** (refus
+  explicite côté CLI *et* revalidation dans `addLot` — défense en profondeur) : un chemin
+  introuvable est refusé, jamais avalé — un pointeur mort serait pire qu'aucune spec.
+  `show`/`export` réaffichent le pointeur tel quel (`[Spec : …]`, colonne `spec`) ; vide, jamais
+  inventé, pour une US sans spec. `/pmz:scope` **statue** sur la spec de chaque US (chemin
+  existant ou « pas de spec » assumé), jamais en silence — et n'invente jamais de chemin : spec
+  pas encore rédigée → l'écrire d'abord dans le dépôt, sinon omettre `--spec`.
+- **Commande `spec` (ex-`us`) : gabarit généré + pointeur éditable** (lot #106, epic
+  « Formalisation US ») : `add --spec` (#101) était l'unique porte d'entrée du champ et
+  **supposait la spec déjà rédigée** — une US créée sans elle ne pouvait en recevoir une qu'en
+  éditant `backlog.json` à la main, hors gardes. Trois régimes, sur le modèle exact de `verify` :
+  sans flag → **lecture** du pointeur (le fichier de spec n'est jamais ouvert : coût de contexte
+  nul) ; `--new` → pose le fichier de spec conventionnel depuis le gabarit **et** rattache le
+  pointeur dans le même geste ; `--set <chemin>` → rattache une spec écrite ailleurs (**même
+  garde d'existence** qu'`addLot`). Décisions : **chemin conventionnel sans slug de titre**
+  (dérivé de l'id seul) — un titre bouge, le chemin resterait faux ; **refus doux si le fichier
+  existe** — la commande *génère*, elle n'écrase jamais une spec rédigée, et le refus propose
+  `--set` comme issue ; **US close = lecture seule** (une spec écrite après la clôture ne
+  gouverne plus rien) ; **gabarit résolu depuis le code** (`lib/backlog.js` →
+  `../templates/spec-template.md`), jamais depuis le dépôt utilisateur — il part tel quel dans
+  les deux canaux d'install. Le gabarit est **enrichi et sobre** : jetons
+  `{{ID}}`/`{{TITRE}}`/`{{EPIC}}` substitués au rendu, sections Récit / Critères d'acceptation /
+  Hors périmètre / Preuve de clôture / Notes, et une borne explicite (**< 60 lignes** — au-delà,
+  ce n'est pas une spec mal rédigée, c'est une US à redécouper).
+- **Validation de structure de la spec à la clôture** (lot #107, epic « Formalisation US ») : la
+  commande `spec` (lot #106) pose un pointeur mais ne garantit rien sur ce qui est écrit
+  derrière — une spec pouvait être rattachée puis vidée à la main sans que rien ne le remarque
+  avant la clôture de l'US. `lib/backlog.js` vérifie la présence des **titres** des 5 sections
+  obligatoires du gabarit (Récit, Critères d'acceptation, Hors périmètre, Preuve de clôture,
+  Notes) dans le fichier pointé — jamais le **contenu** d'un critère (un « ... » resté en l'état
+  reste un problème de rédaction humaine, hors de portée d'une garde syntaxique). `done` refuse
+  en **refus doux** (message actionnable listant les sections manquantes, aucun fail-hard, aucun
+  blocage de session) si l'US pointe vers une spec incomplète ; un flag `--allow-incomplete-spec` (alias déprécié `--allow-incomplete-us`)
+  débloque une clôture assumée malgré tout, sur le modèle exact d'`--allow-no-gate`. Une US sans
+  pointeur `spec` n'est pas concernée (aucune régression sur le cas majoritaire) ; un fichier
+  illisible est traité comme « pas de vérification possible », pas comme un refus (fail-silent).
+- **`/pmz:scope` rédige la spec, ne la laisse plus « à remplir à la main »** (lot #126, epic
+  « Sessions courtes ») : jusqu'ici, une US dont la spec restait à créer se voyait poser le
+  gabarit vierge (`spec --id <id> --new`) sans que son contenu ne soit jamais rédigé par la
   commande — le gabarit portait littéralement la consigne « à remplir à la main », reportant la
   rédaction hors du flux de découpe. `commands/scope.md` demande désormais de **rédiger** le
   contenu (récit, critères d'acceptation, hors-périmètre) dès l'étape 1, de le faire **valider**
   dans la même question que le découpage (étape 2), puis de l'**écrire explicitement** (Edit)
   dans le fichier posé par `--new` à l'étape 4 — le gabarit n'est jamais laissé vide. Pas de
-  changement côté `lib/backlog.js`/CLI : `us --new` continue de poser le gabarit brut (utile
+  changement côté `lib/backlog.js`/CLI : `spec --new` continue de poser le gabarit brut (utile
   hors flux `/scope`), seul le prompt `/pmz:scope` change de comportement.
-- **Pointeur `us` dans la fiche d'archive** (lot #103, epic « US & Jira ») : fait remonter `us`
-  (#101) jusqu'à la seule surface de clôture qui l'ignorait — deux lignes (en-tête + section
-  « Liens ») dans `ficheSkeleton` (`lib/archive.js`, tier 1, lot #95), toujours **conditionnel** :
-  un lot sans US ne produit aucune ligne. En corrigeant ce lot, un bug pré-existant a été trouvé
-  et réparé : `audit-batch.js#backlogSummary().current` ne portait ni `epic` ni `us` du lot réel
-  (projection partielle depuis le lot #95) — la fiche affichait `epic : —` pour *tout* lot en
-  cours, jamais remarqué faute de test dédié sur ce champ.
+- **Pointeur `spec` dans la fiche d'archive** (lot #103, epic « US & Jira ») : fait remonter le
+  pointeur (#101) jusqu'à la seule surface de clôture qui l'ignorait — deux lignes (en-tête +
+  section « Liens ») dans `ficheSkeleton` (`lib/archive.js`, tier 1, lot #95), toujours
+  **conditionnel** : une US sans spec ne produit aucune ligne. En corrigeant cette US, un bug
+  pré-existant a été trouvé et réparé : `audit-batch.js#backlogSummary().current` ne portait ni
+  `epic` ni le pointeur de l'US réelle (projection partielle depuis le lot #95) — la fiche
+  affichait `epic : —` pour *toute* US en cours, jamais remarqué faute de test dédié sur ce champ.
 - **Pointeur Jira retiré** (lot #105, epic « Formalisation US ») : `integrations.jira`, la
   commande `jira --id N [--set KEY]`, le trailer `PMZ-Jira` et la colonne d'export `jira_key`
   (posés lots #102-#103) ont été retirés — jamais de connectivité Jira réelle derrière, donc pas
   de valeur d'usage constatée pour un simple pointeur inerte, et son maintien coûtait de la doc
   et du code à relire sans contrepartie. Cf. décision « Frontière Jira : écarté » ci-dessous pour
-  le pourquoi complet (inchangé) et « Maille User Story : non » pour le pointeur `us`, qui lui
-  reste en place.
-- **RTK visible dans le verbe PMZ** (lot #86, epic « Verbe & Vagues ») : avant ce lot, seul
+  le pourquoi complet (inchangé) et « Maille User Story : non » pour le pointeur `spec` (ex-`us`),
+  qui lui reste en place.
+- **RTK visible dans le verbe PMZ** (lot #86, epic « Verbe & Vagues ») : avant cette US, seul
   `/pmz:rtk` montrait l'état du bridge — invisible du reste du verbe. `lib/messages.js` expose
   deux primitives pures, réutilisant les 5 états de `rtk-status.computeStatus()` :
   `rtkStatusLine(status, cumulative)` (surface **explicite** — `/pmz:about`, `/pmz:budget` — 
@@ -707,7 +716,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   à l'état absent, zéro bruit sur l'immense majorité des sessions qui n'ont pas RTK installé ;
   1 ligne pointant `/pmz:rtk` sur les 4 états notables). `scripts/about.js` et
   `scripts/audit-context.js` (support `/pmz:budget`) affichent désormais l'état + le compteur
-  cumulé de commandes réécrites (`rtk-metrics.snapshot()`, jamais le « gain » d'un lot — cf. lot
+  cumulé de commandes réécrites (`rtk-metrics.snapshot()`, jamais le « gain » d'une US — cf. US
   #83 — un simple cumul). `hooks/session-start.js` ajoute la ligne courte au même point que le
   rappel `MSG_ACTIF`/`MSG_ACTIF_SLIM` (1×/session, anti-spam). Best-effort strict partout : une
   panne RTK (binaire, fs) ne fait jamais échouer ces surfaces, elle fait juste disparaître la ligne.
@@ -720,7 +729,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   `lib/output-fallback.js` + branche `Bash` de `post-tool-use.js`. Filet **générique** quand RTK est
   absent — pas un remplacement fonctionnel de RTK. C'est un hook **PostToolUse (sortie)**, distinct
   du bridge RTK qui, lui, réécrit l'**entrée** en PreToolUse. **Spike gate levé d'abord** (contrainte
-  du lot) : le champ **`updatedToolOutput`** est confirmé côté doc Claude Code (« PostToolUse decision
+  de l'US) : le champ **`updatedToolOutput`** est confirmé côté doc Claude Code (« PostToolUse decision
   control ») — il **remplace** la sortie du tool, la valeur **doit matcher la shape du tool** (Bash =
   objet `{stdout,stderr,interrupted,isImage,noOutputExpected}`), et un objet **non conforme est
   ignoré** (sortie originale conservée) → fail-open natif de la plateforme. `reduceBashOutput` ne
@@ -741,12 +750,12 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **Plan de vagues — `pmz:parallelize`** (lot #79, 4ᵉ brique de
   [D3](docs/decisions/D3-parallelisation-gouvernee.md)) : `backlog.planWaves(b)` (fonction
   **pure** : ne lit/écrit rien, ne lance rien) calcule un plan de vagues parallèles à partir des
-  lots « à faire ». Une **vague** = un groupe de lots aux **périmètres disjoints deux à deux**
+  US « à faire ». Une **vague** = un groupe d'US aux **périmètres disjoints deux à deux**
   (via `perimeter.disjoint`) dont toutes les `depends_on` sont satisfaites par une vague antérieure
-  ou un lot déjà fait ; layering glouton (au moins un lot placé par tour → terminaison garantie).
+  ou une US déjà faite ; layering glouton (au moins une US placée par tour → terminaison garantie).
   **Deux règles cardinales, fail-safe** : les périmètres qui se **chevauchent** ne partagent jamais
   une vague (l'un est repoussé plus loin — *refus des intersections*) ; au moindre doute, hors
-  vague — lot sans périmètre → `unplannable`, lot dont une dépendance ne pourra jamais aboutir
+  vague — US sans périmètre → `unplannable`, US dont une dépendance ne pourra jamais aboutir
   (cycle, dépend d'un `unplannable`) → `blocked`. Retour `{ waves, unplannable, blocked }`.
   `backlog.waveBranch(lot)` dérive un nom de branche suggéré (`pmz/lot-<id>-<slug>`, slug ASCII
   borné, accents dépliés) — présentatif, réutilisé au lot #80. La CLI `scripts/backlog.js
@@ -756,54 +765,54 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **`/pmz:scope` propose le périmètre/dépendances au découpage** (fix 2026-07-20, ferme le
   dernier écart de D3 — le découpage pressenti listait 6 briques toutes livrées aux lots #76-80,
   mais `/scope` lui-même n'avait jamais été mis à jour pour s'en servir) : à la décomposition,
-  `commands/scope.md` propose désormais un périmètre par lot, durci au lot #85 en **réflexion
-  systématique** : chaque lot reçoit soit un périmètre proposé, soit « série » motivé en
+  `commands/scope.md` propose désormais un périmètre par US, durci au lot #85 en **réflexion
+  systématique** : chaque US reçoit soit un périmètre proposé, soit « série » motivé en
   quelques mots (jamais de silence, mais jamais non plus de périmètre deviné à l'aveugle — au
   doute, série assumé), le tout inclus dans l'unique question de validation déjà utilisée pour
-  modèle/effort/epic. Une fois les lots persistés, si ≥ 2 lots, le **verdict parallélisation
+  modèle/effort/epic. Une fois les US persistées, si ≥ 2 US, le **verdict parallélisation
   est toujours restitué** (lot #85) : sans opportunité réelle (aucune vague de
-  `parallelize --json` à ≥ 2 lots), une seule ligne motivée tirée de la sortie du script ; avec
+  `parallelize --json` à ≥ 2 US), une seule ligne motivée tirée de la sortie du script ; avec
   opportunité, plan affiché et **une** question à **3 choix** — tout parallèle / partiellement
   (PMZ propose le sous-ensemble cohérent, `depends_on` et disjonction respectés, le reste
   repasse en série) / série. Le lancement des sessions filles reste **manuel** dans tous les
   cas — aucun changement à la doctrine D3 palier 2, seule la découverte et la visibilité du
   raisonnement deviennent automatiques.
 - **Session maître — `pmz:epicmaster`** (lot #133, epic « Session maître ») : troisième voie
-  d'exécution d'un plan, entre la série classique (un lot par session) et la vague D3 (N sessions
-  réelles + `fleet.json`). Une **session fraîche qui ne code pas** lance les lots ouverts (todo +
+  d'exécution d'un plan, entre la série classique (une US par session) et la vague D3 (N sessions
+  réelles + `fleet.json`). Une **session fraîche qui ne code pas** lance les US ouvertes (todo +
   in_progress, une epic ou plusieurs) en **sous-agents** (outil Agent), chacun au **modèle + effort
-  préconisés par le lot**, et consolide. Validation humaine conservée (D3 palier 2, déplacée : on
-  confirme la **liste embarquée**, tous cochés, `--skip` pour décocher ; un lot dépendant d'un lot
+  préconisés par l'US**, et consolide. Validation humaine conservée (D3 palier 2, déplacée : on
+  confirme la **liste embarquée**, toutes cochées, `--skip` pour décocher ; une US dépendante d'une US
   décoché est **bloqué**, jamais contourné), lancement automatisé, zéro session fille ni worktree
   — donc **pas de `fleet join`** : la garde de périmètre protège une session, pas ses sous-agents ;
   le périmètre exclusif est transmis **dans le brief** et le maître commite **borné au périmètre**
   (`git add -- ':(glob)…'`). `lib/epicmaster.js` (pur, sauf `writeMasterHandoff`) :
   `selectLots` (ouverts, `--epic`/`--only`/`--skip`) → `groupByEpic` (ordre d'apparition, « sans
-  epic » en dernier) → `planMasterWaves` (même disjonction que `planWaves`, mais un lot **sans
+  epic » en dernier) → `planMasterWaves` (même disjonction que `planWaves`, mais une US **sans
   périmètre** n'est pas « non parallélisable » : il est **exclusif**, seul en vol dans sa vague ;
   dépendances honorées par les vagues antérieures) → `chunkWaves` (parallélisme = min(plafond
   `MAX_PARALLEL_DEFAULT` 4 / `--max-parallel` ≤ 8, capacité de la session)) → `contextBudget`
   (borne = min(zone rouge résolue par `occupancy.resolveRedZone` — rules.yaml honoré —, seuil
   « session fraîche » `BUCKETS[1]` = 300k, même seuil que le verdict de `/close-batch` #109) ;
-  capacité = (borne − socle 60k) / ~6k par lot délégué (brief + rapport ≤ 250 mots + clôture)) →
+  capacité = (borne − socle 60k) / ~6k par US déléguée (brief + rapport ≤ 250 mots + clôture)) →
   `splitSessions` (sessions maîtres successives si le plan dépasse) ; `masterModel` = opus dès
-  qu'un lot le préconise, sinon le modèle majoritaire, effort `medium` (le maître orchestre, il ne
+  qu'une US le préconise, sinon le modèle majoritaire, effort `medium` (le maître orchestre, il ne
   raisonne pas sur le code). CLI `scripts/backlog.js epicmaster` (`--json`, `--write-handoff`
   [+ `--handoff-file`], `--brief --id N`) **PROPOSE** et ne lance rien. `--write-handoff` pose un
-  handoff **manuel** (marqueur, < `MAX_INJECT_CHARS`, sans brief de lot — régénérable) : modèle à
+  handoff **manuel** (marqueur, < `MAX_INJECT_CHARS`, sans brief d'US — régénérable) : modèle à
   poser (`/model …`), vagues, borne, prochaine action `/epicmaster`. `--brief` rend le brief
-  **autonome** d'un lot (contrat : jamais de commit, pas de script PMZ, verify rejouée, rapport
+  **autonome** d'une US (contrat : jamais de commit, pas de script PMZ, verify rejouée, rapport
   ≤ 250 mots aux sections fixes Fait / Fichiers / Verify / Non vérifié / Dette / À trancher /
   Bloc CHANGELOG) + commandes maître : `start --owner "master/lot-<id>"` AVANT (owner **distinct
-  par lot**, sinon `startLot` en régime classique rétrograde le précédent), commit borné puis
+  par US**, sinon `startLot` en régime classique rétrograde le précédent), commit borné puis
   `done --verify-verdict` APRÈS. Vigilance contexte : arrêt à la capacité ou dès que le Stop
   prescrit une session fraîche, après la vague en cours — le backlog porte l'état, `/epicmaster`
-  reprend les lots restés ouverts (un lot `in_progress` orphelin est réembarqué, marqué « sera
+  reprend les US restées ouvertes (une US `in_progress` orpheline est réembarquée, marquée « sera
   repris »). Sortie : `templates/epicmaster-handoff.md` (livrés / ouverts / non vérifié / dette
   consolidée / à trancher). **`/pmz:scope` se termine systématiquement** par
-  `epicmaster --epic … --write-handoff` et **ne démarre plus de lot** (session de conception) ;
+  `epicmaster --epic … --write-handoff` et **ne démarre plus d'US** (session de conception) ;
   l'ancienne question à 3 choix (tout parallèle / partiel / série) disparaît, le verdict de
-  vagues restant toujours visible. Coût par lot non imputé au maître quand plusieurs lots sont en
+  vagues restant toujours visible. Coût par US non imputé au maître quand plusieurs US sont en
   vol (`costLotFor` : owners `master/lot-N` ≠ session) — trou de mesure visible, assumé, jamais une
   imputation au hasard.
 - **Packaging de la bande epicmaster** (lot #138) : `install.js` copie `promptimizer/` en entier,
@@ -830,11 +839,11 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **À trancher et tokens réels dans le fichier live** (lot #142) : `lib/epicmaster-live.js`
   (`recordNote(…, decide)`, `recordDone(…, verdict, tokens)`) et `scripts/backlog.js` (`liveRecord`,
   flag valeur `--tokens` déclaré dans `VALUE_FLAGS`). `note --decide` (owner `master/lot-*`
-  seulement) pose/remplace UNE entrée `to_decide:[{id,title,reason}]` par lot ; `done --tokens N`
+  seulement) pose/remplace UNE entrée `to_decide:[{id,title,reason}]` par US ; `done --tokens N`
   (N > 0, sinon ignoré) remplace l'estimation du semis par `tokens` réels, `tokens_basis:
   'measured'` (`comparable|base|measured`) — live uniquement, ne touche pas `cost_tokens` du
   backlog. `commands/epicmaster.md` orchestre `--live-seed` (après confirmation), `note --decide`,
-  `done --verify-verdict failed` (+ `reopen`, le lot reste ouvert au backlog) et `--tokens`. Test de
+  `done --verify-verdict failed` (+ `reopen`, l'US reste ouverte au backlog) et `--tokens`. Test de
   la bande sur un fichier produit par le vrai writer (`mods/epicmaster-band/tests/band.test.ts`).
 - **Bande immédiate et indépendante du dossier** : `register.tsx` arme l'atom `armedAt` sur `command.run`
   (`epicmaster`, `pmz:epicmaster`) et `prompt.submit` (`/epicmaster`) → ligne « plan en préparation… » sans
@@ -849,17 +858,24 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   copie unique partagée `promptimizer/epicmaster-live.json` (dernier écrivain gagnant : la bande d'un
   projet affichait le plan d'un autre) est supprimée à la première écriture. Best-effort ;
   `PMZ_NO_LIVE_MIRROR=1` coupe la copie (tests).
+- **Affichage manuel `/epicband`** (v2.9.1) : commande **locale** du mod (`$.command.register` dans
+  `session.start`, réponse `command.run` sans `next` → aucun appel au modèle). Arme la session avec
+  l'atom `manual` : `readLive` lève alors le filtre `seeded_at` (fichier local pris tel quel ; copie
+  globale = celle du projet courant via `liveSlug($PWD)`, sinon la plus récemment semée) et remet
+  `dismissed` à null. `/epicband plan` ouvre aussi le panneau Plan ; `/epicband off` désarme (`armedAt`,
+  `boundFile`, `manual`). Secours quand l'armement automatique rate (commande non vue, plan semé
+  avant, autre session).
 - **Bande par vagues + panneau Plan** : `seedFromPlan` sème `wave_plan` (`index`, `ids`, `parallel`,
-  `label` — `--wave-labels "1=…;2=…"` du maître, sinon titre du lot seul ou « N lots en parallèle ») et
-  le « fait quand » (`scope`) de chaque lot. La bande groupe les segments par vague (une espace entre
-  deux) ; dépliée, une ligne par vague `✓|⟳|⧗|✗ Vague N (#a, #b) · libellé` (état agrégé), les lots en
-  vol et rouges de la vague en cours indentés dessous ; sans `wave_plan` ni `wave` : lignes par lot
+  `label` — `--wave-labels "1=…;2=…"` du maître, sinon titre de l'US seul ou « N US en parallèle ») et
+  le « fait quand » (`scope`) de chaque US. La bande groupe les segments par vague (une espace entre
+  deux) ; dépliée, une ligne par vague `✓|⟳|⧗|✗ Vague N (#a, #b) · libellé` (état agrégé), les US en
+  vol et rouges de la vague en cours indentés dessous ; sans `wave_plan` ni `wave` : lignes par US
   (rétrocompatible). Bouton **Plan** (à gauche de Détails/Masquer, et sur le récap terminé) :
   `$.ui.open({ id: 'epicmaster-plan' })`, panneau rendu en `Markdown` par `planMarkdown` (une section
-  par vague, une puce par lot), suivi en direct par le même sondage.
-- **Titre de session maître** : `lot.titleForMasterSession` → « [XXX · Epicmaster] Epic · #a–#b » (plages
+  par vague, une puce par US), suivi en direct par le même sondage.
+- **Titre de session maître** : `lot.titleForMasterSession` → « [XXX · EP#a–#b] <nom de l'epic> » (plages
   compressées par `idRanges`). Le maître se renomme lui-même (`epicmaster --session-title`, outil de titre
-  `session_id: "self"`) ; `suggestedTitle` rend ce format pour une session précédente ayant clos ≥ 2 lots.
+  `session_id: "self"`) ; `suggestedTitle` rend ce format pour une session précédente ayant clos ≥ 2 US.
 - **Mise à jour à version égale** : `install-plugin.js` compare l'empreinte (sha256 chemins + contenus) du
   dossier installé (`installed_plugins.json` → `installPath`) et du plugin assemblé ; différente →
   `plugin uninstall --keep-data` + `plugin install` (un `plugin update` seul ne recopie rien à version égale).
@@ -887,13 +903,13 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **Réintégration en pipeline — `pmz:reintegrate`** (lot #80, 5ᵉ/6ᵉ brique de
   [D3](docs/decisions/D3-parallelisation-gouvernee.md), principe **P3** « jamais de big-bang ») :
   `lib/reintegrate.js` sépare trois responsabilités. `planReintegration(fleet, backlog)` (**pur**)
-  ordonne les lots `ready` du fleet en un **pipeline** respectant `depends_on` (tri topologique) ;
-  un lot encore `in_flight` tient la vague ouverte (`notReady`), un lot `ready` dépendant d'un lot
+  ordonne les US `ready` du fleet en un **pipeline** respectant `depends_on` (tri topologique) ;
+  une US encore `in_flight` tient la vague ouverte (`notReady`), une US `ready` dépendant d'une US
   en vol ou pris dans un cycle est `blocked` (jamais mergé avant sa dépendance). `runPipeline(root)`
-  **EXÉCUTE** : pour chaque étape, `git merge --no-ff` de la branche du lot dans la branche
+  **EXÉCUTE** : pour chaque étape, `git merge --no-ff` de la branche de l'US dans la branche
   d'intégration → **gate `verify`** → si vert, avance `fleet.setIntegrationHead` (**signal de
-  rebase** pour les lots en vol) + `setLotState(reintegrated)` + vigie « lot prêt » ; si rouge
-  (conflit → `merge --abort`, ou gate → `reset --hard`), **annule et STOPPE** (le coupable est le lot
+  rebase** pour les US en vol) + `setLotState(reintegrated)` + vigie « US prête » ; si rouge
+  (conflit → `merge --abort`, ou gate → `reset --hard`), **annule et STOPPE** (le coupable est l'US
   de l'étape — attribution sans ambiguïté). `aggregateChangelog` (**pur**) bâtit l'entrée de
   changelog **agrégée** de la vague ; vigie « vague close » quand toute la vague est réintégrée.
   La CLI `scripts/backlog.js reintegrate` **PROPOSE** le pipeline par défaut (rien mergé, comme
@@ -902,18 +918,18 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   rapporte conflits et gates rouges. S'appuie sur `lib/fleet.js`, `backlog.planWaves`/`waveBranch`,
   `lib/gitdebt.js` (lecture de tête git).
 - **Deux gates, pas un** (lot #97) : le gate par étape ne prouve pas la vague.
-  1. **Aucun merge sans filet** — `noGateSteps(plan, gate)` liste les steps dont le lot n'a pas de
+  1. **Aucun merge sans filet** — `noGateSteps(plan, gate)` liste les steps dont l'US n'a pas de
      `verify` ; le mode proposition les marque ⚠️ et `--execute` **REFUSE** (`reason: 'no-gate'`,
      structuré en `--json`, avant tout `checkout` — rien n'est mergé). L'humain tranche :
      `--gate "<cmd>"` (gate de **repli** exécutée pour ces steps) ou `--allow-no-gate` (merge assumé
      sans filet, et `aggregateChangelog` **ne revendique alors plus** « gate verify vert »).
-     Sans ça, un merge non vérifié faisait rougir le gate du lot **suivant** — coupable faux, en
+     Sans ça, un merge non vérifié faisait rougir le gate de l'US **suivante** — coupable faux, en
      cascade.
-  2. **Gate FINAL de vague** — deux lots verts *séparément* peuvent être rouges *combinés*
+  2. **Gate FINAL de vague** — deux US vertes *séparément* peuvent être rouges *combinées*
      (interférence sémantique sans conflit git) : `finalize` n'émet la vigie « vague close » qu'après
      un gate exécuté sur la branche d'intégration **après le dernier merge** (D3 P3 : typecheck +
      tests + build). Commandes : `--final-gate "<cmd>"` dédié, sinon `waveGateCommands(fleet,
-     backlog)` = **union dédoublonnée des `verify` de TOUTE la vague** (y compris les lots
+     backlog)` = **union dédoublonnée des `verify` de TOUTE la vague** (y compris les US
      `reintegrated` aux runs précédents — sinon un pipeline multi-runs perdrait leurs gates), privée
      de la dernière commande déjà passée verte sur l'état final (**déduplication d'exécution** : un
      verify coûte jusqu'à 600 s). Rouge → `waveClosed: false` + `reason: 'final-gate-failed'`,
@@ -924,11 +940,11 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **Rapport de réintégration persisté** (lot #99, FIA-22) : le bloc changelog agrégé et surtout la
   **sortie des gates rouges** n'existaient que sur le stdout du `--execute` — une session qui
   crashe ou qui omet le collage les perdait **sans recours** (une ré-exécution renvoie
-  `nothing-ready`, les lots étant déjà `reintegrated`, et rien ne sait régénérer le bloc ; le
+  `nothing-ready`, les US étant déjà `reintegrated`, et rien ne sait régénérer le bloc ; le
   diagnostic du conflit/gate rouge n'était même pas affiché en mode humain, seulement en `--json`).
   Le CLI écrit donc `.vibe-agent/logs/reintegrate-<horodatage>-<pid>.md` **avant toute sortie**,
   donc sur **tous** les chemins de retour (conflit, gate rouge, succès) : plan exécuté, statut par
-  lot, sortie **intégrale** des échecs, gate final, bloc changelog, snapshot de la vague pris avant
+  US, sortie **intégrale** des échecs, gate final, bloc changelog, snapshot de la vague pris avant
   la purge. Même motif de « tiroir brut » que `lib/output-fallback` : horodaté à la seconde (un
   rerun le même jour n'écrase rien), **jamais injecté** au SessionStart (aucun code SessionStart ne
   lit `.vibe-agent/logs`), référencé par **chemin** dans la sortie. Un simple **refus**
@@ -963,7 +979,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   explicitement — jamais de chiffre tokens fantôme.
 - **Courbe des tours** (`audit-context.js`, lot #61) : `turnstats.computeTurn` persiste déjà à
   chaque `Stop` un FIFO `turns[]` (40 entrées, `{d: delta occupation, o: sortie, at}`) dans l'état
-  hors-projet `<sha1(session_id)>-turns.json` — jamais relu avant ce lot. `/budget` retrouve le
+  hors-projet `<sha1(session_id)>-turns.json` — jamais relu avant cette US. `/budget` retrouve le
   `session_id` courant via `context-ledger.json.session_id` (posé par `recordOccupancy`), lit ce
   FIFO et rend une **sparkline** unicode (1 caractère/tour, échelle min-max locale au FIFO) suivie
   d'un résumé chiffré (delta moyen, sortie moyenne). Aucune session connue → section absente
@@ -981,95 +997,93 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   ET 3×/session, remis à zéro à chaque nouvelle `session_id`. Opt-out `PMZ_NO_ADVISORY=1` (ne
   consomme pas le plafond — l'advisory reste disponible si l'opt-out est levé dans la session).
 - **État de clôture** (`.vibe-agent/session-state.json`) : keyé par `session_id` ; flag
-  anti-spam du rappel de clôture par lot. À la fermeture d'un lot (working tree qui redevient
-  propre), `stop.js` incrémente aussi le **compteur de lot** (`.vibe-agent/lot-counter.json`,
+  anti-spam du rappel de clôture par US. À la fermeture d'une US (working tree qui redevient
+  propre), `stop.js` incrémente aussi le **compteur d'US** (`.vibe-agent/lot-counter.json`,
   `lib/lot.js`) — amorcé depuis le plus grand `(lot N)` déjà présent dans `CHANGELOG.md` s'il en
   existe. `backlog.js: doneLot` fait de même par défaut (chemin de clôture **manuelle**, ex.
   `/close-batch`) : sans ça, le compteur restait figé sur ce chemin et le même « Lot N »
   revenait indéfiniment d'une session à l'autre (fix 2026-07-11). `session-start.js` en déduit
-  un titre de session suggéré selon la nomenclature **« [XXX · #Y] PlanTitle · Lot #X · résumé »**
-  (validée utilisateur 2026-07-13 ; `XXX` = trigramme du projet ; `#Y` = **ID backlog global** du
-  lot, accolé au trigramme — le `#N` de `backlog.js show`, monotone sur tout le projet ; `PlanTitle`
-  = nom de plan ≤ 3 mots = l'`epic` du lot borné à 3 mots ; `Lot #X` = **rang du lot dans son plan**
-  (`lotRankInEpic`), accolé au nom de plan, remis à zéro à chaque plan — colle au modèle mental
-  « lot 1..5 de CE plan », contre le `#Y` global jugé absurde par l'utilisateur qui voyait « #40 »
-  sur un plan de 5 lots ; `résumé` = focus du lot, préfixe métier « Lot X — » redondant retiré).
-  Un lot **sans epic** (pas de plan nommé) bascule sur **« [XXX · #Y] Session Libre · résumé »** —
-  sans `Lot #X` (aucun plan où le ranger) mais l'`#Y` accompagne toujours le trigramme. Sans lot du
-  tout (titre déduit du CHANGELOG/commit) : **« [XXX] Session Libre · résumé »** (pas d'`#Y` à
-  afficher). Construit sur le lot
-  backlog le plus pertinent (`lib/lot.js: suggestedTitle`) — priorité : lot **attribué à la
+  un titre de session suggéré selon la nomenclature **« [XXX · US#Y] PlanTitle · résumé »**
+  (validée utilisateur 2026-10-12 ; `XXX` = trigramme du projet ; `US#Y` = **ID backlog global**
+  de l'US — le `#N` de `backlog.js show`, monotone sur tout le projet, **seul** numéro affiché ;
+  `PlanTitle` = nom de plan ≤ 3 mots = l'`epic` borné à 3 mots ; `résumé` = focus de l'US,
+  préfixe métier « Lot X — » redondant retiré). L'ancien rang dans le plan (« Lot #X »,
+  `lotRankInEpic`, 2026-07-13) est **retiré** : deux numéros pour une même US (« #105 … Lot #10 »)
+  se contredisaient. Une US **sans epic** : **« [XXX · US#Y] résumé »**. Session **hors US** (titre
+  déduit du CHANGELOG/commit, ou à composer d'après la demande) : **« [XXX · HS] résumé »**.
+  Session maître : **« [XXX · EP#a–#b] <nom de l'epic> »**. Construit sur l'US
+  backlog la plus pertinente (`lib/lot.js: suggestedTitle`) — priorité : US **attribuée à la
   session précédente** (`lotClosedBySession` : `closed_session_id === previousSessionId`, cf.
-  plus bas — chemin **primaire**, ajouté v1.1.5) > lot **en cours** (travail qui continue,
-  seulement si aucune clôture n'est attribuable à la session précédente) > dernier lot **clos**
-  (repli sans attribution possible, cf. plus bas). **Jamais** de repli sur le prochain lot **à
-  faire** (`nextLot`, todo) : rendu avec le même format qu'un lot clos (`titleForLot` ne distingue
+  plus bas — chemin **primaire**, ajouté v1.1.5) > US **en cours** (travail qui continue,
+  seulement si aucune clôture n'est attribuable à la session précédente) > dernière US **close**
+  (repli sans attribution possible, cf. plus bas). **Jamais** de repli sur la prochaine US **à
+  faire** (`nextLot`, todo) : rendu avec le même format qu'une US close (`titleForLot` ne distingue
   pas le statut), il affirmerait à tort qu'un travail non commencé a été fait (fix 2026-07-29,
   cf. plus bas). L'attribution est
-  le vrai signal « qu'a fait la session précédente » : chaque session clôt son propre lot, donc 3
+  le vrai signal « qu'a fait la session précédente » : chaque session clôt sa propre US, donc 3
   sessions successives reçoivent 3 titres **distincts** (retour utilisateur japlan-app : 3
-  sessions nommées à l'identique « #34 » — fix 2026-07-13). La clôture prime sur le lot en cours
-  car une session qui clôt un lot puis enchaîne aussitôt sur le suivant laisse un `currentLot`
+  sessions nommées à l'identique « #34 » — fix 2026-07-13). La clôture prime sur l'US en cours
+  car une session qui clôt une US puis enchaîne aussitôt sur la suivante laisse un `currentLot`
   fraîchement démarré (jamais encore touché) : le nommer masquerait ce que la session précédente
-  a réellement fait (fix 2026-07-29). En repli, le « dernier » lot clos est celui au plus grand
+  a réellement fait (fix 2026-07-29). En repli, la « dernière » US close est celle au plus grand
   **`id`** — **ni** `lot_number` (compteur global recyclé/`null`, figeait « Lot 7 » — fix 2026-07-12),
   **ni** `closed_at` : cet horodatage s'est révélé **non fiable** sur données réelles (dates à la
   journée, valeurs saisies à la main, clôtures dans le désordre — un vieux #34 au `closed_at`
   postérieur au vrai dernier #40 → titre figé). L'`id` backlog est monotone, jamais recyclé, jamais
-  `null` (cf. `addLot`) : seul référentiel stable pour le repli. **Le N affiché est l'ID backlog du lot retenu** (`lib/backlog.js`, le
+  `null` (cf. `addLot`) : seul référentiel stable pour le repli. **Le N affiché est l'ID backlog de l'US retenue** (`lib/backlog.js`, le
   référentiel que l'utilisateur voit dans `backlog.js show`), **jamais** `lot-counter.json` —
   ce compteur avance à chaque transition working-tree sale → propre, y compris sur un commit de
-  bookkeeping de clôture qui n'ajoute aucun lot, et dérivait donc du numéro backlog au fil du
+  bookkeeping de clôture qui n'ajoute aucune US, et dérivait donc du numéro backlog au fil du
   projet (retour utilisateur : titre « Lot 14 » alors que le backlog affichait déjà #17 — fix
   2026-07-11). `lot-counter.json`/`getLotCounter` restent le seul recours quand le plan n'a
-  **aucun** lot exploitable (backlog absent/vide, ou lot écarté comme périmé — cas ci-dessous) :
-  il n'existe alors aucun autre référentiel pour numéroter. Le dernier lot clos n'est retenu que s'il ne peut pas être attribué à une
+  **aucune** US exploitable (backlog absent/vide, ou US écartée comme périmée — cas ci-dessous) :
+  il n'existe alors aucun autre référentiel pour numéroter. La dernière US close n'est retenue que si elle ne peut pas être attribuée à une
   session **plus ancienne** que la précédente (`lot.closed_session_id`, posé par `stop.js` à la
   clôture, comparé à `lib/state.js: previousSessionId` — le `session_id` brut lu dans
   `session-state.json` **avant** que `session-start.js` ne l'écrase avec celui de la session
   courante) : sans ça, une session qui n'a rien clos (ex. un simple état des lieux) hériterait à
-  tort du titre du lot fermé par une session antérieure. Sans trace de session (clôture
+  tort du titre de l'US fermée par une session antérieure. Sans trace de session (clôture
   manuelle/ancienne, champ absent), on l'affiche quand même — mieux qu'un titre nu, et rien ne
-  prouve que c'est faux. Si le plan de lots n'a **lui-même aucun titre à offrir** (backlog absent
+  prouve que c'est faux. Si le plan d'US n'a **lui-même aucun titre à offrir** (backlog absent
   ou `lots: []` — retour utilisateur : un titre nu ne sert à rien pour retracer l'avancée),
-  `suggestedTitle` retombe sur **« Session Libre »** et lui **déduit** un résumé des infos disponibles plutôt que de rester nu : dernier
+  `suggestedTitle` retombe sur **« [XXX · HS] »** et lui **déduit** un résumé des infos disponibles plutôt que de rester nu : dernier
   résumé `CHANGELOG.md` (parenthèse finale du dernier titre `##` — convention de ce dépôt — ignorée
   si ce n'est qu'un marqueur `(lot N)` non descriptif), sinon sujet du dernier commit.
-  **Lot #130 — jamais de titre nu quand un plan existe.** Quand le dernier lot clos est écarté
+  **Lot #130 — jamais de titre nu quand un plan existe.** Quand la dernière US close est écartée
   comme **périmé** (clos par une session antérieure à la précédente), le titre ne se **tait** plus :
-  il garde du lot ce qui reste **vrai** — la position dans le plan, `#Y` et `Lot #X` compris (le
+  il garde de l'US ce qui reste **vrai** — la position dans le plan, `US#Y` et epic (le
   projet en est bien là) — et **remplace son résumé** par la déduction `CHANGELOG`/dernier commit
-  (le dernier travail réellement enregistré dans le dépôt). Le focus du lot périmé, lui, n'est
-  jamais réutilisé : il décrit le travail d'une autre session. Idem quand le plan n'a aucun lot
-  clos ni en cours (tout en `todo`) : « Session Libre · résumé déduit », pas la forme nue.
+  (le dernier travail réellement enregistré dans le dépôt). Le focus de l'US périmée, lui, n'est
+  jamais réutilisé : il décrit le travail d'une autre session. Idem quand le plan n'a aucune US
+  clos ni en cours (tout en `todo`) : « [XXX · HS] résumé déduit », pas la forme nue.
   Décision **inversée** par rapport au fix 2026-07-29 (qui préférait se taire plutôt que risquer
   un biais d'attribution sur le dernier commit) : mesuré sur données réelles, ce silence était le
   cas **NOMINAL** — 9 des 12 dernières sessions de ce dépôt affichaient « [PMZ] Session Libre » nu
   (vagues parallèles, réintégrations, releases et sessions courtes ne closent rien dans le backlog
   principal), et le renommage était devenu inutilisable (retour utilisateur 2026-07-30 : « oublié
-  du numéro du lot », « systématiquement Session libre »). Un titre **positionnel** + le dernier
+  du numéro de l'US », « systématiquement Session libre »). Un titre **positionnel** + le dernier
   travail enregistré vaut mieux qu'un titre juste-mais-vide.
   **Sessions de CONCEPTION (lot #130)** : une session qui **planifie** au lieu de livrer est titrée
   **« [XXX · Plan] Thème du plan »** (nomenclature validée utilisateur 2026-07-30 ; thème = nom de
-  l'**epic**, jamais un lot — une session de plan ne livre pas de lot, elle en découpe). Le thème
-  vient de l'epic du **dernier lot créé** (le découpage le plus frais), sinon du label global
+  l'**epic**, jamais une US — une session de plan ne livre pas d'US, elle en découpe). Le thème
+  vient de l'epic de la **dernière US créée** (le découpage le plus frais), sinon du label global
   `.vibe-agent/epic` ; **aucun** epic nulle part → pas de titre « Plan » inventé, on retombe sur la
   logique normale. La marque est un **état de session** (`session-state.json: plan_session`, remis à
   zéro au démarrage suivant comme les autres flags), posée par : le champ commun
   `permission_mode: "plan"` du payload hook (`user-prompt-submit.js`, coût nul — l'état est déjà
   réécrit à chaque prompt), les outils de mode plan `ExitPlanMode`/`EnterPlanMode`
   (`pre-tool-use.js`, aucun verdict changé, écriture au plus une fois par session), et
-  `backlog.js epic --set` (étape 3 de `/pmz:scope`). Volontairement **pas** `add` : se poser un lot
-  avant de le traiter est le geste ordinaire d'une session de travail. Priorité : lot **attribué**
-  (`lotClosedBySession`) > marque **Plan** > lot **en cours** — une session de scope démarre le lot
-  #1 en dernière étape, la titrer par ce lot annoncerait un travail pas encore commencé ; à
-  l'inverse, une session qui a réellement **clos** un lot est décrite par ce lot même si elle a
+  `backlog.js epic --set` (étape 3 de `/pmz:scope`). Volontairement **pas** `add` : se poser une US
+  avant de le traiter est le geste ordinaire d'une session de travail. Priorité : US **attribuée**
+  (`lotClosedBySession`) > marque **Plan** > US **en cours** — une session de scope démarre l'US
+  #1 en dernière étape, la titrer par cette US annoncerait un travail pas encore commencé ; à
+  l'inverse, une session qui a réellement **clos** une US est décrite par cette US même si elle a
   aussi planifié la suite. **Titre de la session COURANTE** (2026-10-12, v2.8.3) : plus aucune
   session ne renomme la **précédente** — chaque session se titre **elle-même** (`session_id: "self"`),
   injecté par `user-prompt-submit.js` au 1er prompt puis seulement quand le titre change (`self_title`).
-  `lot.currentSessionTitle` : session de conception (`plan_session`) → « [XXX · Plan] epic » ; lot en
-  cours attribuable (le sien, ou l'unique en cours) → titre du lot ; sinon « [XXX] Session Libre · … »
-  que l'assistant complète d'après la demande. Silence si un lot `master/lot-*` est en cours ou si le
+  `lot.currentSessionTitle` : session de conception (`plan_session`) → « [XXX · Plan] epic » ; US en
+  cours attribuable (la sienne, ou l'unique en cours) → titre de l'US ; sinon « [XXX · HS] … »
+  que l'assistant complète d'après la demande. Silence si une US `master/lot-*` est en cours ou si le
   prompt est `/epicmaster` (le maître a son propre titre). Nomenclature posée → en silence ; trigramme
   **non posé** → question à choix IMMÉDIATE une fois par session (valider / autre trigramme / non),
   `trigram --set`, puis renommage de cette session. `suggestedTitle` (description de la session
@@ -1082,22 +1096,22 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   règles d'économie sont **déjà dans le contexte** — le rappel injecté ne les répète plus (variante
   slim) et se limite au protocole de clôture (OK/Non + `/close-batch`), absent de `pmz-rules.md`.
   Sinon, rappel plein. But : ne pas dupliquer à chaque SessionStart ce que le CLAUDE.md charge déjà.
-- **Plan de lots** (`.vibe-agent/backlog.json`, `lib/backlog.js` + CLI `scripts/backlog.js`) :
-  le lot comme **objet persistant trans-session** — id, titre, « fait quand », statut
+- **Plan d'US** (`.vibe-agent/backlog.json`, `lib/backlog.js` + CLI `scripts/backlog.js`) :
+  l'US comme **objet persistant trans-session** — id, titre, « fait quand », statut
   (`todo|in_progress|done|dropped`), **préconisation de modèle** (`model_hint`, ex. `sonnet`/
   `opus`) et **effort de raisonnement** (`effort_hint`, énum `low|medium|high|xhigh`, lot #41),
-  commit de clôture, et `closed_session_id` (session qui a clos le lot — auto-rempli depuis
-  `.vibe-agent/session-state.json` (`lib/state.js: previousSessionId`) que le lot soit clos par
+  commit de clôture, et `closed_session_id` (session qui a clos l'US — auto-rempli depuis
+  `.vibe-agent/session-state.json` (`lib/state.js: previousSessionId`) que l'US soit close par
   le hook Stop ou par le CLI `done` (lot #96) ; `null` seulement sur opt-out explicite
-  (`--no-session`) ou lot legacy pré-#96 — jamais un id tapé/deviné à la main). Au plus un `in_progress` ; cap 20 lots
+  (`--no-session`) ou US legacy pré-#96 — jamais un id tapé/deviné à la main). Au plus un `in_progress` ; cap 20 US
   ouverts ; `doneLot` idempotent. `model_hint` est **obligatoire à l'`add` CLI** (refus doux sans `--model`) ;
   `effort_hint` est optionnel mais refusé (doux) si `--effort` est fourni hors énum. Les deux sont
-  **réaffichés** partout où un lot est rendu (`show`/`start`/`next`, `summaryLines` → handoff auto,
+  **réaffichés** partout où une US est rendue (`show`/`start`/`next`, `summaryLines` → handoff auto,
   **filet resume `backlogResumeMessage`** qui pousse en plus une suggestion `/model` si le hint est
-  un Claude joignable et un rappel « pose une `verify` » si le lot n'en a pas — lot #55)
+  un Claude joignable et un rappel « pose une `verify` » si l'US n'en a pas — lot #55)
   sous forme combinée `[modèle : … · effort …]` (`lib/backlog.js: modelEffortTag`) — jamais perdu
   silencieusement. Écrit par l'assistant (CLI) ; **auto-clos par `stop.js`**
-  quand le working tree redevient propre et qu'exactement un lot est `in_progress` (sinon ne
+  quand le working tree redevient propre et qu'exactement une US est `in_progress` (sinon ne
   touche à rien — réconciliation bête via `backlog.js reconcile`). Jamais de promotion
   automatique du suivant. Champ optionnel `verify` (cap 150c, `MAX_VERIFY`, lot #29) : commande
   shell de preuve de clôture, posée à l'`add --verify` ou éditée après coup (`backlog.js verify
@@ -1112,7 +1126,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   défaut valait 120 s, posé quand la suite maison tournait ~35 s ; elle en met ~130 s au lot #119
   (1997 tests), si bien que `/close-batch` **rendait « timeout » sur une suite verte** et que
   `backlog.js done` (depuis le lot #119) persistait `closed_verify: 'timeout'` au lieu de `'ok'` —
-  une preuve de clôture faussée pour tous les lots suivants. D'où les deux mouvements du lot #120 :
+  une preuve de clôture faussée pour toutes les US suivantes. D'où les deux mouvements du lot #120 :
   défaut relevé **avec marge** (plus du double du mesuré) et borne **posable par le dépôt** (ici : 600 s),
   parce qu'un défaut, même généreux, reste un pari sur la durée de la suite d'autrui. Le message de
   timeout **nomme la clé** à poser — la borne se découvre sans lire le code. L'**ÉCHEC** n'est
@@ -1131,72 +1145,72 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   l'**auto-clôture** (lot #44), `stop.js` l'exécute aussi mais avec un timeout **court**
   (`VERIFY_AUTOCLOSE_MS` = 2500 ms, borné bien en deçà du watchdog Stop 4,5 s), et depuis le
   lot #111 le verdict est calculé **AVANT** `doneLot` : sur `timeout`, `doneLot` n'est **jamais**
-  appelé, le lot reste `in_progress` et le dit explicitement (« NON clôturé »). L'ordre inverse
+  appelé, l'US reste `in_progress` et le dit explicitement (« NON clôturé »). L'ordre inverse
   était le choix d'origine — persister d'abord pour qu'un dépassement de watchdog ne corrompe pas
   le backlog — mais il **fabriquait des clôtures fantômes** : le lot #110 s'est retrouvé `done`
   avec `closed_verify:"timeout"` alors qu'aucun de ses fichiers n'existait. Arbitrage assumé : un
-  watchdog qui tue le verify laisse désormais le lot **ouvert**, état récupérable et visible,
+  watchdog qui tue le verify laisse désormais l'US **ouverte**, état récupérable et visible,
   là où un `done` fantôme ne l'est pas (il faut `reopenLot`, et rien ne signale qu'il le faut).
   Un `failed` (échec net) reste **non bloquant** — seul le `timeout` empêche la clôture. Résultat
   rendu visible par `messages.js:closureProofMessage` — une non-terminaison dans le délai court est
   affichée « non terminée » (relancer via `/close-batch`), **pas** « ÉCHEC ». Le même message porte
   un **garde-fou CHANGELOG** : rappel doux si le commit de clôture (HEAD, tree propre ⇒
-  `changelogTouched` se réduit au dernier commit) ne touche pas `CHANGELOG.md`. Un lot **sans
+  `changelogTouched` se réduit au dernier commit) ne touche pas `CHANGELOG.md`. Une US **sans
   aucune `verify`** est clos avec une ligne doux « **clos sans preuve** » (paramètre `noVerify`
   de `closureProofMessage`, lot #55) invitant à poser `--verify` au prochain `/scope`. try/catch
   dédié → fail-open : la clôture reste acquise même si la preuve échoue. Le VERDICT de cette
   preuve est désormais **persisté** (`closed_verify` — `'ok'|'failed'|'timeout'|'none'`, lot #96) :
   posé par `stop.js` juste après `runVerify`, via un setter DÉDIÉ (`backlog.js: setClosedVerify` —
-  jamais via `doneLot`, idempotent et court-circuitant tout lot déjà `done`), donc jamais écrasé
-  une fois posé. `'none'` = lot sans `verify` ; champ absent/`null` = non mesuré (`--no-verify`, ou
+  jamais via `doneLot`, idempotent et court-circuitant toute US déjà `done`), donc jamais écrasé
+  une fois posé. `'none'` = US sans `verify` ; champ absent/`null` = non mesuré (`--no-verify`, ou
   watchdog tué pendant le verify). **La clôture CLI sait aussi l'écrire depuis le lot #119** —
-  jusque-là, seule l'auto-clôture du Stop le faisait, si bien que les lots clos par le chemin
+  jusque-là, seule l'auto-clôture du Stop le faisait, si bien que les US closes par le chemin
   **recommandé** (`/close-batch` → `backlog.js done`) étaient précisément ceux **sans preuve
   persistée**, l'inverse de l'intention du lot #96. Deux chemins, aucun ne devine :
   `--verify-verdict <ok|failed|timeout|none>` persiste un verdict **déjà obtenu** (c'est ce que
   `/close-batch` injecte désormais dans la ligne `done` qu'il propose — il vient d'exécuter la
   `verify`, la relancer coûterait deux fois la même preuve), et à défaut `done` **exécute** la
-  `verify` du lot lui-même (même budget réglable `resolveVerifyCloseMs(root)`, ce n'est pas un
+  `verify` de l'US elle-même (même budget réglable `resolveVerifyCloseMs(root)`, ce n'est pas un
   hook — un budget trop court y faussait donc la preuve tout autant, cf. lot #120). `--no-verify` coupe
-  l'exécution et laisse le champ `null` ; une valeur hors énum est **refusée** sans clore le lot.
+  l'exécution et laisse le champ `null` ; une valeur hors énum est **refusée** sans clore l'US.
   Non bloquant par choix (le refus doux sur échec est porté par `/close-batch`) : un verdict rouge
   est **persisté et annoncé**, jamais escamoté. Affiché par `show` et exposé en
-  colonne d'export (`EXPORT_COLUMNS`) — distingue enfin un lot **prouvé** d'un lot clos sur échec,
+  colonne d'export (`EXPORT_COLUMNS`) — distingue enfin une US **prouvée** d'une US close sur échec,
   jusque-là stockés `done` à l'identique. Champ `closed_occupancy` (lot #29) :
   occupation contexte du tour figée à l'auto-clôture (`turnstats.computeTurn().occ`,
-  métrologie de coût par lot) ; depuis le lot #96 le CLI `done` l'auto-remplit aussi (dernier `occ`
+  métrologie de coût par US) ; depuis le lot #96 le CLI `done` l'auto-remplit aussi (dernier `occ`
   mirorré au ledger, `lib/ledger.js: recordOccupancy`) — `null` seulement sur `--no-occupancy` ou
-  aucune mesure disponible. Champ `cost_tokens` (lot #43) : coût réel cumulé du lot = tokens de sortie sommés par
+  aucune mesure disponible. Champ `cost_tokens` (lot #43) : coût réel cumulé de l'US = tokens de sortie sommés par
   `stop.js` sur tous les tours où il était `in_progress` (`addCost`) — agrégat trans-session porté
-  par le lot, figé de fait à la clôture, affiché par `show` ; cf. puce « Coût réel par lot » plus
+  par l'US, figé de fait à la clôture, affiché par `show` ; cf. puce « Coût réel par US » plus
   haut. Champs `cost_turns` / `closed_avg_cost_per_turn` (lot #111) : nombre de tours comptés dans
   `cost_tokens`, et accrétion moyenne (`cost_tokens / cost_turns`) **figée à la clôture** comme
-  `closed_occupancy`. Sans ce diviseur, `cost_tokens` seul ne distingue pas un lot cher **parce que
-  long** d'un lot cher **par tour** — et c'est la seconde famille que l'epic « Économie de contexte »
+  `closed_occupancy`. Sans ce diviseur, `cost_tokens` seul ne distingue pas une US chère **parce que
+  longue** d'une US chère **par tour** — et c'est la seconde famille que l'epic « Économie de contexte »
   cherche à faire baisser. Exposés en colonne d'export juste après `closed_occupancy` (l'assertion
   d'en-tête CSV est un préfixe ancré : toute colonne nouvelle se pose **après** lui, jamais avant).
   **Dépendances corrigeables après création** (`backlog.js depends --id N [--depends "2,3"]`,
   FIA-24, lot #98) : sans `--depends`, lecture ; avec, remplacement intégral via le `setDepends`
   déjà existant (`normalizeDepends` : self exclu, dédoublonné, capé `MAX_DEPENDS`) ; `--depends ""`
-  vide la liste. Refus explicites sur `--id` inconnu, lot clos/abandonné, ou valeur non numérique
+  vide la liste. Refus explicites sur `--id` inconnu, US close/abandonnée, ou valeur non numérique
   (une faute de frappe ne doit pas se traduire par un vidage silencieux) ; un id ne correspondant à
-  aucun lot est **averti** et non refusé — `blockedByOf`/`planWaves` le tiennent pour satisfait
-  (tolérance hors-plan volontaire). **Réouverture d'un lot clos** (`backlog.js reopen --id N --note
+  aucune US est **averti** et non refusé — `blockedByOf`/`planWaves` le tiennent pour satisfait
+  (tolérance hors-plan volontaire). **Réouverture d'une US close** (`backlog.js reopen --id N --note
   "raison"`, `lib/backlog.js: reopenLot`, FIA-25, lot #98) : la soupape aux quatre refus
-  `status === 'done'` des setters. Repasse le lot en `todo` — **jamais** `in_progress`, `startLot`
+  `status === 'done'` des setters. Repasse l'US en `todo` — **jamais** `in_progress`, `startLot`
   reste le seul chemin qui inscrit `session_owner`/vague — et **efface** `closed_commit`,
   `closed_at`, `closed_session_id`, `closed_occupancy`, `closed_verify`, plus (lot #100)
   `session_owner` et `lot_number`. Cet effacement n'est pas cosmétique : `doneLot` réécrit bien les
   quatre premiers au cycle suivant, mais **pas** `closed_verify` (posé par `setClosedVerify`, qui
-  refuse d'écraser un verdict déjà là) — sans lui, un lot re-clos hériterait du verdict de l'ancien
+  refuse d'écraser un verdict déjà là) — sans lui, une US re-close hériterait du verdict de l'ancien
   cycle ; et un `lot_number`/`session_owner` survivant faisait afficher « Lot N » et un
-  propriétaire fantôme sur un lot redevenu **à faire**. `--note` **obligatoire** (une réouverture
+  propriétaire fantôme sur une US redevenue **à faire**. `--note` **obligatoire** (une réouverture
   détruit de la trace, elle doit dire pourquoi) ; l'historique `reopened` (`{at, note, from_commit,
   from_verify, from_lot_number}`, capé `MAX_REOPEN` = 5, clé **droppée** si vide comme
   `integrations`) conserve le commit, le verdict et le numéro effacés, et son **cardinal** est
-  exposé en colonne d'export `reopened` (vide si jamais rouvert : un lot repris deux fois n'a pas
-  coûté le prix d'un lot passé du premier coup, et c'était invisible au reporting). Refus explicite si le lot est déjà ouvert, ou `dropped` (statut
-  distinct : un lot abandonné se re-crée, il ne se rouvre pas). Côté archive, la fiche tier 1 est
+  exposé en colonne d'export `reopened` (vide si jamais rouverte : une US reprise deux fois n'a pas
+  coûté le prix d'une US passée du premier coup, et c'était invisible au reporting). Refus explicite si l'US est déjà ouverte, ou `dropped` (statut
+  distinct : une US abandonnée se re-crée, elle ne se rouvre pas). Côté archive, la fiche tier 1 est
   **complétée** en pied, jamais écrasée (`archive.appendFicheLine`), et la ligne d'index tier 0 est
   laissée telle quelle — la clôture a bien eu lieu, et la re-clôture la remet à jour (`mergeEntry`).
   **Durabilité par défaut** (le backlog ne doit JAMAIS être perdu) : le
@@ -1207,7 +1221,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   `git clean`, part au prochain commit dès sa création). Sa disparition passée venait de ce qu'il
   n'était pas suivi par git. À part : `.vibe-agent/todo-snapshot.json`, capture passive de la
   todo-list Claude Code (écrasée à chaque `TodoWrite`, sens unique outil→disque — granularité
-  tâche ≠ lot, jamais de promotion todo→backlog).
+  tâche ≠ US, jamais de promotion todo→backlog).
 - **Toute troncature est bruyante côté CLI backlog** (epic « Périmètres fiables », lots #88/#90) :
   le backlog est la **spec** que lisent les sessions filles — une valeur amputée en silence (un
   « fait quand » coupé) se découvre au pire moment, quand une fille refuse de démarrer. Deux
@@ -1220,7 +1234,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   défensive au chargement, jamais supprimée) ; `show` marque `[⚠️ tronqué en donnée : …]` toute
   valeur stockée portant la signature de `trunc()` (`isTruncated` : longueur pile au plafond +
   « … » final) — `show` n'abrégeant rien à l'affichage, la distinction donnée/affichage est nette.
-  checklist affiche, quand un lot est `in_progress`, un bloc `PMZ-Lot`/`PMZ-Cost`/`PMZ-Model`
+  checklist affiche, quand une US est `in_progress`, un bloc `PMZ-Lot`/`PMZ-Cost`/`PMZ-Model`
   prêt à coller en pied du message de commit (id backlog, `cost_tokens` cumulé formaté
   `fmtK` — **avec sa part déléguée aux sous-agents** quand elle est non nulle (lot #119),
   `model_hint`/`effort_hint` combinés) — traçabilité coût/modèle par commit,
@@ -1229,16 +1243,16 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   `effort_hint`/`cost_tokens`/`cost_subagent_tokens` sur `d.backlog.current` (`scripts/audit-batch.js:
   backlogSummary`, étendu à cet effet — absents du résumé initial qui ne portait que
   `id`/`title`/`verify`).
-- **Tag modèle du lot suivant reporté au handoff** (`scripts/close-batch.js`, fix 2026-07-20) :
+- **Tag modèle de l'US suivante reporté au handoff** (`scripts/close-batch.js`, fix 2026-07-20) :
   `backlogSummary().next` (`scripts/audit-batch.js`) porte aussi `model_hint`/`effort_hint` — la
-  ligne « Lot suivant à reprendre dans le handoff » de la checklist affiche son tag
+  ligne « US suivante à reprendre dans le handoff » de la checklist affiche son tag
   `modelEffortTag` (`lib/backlog.js`) au lieu du seul id/titre. `/close-batch.md`,
   `/fresh-session.md` et `templates/handoff-template.md` exigent désormais que le champ
-  « Prochaine action recommandée » du handoff manuel nomme le lot suivant **et** son modèle
+  « Prochaine action recommandée » du handoff manuel nomme l'US suivante **et** son modèle
   préconisé, jamais l'un sans l'autre (le handoff auto le faisait déjà via `summaryLines` —
   seul le chemin manuel avait le trou).
-- **Export du plan de lots** (`backlog.js export --format csv|md`, `lib/backlog.js: exportCsv`/
-  `exportMarkdown`, lot #60) : sortie brute de tous les lots (colonnes fixes : id, title,
+- **Export du plan d'US** (`backlog.js export --format csv|md`, `lib/backlog.js: exportCsv`/
+  `exportMarkdown`, lot #60) : sortie brute de toutes les US (colonnes fixes : id, title,
   status, epic, model_hint, effort_hint, verify, closed_verify (lot #96), cost_tokens,
   closed_commit, closed_at, closed_session_id, closed_occupancy),
   CSV échappé (guillemets doublés) ou table Markdown — pour reporting externe (tableur,
@@ -1246,27 +1260,27 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   doux hors énum `csv|md`.
 - **Handoff de session** (`.vibe-agent/handoff.md`, `lib/handoff.js`) : UN fichier, **écrasé à
   chaque fin de tour** par `stop.js` (jamais cumulé — pas de bloat). Deux origines distinguées
-  par marqueur en 1re ligne : `<!-- pmz:handoff:auto -->` (mécanique : epic/lot, branche,
+  par marqueur en 1re ligne : `<!-- pmz:handoff:auto -->` (mécanique : epic/US, branche,
   dernier commit, pointeur de vague active (`fleet.waveHandoffLines`, lot #91 — voir §
-  « Registre de vague » plus haut), section `pmz:skip` (voir ci-dessous), plan de lots x/y + lot
+  « Registre de vague » plus haut), section `pmz:skip` (voir ci-dessous), plan d'US x/y + US
   en cours + suivants, dernières todos, working tree filtré) et `<!-- pmz:handoff:manual -->` (riche, écrit
   par l'assistant via `/fresh-session` ou `/close-batch` — jamais écrasé par l'auto tant qu'il
   n'est pas consommé). Au SessionStart suivant (`startup`/`clear` uniquement, jamais
   `resume`/`compact`), le handoff est **injecté** (cap 6 000 caractères) puis **marqué consommé**
   (manuel → auto, l'auto reprend la main). Un fichier sans marqueur PMZ (notes utilisateur) n'est
-  ni écrasé ni injecté. La détection de « lot ouvert » de `stop.js` utilise
+  ni écrasé ni injecté. La détection de « US ouverte » de `stop.js` utilise
   `gitStatusMeaningful` (porcelain **sans** `.vibe-agent/`) : le churn ledgers/handoff ne compte
-  pas comme lot ouvert et ne bloque pas sa clôture.
+  pas comme US ouverte et ne bloque pas sa clôture.
   **Handoff PAR LOT en vague** (lot #99, FIA-19) : `handoff.md` est clé sur le seul `root`. En
   vague parallèle, N sessions filles partagent le même checkout donc le même `.vibe-agent/` — un
-  fichier unique = *last-writer-wins* : l'état du lot A remplacé par celui du lot B juste avant
+  fichier unique = *last-writer-wins* : l'état de l'US A remplacé par celui de l'US B juste avant
   la reprise de A. Une session **inscrite au fleet** écrit donc `handoff-lot-<id>.md` ;
-  `handoff.md` reste celui de l'orchestrateur. En **lecture**, la fille essaie son fichier de lot
+  `handoff.md` reste celui de l'orchestrateur. En **lecture**, la fille essaie son fichier d'US
   puis retombe sur `handoff.md` (elle démarre donc sur le handoff de l'orchestrateur tant qu'elle
   n'a pas écrit le sien) ; en **écriture**, jamais de repli — ce serait précisément le
   last-writer-wins qu'on supprime. Activé **uniquement** quand la fille partage le root
   (`lot.worktree` vide) : en mode worktree chaque fille a déjà son `.vibe-agent` isolé, un fichier
-  par lot y serait mort-né. Hors vague : strictement rien ne change (invariant mono-session).
+  par US y serait mort-né. Hors vague : strictement rien ne change (invariant mono-session).
   Articulation avec le registre de vague : **`fleet.json` reste le handoff PARTAGÉ** (structure —
   qui tient quoi, périmètres, tête d'intégration), **`handoff-lot-*` est le handoff PAR SESSION**
   (état riche : décisions, non-vérifié, prochaine action) ; ni l'un ni l'autre ne porte le plan,
@@ -1274,10 +1288,10 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   de vague ») — sinon péremption d'état dans `.vibe-agent`. Le cas mono-session « deux
   `/close-batch` successifs s'écrasent » n'est **pas** corrigé : l'écrasement dernier-état est le
   design assumé.
-- **Archive des lots clos — tier 0** (`.vibe-agent/archive/index.md`, `lib/archive.js` + CLI
+- **Archive des US closes — tier 0** (`.vibe-agent/archive/index.md`, `lib/archive.js` + CLI
   `scripts/archive.js`, epic « Archive à tiroirs », lot #94) : contrepartie **durable** du handoff.
   Le handoff reste un fichier unique écrasé (canal de reprise) ; l'archive est un référentiel
-  **séparé, versionné git, jamais injecté**. Tier 0 = `index.md`, une ligne par lot clos, format
+  **séparé, versionné git, jamais injecté**. Tier 0 = `index.md`, une ligne par US close, format
   contraint et greppable :
   `#0094 | 2026-07-27 | <sha> | epic:<epic> | verify:<OK|ÉCHEC|timeout|aucune|inconnu> | fiche:<oui|non> | <titre>`.
   Markdown ligne-à-ligne et **pas** JSON : lu par l'humain ET par `grep`, diff git lisible, merge
@@ -1295,18 +1309,18 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   **Pare-feu** : aucun hook ni module de la chaîne d'injection (`session-start.js`, `handoff.js`,
   `messages.js`, `pre-compact.js`) ne requiert `lib/archive.js` en lecture — l'archive s'écrit à la
   clôture et se lit **à la demande**, jamais toute seule. Spec : `mwn/promptimizer-archive-handoffs/`.
-- **Archive des lots clos — tiroirs tier 1/2** (`lib/archive.js`, CLI `scripts/archive.js`,
+- **Archive des US closes — tiroirs tier 1/2** (`lib/archive.js`, CLI `scripts/archive.js`,
   commande `/pmz:archive`, lot #95) : les deux tiroirs profonds, ouverts **un à la fois**.
   **Tier 1** = `archive/lots/lot-NNNN.md`, la fiche narrative (id zero-paddé 4 chiffres → tri
   lexicographique = tri numérique), **versionnée** et **immuable** : `writeFiche` refuse d'écraser
-  une fiche existante sans `--force`. Un fichier par lot, écrit une fois à la clôture → zéro course
+  une fiche existante sans `--force`. Un fichier par US, écrit une fois à la clôture → zéro course
   entre sessions filles, contrairement au handoff unique last-writer-wins. Trois gardes **explicites,
   jamais muettes** (`exists` / `no-marker` / `too-long`) : le marqueur `<!-- pmz:archive:lot N -->`
   doit porter le **bon** id (pas de fiche mal rangée) et la borne dure de 8 000 caractères refuse
   plutôt que de rogner — une fiche trop longue est un symptôme (diff ou listing collé), pas un cas
   à couper. Une fiche écrite passe sa ligne d'index en `fiche:oui` via la fusion non dégradante.
   **Une seule exception à l'immuabilité** (lot #98) : `appendFicheLine` **ajoute** une ligne en pied
-  — jamais une réécriture de section — utilisée par la réouverture d'un lot (`reopenLot`) pour
+  — jamais une réécriture de section — utilisée par la réouverture d'une US (`reopenLot`) pour
   inscrire « rouvert le AAAA-MM-JJ, raison ». La fiche du cycle clos n'est ni démentie ni écrasée ;
   sans fiche existante, l'appel est un no-op explicite (`missing`) et le champ `reopened` du backlog
   reste la seule trace.
@@ -1388,7 +1402,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   évolution notable, tracé dans `CHANGELOG.md` — jamais incrémenté par les hooks installés dans
   un projet cible (ce n'est pas leur version à eux). `scripts/about.js` (commande `/about`)
   l'affiche avec l'epic (`readEpic`) et l'état du backlog (`currentLot`/`nextLot`/`progress`) du
-  projet courant — deux informations distinctes : la version est celle du **package**, l'epic/lot
+  projet courant — deux informations distinctes : la version est celle du **package**, l'epic/US
   est celui du **projet**.
 
 ## Mapping source → cible & installation
@@ -1495,7 +1509,7 @@ rend donc toujours son verdict deny/ask, qu'un conflit RTK soit détecté ou non
 
 ### Statusline opt-in (lot #45)
 
-Barre d'état Claude Code **opt-in** : `PMZ v<version> · <epic> · lot #<id> <titre> · <faits>/<total> · ctx <occupation>`.
+Barre d'état Claude Code **opt-in** : `PMZ v<version> · <epic> · US#<id> <titre> · <faits>/<total> · ctx <occupation>`.
 `scripts/statusline.js` reçoit le JSON stdin de Claude Code (`transcript_path`, `workspace.current_dir`)
 et n'émet qu'**une** ligne (fail-open total : toute erreur → ligne vide + exit 0 ; kill-switch
 `PMZ_DISABLE`). Occupation lue en temps réel via `occupancy.readLastOccupancy` (indépendante de
@@ -1568,7 +1582,7 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   le dépôt sur un poste en plugin, il détecte le plugin (env `CLAUDE_PLUGIN_ROOT`,
   `enabledPlugins`, `installed_plugins.json`) et rend **vert** sans exiger le câblage manuel
   dans `settings.json` — sinon il concluait « rouge » sur une install saine (retour utilisateur
-  2026-07-12). Aucun doctor CLI n'est embarqué dans le plugin (un `/pmz:doctor` serait un lot à
+  2026-07-12). Aucun doctor CLI n'est embarqué dans le plugin (un `/pmz:doctor` serait une US à
   part). Depuis v1.1.2, il détecte aussi la **dérive de version** ci-dessous : source (son
   propre arbre) EN AVANCE sur le plugin installé (`VERSION` du cache, repli
   `installed_plugins.json`) → avertissement + statut orange avec la marche à suivre. Seule
@@ -1579,7 +1593,7 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   **rien** au comportement des sessions tant que (1) `VERSION` n'est pas bumpée, (2) le build
   n'est pas relancé, (3) `claude plugin update pmz@pmz-local` n'est pas passé (+ redémarrage).
   Symptôme vécu : nomenclature v1.1.0 committée mais cache figé en 1.0.0 → titres à l'ancien
-  format sur tous les projets. Tout lot touchant `hooks/`/`lib/` doit finir par ces 3 étapes.
+  format sur tous les projets. Toute US touchant `hooks/`/`lib/` doit finir par ces 3 étapes.
 - **Régression assumée** (cf. D1) : pas de takeover réversible d'un hook Stop tiers en plugin ;
   commandes namespacées `/pmz:*`.
 - **Identifiant plugin = `pmz`, pas `promptimizer`** (lot E1) : le namespace des commandes est
@@ -1678,7 +1692,7 @@ manuelle (miroir plat vers `~/.claude/`) reste le canal de **secours**, document
   historique conservé. Claude Code n'enregistre qu'une marketplace par nom : ajouter l'un
   **remplace** l'autre côté utilisateur. Volontaire (deux chemins vers la même marketplace), canal
   recommandé = `main`.
-- **Windows non testé réel dans ce lot** : pas de machine Windows disponible dans l'environnement
+- **Windows non testé réel dans cette US** : pas de machine Windows disponible dans l'environnement
   d'exécution de ce tour ; les wrappers (`bin/pmz-hook`) et la résolution de chemins
   (`claude-dir.js`) restent donc vérifiés seulement par lecture de code + tests unitaires
   (bac à sable macOS), pas par exécution réelle sous Windows.
@@ -1716,13 +1730,13 @@ dupliquée ici. Ce qui est structurant :
   (pas de statusline). Palier persisté monotone par session (état hors-projet, clé sha1),
   réarmé par une nouvelle session_id ou un resync post-compaction.
 - **Équivalent Stop = `event: session.idle`** (lot OC3, coût+preuve lot #54) : idempotent
-  multi-idle (l'anti-spam monotone du palier + le drapeau de clôture par lot évitent tout
+  multi-idle (l'anti-spam monotone du palier + le drapeau de clôture par US évitent tout
   doublon). Y sont branchés, dans l'ordre : franchissement d'occupation (toast) ; **coût réel
-  par lot** (`accountCost`, parité `stop.js` bloc a4) — agrège les tokens de SORTIE du dernier
-  message assistant sur le lot in_progress (`addCost`), **AVANT** le bloc clôture ; faute de
+  par US** (`accountCost`, parité `stop.js` bloc a4) — agrège les tokens de SORTIE du dernier
+  message assistant sur l'US in_progress (`addCost`), **AVANT** le bloc clôture ; faute de
   transcript scannable, l'anti-double-comptage passe par un **watermark messageID**
   (`state.cost_watermark`), et un toast **warning** est émis au franchissement du budget 250k ;
-  puis rappel/auto-clôture de lot (miroir de `hooks/stop.js`, canal toast au lieu de
+  puis rappel/auto-clôture d'US (miroir de `hooks/stop.js`, canal toast au lieu de
   `systemMessage`). À l'**auto-clôture univoque**, la **preuve de clôture** est désormais rejouée
   (parité `stop.js` bloc b2) : `verify` court (`runVerify`, `VERIFY_AUTOCLOSE_MS`) + garde-fou
   `CHANGELOG` (`closureProofMessage`) → échec/timeout en toast distinct, **clôture jamais
@@ -1734,7 +1748,7 @@ dupliquée ici. Ce qui est structurant :
   (drapeau `renamed` par session).
 - **Injection différée** (lot OC3) : pas d'équivalent au `additionalContext` de SessionStart —
   le contexte de (re)démarrage est mis en file par `session.created` (gouvernance + handoff +
-  plan de lots) et `session.compacted` (réinjection minimale du lot en cours), puis flushé au
+  plan d'US) et `session.compacted` (réinjection minimale de l'US en cours), puis flushé au
   **1er `chat.message`** en part texte synthétique (`out.parts`). `session.compacted` sert aussi
   de resync du palier d'occupation (l'occ chute après compaction).
 - **Nudges de gouvernance = `chat.message`** (lot OC4, miroir de `hooks/user-prompt-submit.js`) :
@@ -1746,7 +1760,7 @@ dupliquée ici. Ce qui est structurant :
   synthétique. Le prompt utilisateur est lu dans `out.parts` (parts texte), pas dans `input`.
 - **Vigie model-mismatch avec résolution locale** (lot OC4) : le modèle réel est lu dans l'occ
   record (`providerID/modelID` du dernier `message.updated`) — pas `inp.model`, qui arrive `null`
-  au `chat.message` en 1.18.3. Le `model_hint` du lot (alias libre « sonnet »/« opus ») n'est
+  au `chat.message` en 1.18.3. Le `model_hint` de l'US (alias libre « sonnet »/« opus ») n'est
   comparé que s'il est **résoluble** par le catalogue `client.config.providers` du côté courant
   (`hintResolvable` : au moins un modèle dont l'id contient l'alias) ; un hint absent du catalogue
   (ex. « sonnet » sur une install 100 % locale) ou un catalogue indisponible → **ignoré en
@@ -1768,11 +1782,16 @@ dupliquée ici. Ce qui est structurant :
 
 Voir section « Canal plugin Claude Code » ci-dessus (§ Identifiant plugin = `pmz`).
 
-### Titres de session : trigramme + focus du lot + numérotation partie (lot #35)
+### Titres de session : trigramme + focus de l'US + numérotation partie (lot #35)
 
 Refonte du format de titre suggéré (`lib/lot.js: suggestedTitle`), suite à un retour direct sur
 la répétition du nom de projet, la double numérotation et le mélange de langue observés sur
 plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
+
+> **Historique** : le format courant des titres est la nomenclature validée le 2026-10-12
+> (`[XXX · US#Y] Epic · résumé`, `[XXX · HS] résumé`, `[XXX · EP#a–#b] <nom de l'epic>`,
+> `[XXX · Plan] thème`), décrite plus haut avec `suggestedTitle` ; l'ID backlog y est revenu
+> comme **seul** numéro affiché. Cette section garde le raisonnement de la refonte lot #35.
 
 - **Trigramme de projet (`lib/trigram.js`, `.vibe-agent/trigram`)** remplace le nom complet du
   projet en préfixe (`[XXX]` au lieu de `promptimiser — …` / `japlan-app — …`) — répété sur
@@ -1782,24 +1801,24 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   interruption (pas de prompt forcé rétroactif — décision utilisateur, 2026-07-12) ; à la
   création d'un **nouveau** projet, `/init` propose 3 trigrammes (`backlog.js trigram
   --suggest`) + saisie libre. Modifiable à la main : `backlog.js trigram --set XXX`.
-- **Le focus du lot backlog prime, plus de double numérotation** : l'ancien format
+- **Le focus de l'US backlog prime, plus de double numérotation** : l'ancien format
   (`${epic} — Lot ${id} : ${titre}`) affichait DEUX numéros de sens différent — l'ID backlog
-  (`Lot 32`) et la numérotation métier embarquée dans le titre du lot lui-même par convention de
-  rédaction (`Lot D3 — …`). Le nouveau format (`titleForLot`) ne garde que `[XXX] ${titre du
-  lot}` — le titre du lot (déjà rédigé par `/scope`, avec sa propre numérotation métier
+  (`Lot 32`) et la numérotation métier embarquée dans le titre de l'US elle-même par convention de
+  rédaction (`Lot D3 — …`). Le nouveau format (`titleForLot`) ne garde que `[XXX] ${titre 
+  de l'US}` — le titre de l'US (déjà rédigé par `/scope`, avec sa propre numérotation métier
   quand pertinent) est la seule source de vérité affichée ; l'ID backlog reste un identifiant
   interne (CLI `backlog.js show`/`start`/`done`), jamais dans le titre de session. Le champ
   `epic` (label de groupement/filtrage, `backlog.js show --epic`) n'apparaît plus non plus dans
-  le titre — orthogonal au focus du lot, il resterait redondant avec la numérotation métier déjà
+  le titre — orthogonal au focus de l'US, il resterait redondant avec la numérotation métier déjà
   embarquée dans le titre par convention.
-- **Suffixe `(partie N)`** (`backlog.js: touchLot`, champ `lot.session_touches`) quand un même
-  lot reste `in_progress` sur **plus d'une session** : incrémenté une fois par vrai démarrage de
-  session (`suggestedTitle`, jamais au resume/compact) tant que le lot n'est pas clos, remis à
+- **Suffixe `(partie N)`** (`backlog.js: touchLot`, champ `lot.session_touches`) quand une même
+  US reste `in_progress` sur **plus d'une session** : incrémenté une fois par vrai démarrage de
+  session (`suggestedTitle`, jamais au resume/compact) tant que l'US n'est pas close, remis à
   zéro par `startLot` (un nouveau départ repart de « partie 1 », silencieuse). Le total `N` final
-  n'est connu qu'à la clôture (pas de `/N` affichable à l'avance, décision utilisateur) — un lot
-  clos n'affiche plus jamais de suffixe (le travail est fini, peu importe combien de sessions ça
+  n'est connu qu'à la clôture (pas de `/N` affichable à l'avance, décision utilisateur) — une US
+  close n'affiche plus jamais de suffixe (le travail est fini, peu importe combien de sessions ça
   a pris). Approximatif par construction, même logique assumée que `lot-counter.json` : avance
-  même si la session qui vient de se terminer n'a en fait pas touché ce lot précis.
+  même si la session qui vient de se terminer n'a en fait pas touché cette US précise.
 - **Langue** : tout le texte généré par `suggestedTitle`/`titleForLot` est en français (aligné
   sur la convention du dépôt) — un titre manuellement tapé par l'utilisateur dans un autre
   langage reste hors de portée (pas de traduction automatique, PMZ ne génère que sa propre
@@ -1835,7 +1854,7 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   confirmations ; on ne gêne pas Read/Edit. **Révision scopée (lot #78)** : hors vague, ce
   contrat tient à l'identique ; à l'intérieur d'une vague active, `Edit`/`Write`/`MultiEdit` sont
   gardés **pour le seul test de périmètre**, avec `deny` sur **certitude** uniquement (chemin hors
-  des globs du lot). L'exception est donc strictement bornée au régime fleet-fille — voir
+  des globs de l'US). L'exception est donc strictement bornée au régime fleet-fille — voir
   « Garde de périmètre » plus haut.
 - **Zéro dépendance / `node` et `git` en chemin absolu** : `node` nu échouait (`exit 127`) sous le
   PATH épuré des apps GUI macOS ; `node` est figé à l'install (symlink stable de préférence) et
@@ -1861,11 +1880,11 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   clôture proprement.
   **Amendée (lot #94, epic « Archive à tiroirs »)** : le handoff RESTE un fichier unique écrasé —
   c'est le canal de *reprise*, la décision ci-dessus tient. Mais la conclusion « pas d'historique »
-  était trop large : le narratif riche de fin de lot (décisions **et pourquoi**, non-vérifié,
-  dette) n'avait qu'UNE vie et a été perdu pour les ~90 lots clos, ce que git/CHANGELOG ne
+  était trop large : le narratif riche de fin d'US (décisions **et pourquoi**, non-vérifié,
+  dette) n'avait qu'UNE vie et a été perdu pour les ~90 US closes, ce que git/CHANGELOG ne
   restituent pas (ils portent le *quoi*, pas le *pourquoi* ni le non-vérifié). L'archive
   (`.vibe-agent/archive/`) est un référentiel **séparé** qui répond aux objections d'origine :
-  bloat → une entrée courte et bornée par lot ; nettoyage → immuables et versionnées ; « valeur
+  bloat → une entrée courte et bornée par US ; nettoyage → immuables et versionnées ; « valeur
   seulement pour la session suivante » → faux pour les décisions et le non-vérifié, prouvé par la
   perte constatée. Elle n'est **jamais** injectée automatiquement (pare-feu, voir § Flux de
   données) : c'est ce qui rend l'historique gratuit en contexte.
@@ -1875,7 +1894,7 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   passif tourne » et « le mécanisme actif est suivi » vient en partie du fait qu'il fallait
   deviner la commande.
 - **Clôture proposée en fenêtre à choix (OK/Non), jamais auto-exécutée** : quand le LLM estime
-  un lot fini, il doit poser la question via l'outil de question à choix cliquable (pas du texte
+  une US finie, il doit poser la question via l'outil de question à choix cliquable (pas du texte
   de chat), et attendre le OK avant de dérouler `/close-batch` (commit inclus). C'est une
   instruction comportementale (`MSG_ACTIF`, `MSG_CLOTURE` dans `lib/messages.js`, et
   `templates/CLAUDE.md`) — les hooks restent fail-open et ne peuvent pas ouvrir de dialogue
@@ -1885,12 +1904,17 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   jugement du LLM sur « j'ai fini ») et la règle « ne jamais committer sans demande explicite ».
 - **Maille User Story : non** (audit pilotage 2026-07-12) : une maille n'existe que si elle
   change une décision opérationnelle — quelle session, quel modèle, quel commit, quel ordre ;
-  la US n'en change aucune quand l'exécutant est Claude. `title` + `scope` « fait quand : … »
-  est la US compressée (le critère d'acceptation sans la cérémonie) ; la granularité sous-lot
-  reste les todos volatiles (`todo-snapshot.json`). Pas de hiérarchie epic→feature→lot : une
-  « feature » = un epic court (2-5 lots). Le champ `us` (lot #101) ne rouvre **pas** cette
-  décision : la maille de pilotage reste le lot, l'US est un **document optionnel référencé**
-  (un pointeur vers un fichier du dépôt), jamais une ligne du plan ni un niveau de hiérarchie.
+  une User Story « à la Scrum » n'en change aucune quand l'exécutant est Claude. `title` +
+  `scope` « fait quand : … » est la story compressée (le critère d'acceptation sans la
+  cérémonie) ; la granularité sous l'item reste les todos volatiles (`todo-snapshot.json`). Pas
+  de hiérarchie epic→feature→item : une « feature » = un epic court (2-5 US). Le champ `spec`
+  (ex-`us`, lot #101) ne rouvre **pas** cette décision : la maille de pilotage reste l'item du
+  backlog, la spec est un **document optionnel référencé** (un pointeur vers un fichier du
+  dépôt), jamais une ligne du plan ni un niveau de hiérarchie. **Note 2026-10-12** : l'item du
+  backlog s'appelle désormais « US » à l'affichage (ex-« lot ») et le pointeur `us` devient
+  `spec` — renommage de vocabulaire seulement : la décision tient sur le fond, la maille de
+  pilotage est toujours l'item (seulement rebaptisé), sans niveau de hiérarchie en plus ; le code
+  et les données gardent `lot`.
 - **Frontière Jira : écarté** (epic « US & Jira », lots #101-#103 ; retiré au lot #105, epic
   « Formalisation US ») : PMZ a porté un temps un pointeur de clé Jira (`PROJ-123`, zéro réseau,
   zéro secret, zéro synchronisation — traçabilité seule). Retiré faute d'usage réel : sans
@@ -1904,11 +1928,11 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   `backlog.js` refuse par principe.
 - **Epic = label, pas conteneur** : pas de table `epics[]` ni de cycle de vie d'epic — un label
   (fichier `.vibe-agent/epic`, écrit par `/scope` via `backlog.js epic --set`, + champ
-  optionnel `epic` du lot backlog, cap 60c, lot #28) suffit pour le filtrage (`backlog.js show
-  --epic`) et l'affichage `about.js` (lot en cours, sinon prochain, sinon label global). Le champ
-  du lot prime sur le label global dans `about.js` — permet un backlog multi-epics sans
+  optionnel `epic` de l'US backlog, cap 60c, lot #28) suffit pour le filtrage (`backlog.js show
+  --epic`) et l'affichage `about.js` (US en cours, sinon prochain, sinon label global). Le champ
+  de l'US prime sur le label global dans `about.js` — permet un backlog multi-epics sans
   hiérarchie. Depuis le lot #35, l'epic n'apparaît plus dans le titre de **session**
-  (`suggestedTitle`/`titleForLot`, remplacé par le trigramme + le focus du lot, cf. section
+  (`suggestedTitle`/`titleForLot`, remplacé par le trigramme + le focus de l'US, cf. section
   dédiée) — il reste utile pour le filtrage/l'affichage `about.js` seuls. Le multi-epics arbitré est un
   problème que l'historique réel du backlog (exécution strictement séquentielle) n'a jamais
   rencontré ; une table d'epics avec statuts et arbitrages serait le début du Jira que
@@ -1957,11 +1981,11 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   preuve gêne — c'est précisément ce que le lot #108 a traité (fusion + coda hors arbitre, ci-dessous).
 
 - **Bilan d'epic auto + hitRate visible** (lot #58, epic « Coût par livrable ») : `backlog.epicBilan(b,
-  lot)` s'appelle juste après `doneLot` — renvoie `null` tant qu'un lot de la MÊME epic reste
-  todo/in_progress, sinon agrège ce qui est **déjà persisté par lot** (`cost_tokens` #43,
-  `started_at`/`closed_at`) : nombre de lots, coût total, coût moyen/lot, durée (écart entre le plus
+  US)` s'appelle juste après `doneLot` — renvoie `null` tant qu'une US de la MÊME epic reste
+  todo/in_progress, sinon agrège ce qui est **déjà persisté par US** (`cost_tokens` #43,
+  `started_at`/`closed_at`) : nombre d'US, coût total, coût moyen/US, durée (écart entre le plus
   ancien `started_at` et le plus récent `closed_at`, `null` si l'une des deux dates manque — vieux
-  lots créés avant l'ajout de `started_at`). Aucun recalcul depuis le transcript. `epicBilanMessage`
+  US créées avant l'ajout de `started_at`). Aucun recalcul depuis le transcript. `epicBilanMessage`
   émet le nudge (glyphe INFO, grammaire #56) ; passe par l'arbitre de tour (#57) comme les autres.
   **Choke points identiques à #57** : bloc auto-clôture de `hooks/stop.js`
   côté Claude Code, `closureAndHandoff` côté OpenCode (même toast, même parité de contrat).
@@ -1972,19 +1996,19 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   valeur connue conservée si absente ce tour) ; `audit-context.js` (donc `/budget` sur les deux
   canaux, script partagé) l'affiche en pourcentage arrondi, une ligne en moins si jamais calculé
   (pas de chiffre fantôme). Non couvert : mirroring de l'occupation côté OpenCode (`recordOccupancy`
-  n'y est jamais appelé, gap préexistant hors scope de ce lot) — `/pmz budget` y retombe sur le
+  n'y est jamais appelé, gap préexistant hors scope de cette US) — `/pmz budget` y retombe sur le
   fallback « comptage de relectures » comme avant.
 
 - **Carte de clôture** (lot #59, epic « Coût par livrable ») : contrairement à `lotCostMessage`
-  (seuil ~300k) et `epicBilanMessage` (dernier lot d'une epic seulement), `lotClosureCardMessage`
-  sort à **CHAQUE** auto-clôture de lot univoque — coût réel (`cost_tokens` déjà persisté, #43),
+  (seuil ~300k) et `epicBilanMessage` (dernière US d'une epic seulement), `lotClosureCardMessage`
+  sort à **CHAQUE** auto-clôture d'US univoque — coût réel (`cost_tokens` déjà persisté, #43),
   durée (`started_at` → `closed_at`, même calcul que `epicBilan`, `null` silencieux si une date
   manque), relectures évitées (taille de `read-ledger.avoid_reread_notes` — fichiers que l'hygiène
   de lecture a empêché de relire). Glyphe INFO (grammaire #56), passe par l'arbitre de tour (#57).
   **Ordre de poussée délibéré** : dans les deux choke points (bloc auto-clôture de `hooks/stop.js`,
   `closureAndHandoff` OpenCode), la carte est poussée **après** le bilan d'epic — à sévérité INFO
   égale, l'arbitre départage à égalité par ordre d'origine (stable) ; le bilan (rare, 1×/epic) doit
-  donc primer sur la carte (systématique, 1×/lot) quand les deux coïncident et que le plafond de 3
+  donc primer sur la carte (systématique, 1×/US) quand les deux coïncident et que le plafond de 3
   force un arbitrage. Aucun recalcul depuis le transcript. *Cet ordre de poussée ne concerne plus que
   le canal OpenCode : côté Claude Code, la fusion du lot #108 (ci-dessous) a supprimé l'arbitrage.*
 
@@ -1996,28 +2020,28 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
      concours. `hooks/stop.js` émet donc la reco « nouvelle session » en **coda, APRÈS `arbitrate()`**,
      hors plafond : elle ne peut plus être évincée. Elle vivait jusqu'ici comme une ligne de
      `lotClosedMessage` (INFO) — donc perdue dès qu'une alerte du tour évinçait le message, or
-     l'instant d'après-clôture (lot clos, handoff frais, plan persisté) est exactement celui où
+     l'instant d'après-clôture (US close, handoff frais, plan persisté) est exactement celui où
      repartir coûte le moins et où la reco ne doit pas manquer. `freshSessionCodaMessage` est la seule
      sortie de ce type ; toute nouvelle prescription doit être justifiée sur le même critère, sinon le
      plafond ne veut plus rien dire.
   2. **Une clôture = une carte.** `closureCardMessage` fusionne en UN nudge (donc une place
-     d'arbitre) ce qui sortait en trois : « lot clos + suivant » (#97), bilan d'epic (#58, ligne
-     conditionnelle) et chiffres du lot (#59). Séparés, ils occupaient à eux seuls les 3 places
-     disponibles et, au dernier lot d'une epic, ils étaient **4 candidats (avec la preuve #44) pour
+     d'arbitre) ce qui sortait en trois : « US close + suivant » (#97), bilan d'epic (#58, ligne
+     conditionnelle) et chiffres de l'US (#59). Séparés, ils occupaient à eux seuls les 3 places
+     disponibles et, à la dernière US d'une epic, ils étaient **4 candidats (avec la preuve #44) pour
      3 places** : la carte chiffrée, poussée en dernier, était systématiquement évincée — et la
-     transition n'est pas rejouable (le lot est `done` au tour suivant). Fusionnés : tout ou rien.
+     transition n'est pas rejouable (l'US est `done` au tour suivant). Fusionnés : tout ou rien.
   3. **Auto-clôture armée sur le backlog, plus sur un flag de session.** La branche d'auto-clôture
-     exigeait `closure_reminded_for_batch` — un flag remis à zéro à **chaque session**. Un lot démarré
+     exigeait `closure_reminded_for_batch` — un flag remis à zéro à **chaque session**. Une US démarrée
      dans une session et commité dans la suivante restait donc `in_progress` **indéfiniment** : ni
-     clôture, ni carte, ni preuve, ni numéro de lot. L'armement lit désormais l'état du **backlog**
+     clôture, ni carte, ni preuve, ni numéro d'US. L'armement lit désormais l'état du **backlog**
      lui-même : *exactement un `in_progress`* + *arbre propre (meaningful)* + *un commit tombé depuis
-     le `started_at` du lot* (date de commit de HEAD, `git log -1 --format=%cI`). Aucune persistance
+     le `started_at` de l'US* (date de commit de HEAD, `git log -1 --format=%cI`). Aucune persistance
      nouvelle et robuste aux sessions fraîches, contrairement à un sha mémorisé dans l'état de session.
      Le flag reste un armement valide (chemin historique intact) ; la garde « commit depuis le
-     démarrage » est ce qui empêche de clore un lot qui n'a rien livré. Deux replis assumés : lot sans
-     `started_at` (legacy) → pas d'armement backlog ; résolution de `%cI` à la seconde → un lot démarré
-     ET commité dans la même seconde n'est pas détecté (sans objet en pratique, un lot dure des
-     minutes). Non porté côté OpenCode (`closureAndHandoff` garde le flag seul) : périmètre du lot.
+     démarrage » est ce qui empêche de clore une US qui n'a rien livré. Deux replis assumés : US sans
+     `started_at` (legacy) → pas d'armement backlog ; résolution de `%cI` à la seconde → une US démarrée
+     ET commitée dans la même seconde n'est pas détectée (sans objet en pratique, une US dure des
+     minutes). Non porté côté OpenCode (`closureAndHandoff` garde le flag seul) : périmètre de l'US.
 
 - **Verdict chiffré de session fraîche dans `/close-batch`** (lot #109, epic « Reco de session
   fraîche »). La checklist de clôture (`scripts/close-batch.js`) disait « oui si le sujet
@@ -2027,7 +2051,7 @@ plusieurs sessions réelles (capture fournie par l'utilisateur, 2026-07-12).
   (`occupancy.stateFileFor(sessionId)`, un seul chiffre) — zéro relecture du transcript (`/close-batch`
   n'est de toute façon pas un hook, il n'a pas `transcript_path`). Seuil = `BUCKETS[1]` (300k) :
   repris tel quel du nudge subagent (`occupancy.evaluateSubagentNudge`, lot #52), pas inventé au
-  jugé pour ce lot — même seuil déjà calibré et éprouvé en usage. La priorité « après clôture »
-  (lot ouvert, modifs non commitées) reste inchangée et passe **avant** le verdict : tant que la
+  jugé pour cette US — même seuil déjà calibré et éprouvé en usage. La priorité « après clôture »
+  (US ouverte, modifs non commitées) reste inchangée et passe **avant** le verdict : tant que la
   clôture n'est pas faite, la question de la fraîcheur ne se pose pas. `close-batch.md` étape 7
   renvoie désormais explicitement à ce verdict au lieu de le contredire par une reco fixe.

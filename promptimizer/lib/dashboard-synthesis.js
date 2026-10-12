@@ -91,7 +91,7 @@ function buildSignals(w, fmt, opts) {
         detail: `Le taux de réutilisation tombe à ${fmt.pct(hit)} — signe de sessions rouvertes à froid ou de contexte ` +
           `invalidé en cours de route. L'écriture de cache pèse ${fmt.eur(w.cost.cacheWrite)} sur la fenêtre.`,
         action: `Arrêter les allers-retours en session neuve pour une question isolée : regrouper dans la session ` +
-          `du lot en cours, dont le préfixe est déjà payé.`,
+          `de l'US en cours, dont le préfixe est déjà payé.`,
       });
     }
   }
@@ -112,7 +112,7 @@ function buildSignals(w, fmt, opts) {
         title: `Le préfixe pèse ${fmt.pct(s.prefix)} de la lecture de cache, soit ${fmt.eur(postCost(s.prefix))}`,
         detail: `${fmt.tok(w.prefix.median)} en médiane, rejoués aux ${fmt.int(w.turns)} tours de la fenêtre${hedge}. ` +
           `C'est le seul poste dont une coupe se paie à chaque tour, même les plus courts.`,
-        action: `Arrêter de charger ce qui ne sert pas au lot : skills et serveurs MCP hors sujet désactivés, ` +
+        action: `Arrêter de charger ce qui ne sert pas à l'US : skills et serveurs MCP hors sujet désactivés, ` +
           `CLAUDE.md ramené à la couche stable, injections de hook resserrées.`,
       });
     }
@@ -189,7 +189,7 @@ function buildSignals(w, fmt, opts) {
         title: `Les sessions longues dérapent : coût en tours<sup>${fmt.dec(k)}</sup>, ${fmt.eur(w.cost.total * g)} récupérables en scindant`,
         detail: `r² ${fmt.dec(w.scaling.r2)} sur ${fmt.int(w.scaling.n)} session(s) de ${fmt.int(w.scaling.minTurns)} tours ou plus. ` +
           `Deux sessions de T/2 tours coûtent ${fmt.pct(g)} de moins qu'une de T.`,
-        action: `Arrêter d'enchaîner les lots dans la même session : clore, puis repartir sur le handoff court.`,
+        action: `Arrêter d'enchaîner les US dans la même session : clore, puis repartir sur le handoff court.`,
       });
     }
   }
@@ -212,7 +212,7 @@ function buildSignals(w, fmt, opts) {
         title: `L'occupation frôle la borne : médiane à ${fmt.pct(rMed)}, p90 à ${fmt.pct(rP90)} de ${fmt.tok(o.redZoneTokens)}`,
         detail: `Médiane ${fmt.tok(w.occupancy.median)}, p90 ${fmt.tok(w.occupancy.p90)}, pic ${fmt.tok(w.occupancy.max)}. ` +
           `Au-delà de la borne, la compaction tronque le contexte et la mesure elle-même se dégrade.`,
-        action: `Arrêter de laisser filer les sessions jusqu'à la borne : clore le lot avant, ou déléguer à un sous-agent.`,
+        action: `Arrêter de laisser filer les sessions jusqu'à la borne : clore l'US avant, ou déléguer à un sous-agent.`,
       });
     }
   }
@@ -237,7 +237,7 @@ function buildSignals(w, fmt, opts) {
         title: `+${fmt.dec(a, 0)} tokens par tour : le p90 est atteint vers le tour ${fmt.int(turnsToP90)}`,
         detail: `Pente médiane sur ${fmt.int(w.accretion.n)} session(s). Le coût par tour croît avec l'occupation : ` +
           `${fmt.eur(perTurn)} en moyenne sur la fenêtre, davantage en fin de session.`,
-        action: `Arrêter d'accumuler au-delà de ~${fmt.int(turnsToP90)} tours : clore le lot pendant que le tour est encore bon marché.`,
+        action: `Arrêter d'accumuler au-delà de ~${fmt.int(turnsToP90)} tours : clore l'US pendant que le tour est encore bon marché.`,
       });
     }
   }

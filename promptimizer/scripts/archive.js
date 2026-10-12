@@ -43,22 +43,22 @@ function readBody() {
 function showIndex(root) {
   const entries = archive.readIndex(root);
   if (!entries.length) {
-    out('Archive vide — aucun lot indexé. (`backfill` rétro-remplit le tier 0 depuis le plan de lots.)');
+    out('Archive vide — aucune US indexée. (`backfill` rétro-remplit le tier 0 depuis le plan des US.)');
     return;
   }
   const sansFiche = entries.filter((e) => e.fiche !== 'oui').length;
-  out(`Archive PMZ — ${entries.length} lot(s) clos · ${entries.length - sansFiche} avec fiche · ${sansFiche} sans fiche.`);
+  out(`Archive PMZ — ${entries.length} US closes · ${entries.length - sansFiche} avec fiche · ${sansFiche} sans fiche.`);
   out('');
   for (const e of entries) out(archive.formatEntry(e));
   out('');
-  out('Fiche d\'un lot : archive.js show --id N. Ne l\'ouvre pas sans demande explicite.');
+  out('Fiche d\'une US : archive.js show --id N. Ne l\'ouvre pas sans demande explicite.');
 }
 
 function showFiche(root, id) {
   const text = archive.readFiche(root, id);
   if (text) { process.stdout.write(text.endsWith('\n') ? text : text + '\n'); return; }
   const e = archive.readIndex(root).find((x) => x.id === id);
-  out(e ? archive.formatEntry(e) : `Lot #${id} : absent de l'index.`);
+  out(e ? archive.formatEntry(e) : `US#${id} : absente de l'index.`);
   const info = archive.rawInfo(root, id);
   out(`Fiche jamais écrite — brut/transcript éventuels : ${info.exists ? 'archive.js raw --id ' + id : 'aucun brut local'}.`);
 }
@@ -67,13 +67,13 @@ function showFiche(root, id) {
 // il ne s'ouvre que sur demande explicite (--confirm), après question à choix côté commande.
 function showRaw(root, id) {
   const info = archive.rawInfo(root, id);
-  if (!info.exists) { out(`Aucun brut pour le lot #${id} (tier 2 local, non versionné).`); return; }
+  if (!info.exists) { out(`Aucun brut pour l'US#${id} (tier 2 local, non versionné).`); return; }
   if (!has('confirm')) {
     out(`${info.file} — ${info.bytes} octets. Relance avec --confirm pour l'afficher.`);
     return;
   }
   const text = archive.readRaw(root, id);
-  if (text == null) { out(`Brut du lot #${id} illisible.`); return; }
+  if (text == null) { out(`Brut de l'US#${id} illisible.`); return; }
   process.stdout.write(text.endsWith('\n') ? text : text + '\n');
 }
 
@@ -96,8 +96,8 @@ function main() {
     if (id == null) { out('Usage : archive.js raw --id N [--confirm] | raw --id N --stdin.'); return; }
     if (has('stdin') || arg('file')) { // intention d'écriture explicite → tier 2 en écriture
       const r = archive.writeRaw(root, id, readBody());
-      out(r.ok ? `Brut du lot #${id} écrit : ${r.file} (${r.bytes} octets, non versionné).`
-        : `Brut du lot #${id} non écrit (corps vide ou écriture impossible).`);
+      out(r.ok ? `Brut de l'US#${id} écrit : ${r.file} (${r.bytes} octets, non versionné).`
+        : `Brut de l'US#${id} non écrit (corps vide ou écriture impossible).`);
       return;
     }
     showRaw(root, id);
@@ -110,11 +110,11 @@ function main() {
     const body = readBody();
     if (body == null || !body.trim()) { out('Fiche vide : rien écrit. Passe le corps via --stdin ou --file <chemin>.'); return; }
     const r = archive.writeFiche(root, id, body, { force: has('force') });
-    if (r.ok) { out(`Fiche du lot #${id} écrite : ${r.file} (${r.chars} caractères, stagée · index → fiche:oui).`); return; }
-    if (r.action === 'exists') { out(`Fiche du lot #${id} déjà écrite (immuable) : ${r.file}. Relance avec --force pour la remplacer.`); return; }
-    if (r.action === 'no-marker') { out(`Fiche du lot #${id} refusée : marqueur « ${archive.ficheMarker(id)} » absent de la 1re ligne.`); return; }
-    if (r.action === 'too-long') { out(`Fiche du lot #${id} refusée : ${r.chars} caractères > ${archive.MAX_FICHE_CHARS} (borne dure). Distille — jamais de diff ni de listing de code.`); return; }
-    out(`Fiche du lot #${id} non écrite (erreur d'écriture) — rien de changé.`);
+    if (r.ok) { out(`Fiche de l'US#${id} écrite : ${r.file} (${r.chars} caractères, stagée · index → fiche:oui).`); return; }
+    if (r.action === 'exists') { out(`Fiche de l'US#${id} déjà écrite (immuable) : ${r.file}. Relance avec --force pour la remplacer.`); return; }
+    if (r.action === 'no-marker') { out(`Fiche de l'US#${id} refusée : marqueur « ${archive.ficheMarker(id)} » absent de la 1re ligne.`); return; }
+    if (r.action === 'too-long') { out(`Fiche de l'US#${id} refusée : ${r.chars} caractères > ${archive.MAX_FICHE_CHARS} (borne dure). Distille — jamais de diff ni de listing de code.`); return; }
+    out(`Fiche de l'US#${id} non écrite (erreur d'écriture) — rien de changé.`);
     return;
   }
 
@@ -123,7 +123,7 @@ function main() {
     const r = archive.backfill(root, { dryRun });
     if (!r.ok) { out('Backfill impossible (archive non écrite) — rien de changé.'); return; }
     const verbe = dryRun ? 'à ajouter' : 'ajoutée(s)';
-    out(`Backfill tier 0 — ${r.total} lot(s) clos · ${r.added.length} ligne(s) ${verbe} · ${r.skipped} déjà indexé(s).`);
+    out(`Backfill tier 0 — ${r.total} US closes · ${r.added.length} ligne(s) ${verbe} · ${r.skipped} déjà indexé(s).`);
     for (const e of r.added) out('  ' + archive.formatEntry(e));
     if (dryRun) out('(--dry-run : rien écrit. Relance sans --dry-run pour appliquer.)');
     else if (r.added.length) out(`Index : ${archive.indexFile(root)} (stagé).`);

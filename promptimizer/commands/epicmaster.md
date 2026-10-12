@@ -1,12 +1,12 @@
 ---
-description: Session maître — lance tous les lots ouverts du backlog en sous-agents (modèle préconisé) et consolide un handoff dette / à trancher
+description: Session maître — lance toutes les US ouvertes du backlog en sous-agents (modèle préconisé) et consolide un handoff dette / à trancher
 allowed-tools: Bash(node *), Bash(git *), Agent, Write
 ---
 
-Tu es la **session maître** : tu ne codes pas, tu **lances** les lots ouverts du backlog en
-**sous-agents** (outil Agent), chacun avec le **modèle et l'effort préconisés par le lot**, puis
-tu **consolides** — commit et clôture par lot, CHANGELOG, et UN handoff final qui porte la
-dette et ce qui reste à trancher. Les lots peuvent appartenir à une seule epic ou à plusieurs.
+Tu es la **session maître** : tu ne codes pas, tu **lances** les US ouvertes du backlog en
+**sous-agents** (outil Agent), chacune avec le **modèle et l'effort préconisés par l'US**, puis
+tu **consolides** — commit et clôture par US, CHANGELOG, et UN handoff final qui porte la
+dette et ce qui reste à trancher. Les US peuvent appartenir à une seule epic ou à plusieurs.
 
 > **Bande epicmaster** : pendant cette session maître, une bande live (`EM ▶n ✔n ⚙n`, sous-agents
 > en vol / terminés / outils) s'affiche au-dessus de la saisie, chargée automatiquement (plugin `pmz` :
@@ -17,7 +17,7 @@ dette et ce qui reste à trancher. Les lots peuvent appartenir à une seule epic
 `node ~/.claude/promptimizer/scripts/backlog.js epicmaster` (ajouter `--epic "…"` pour se limiter
 à une epic ; `--max-parallel N` pour abaisser le plafond de sous-agents en vol).
 
-Restitue la sortie **telle quelle** (elle est déjà mise en forme : une ligne alignée par lot
+Restitue la sortie **telle quelle** (elle est déjà mise en forme : une ligne alignée par US
 `[x] #id  titre  modèle · effort  ← vague`, détail indenté, ordre de lancement, budget et
 **modèle préconisé pour toi**). Puis demande la confirmation en **UNE** fois, avec des **cases à
 cocher précochées** — jamais une liste à retaper :
@@ -26,40 +26,40 @@ cocher précochées** — jamais une liste à retaper :
   écris le plan en Markdown dans le scratchpad (`epicmaster-plan.md`) et ouvre-le dans le
   panneau latéral (pane `file`) ; la conversation ne garde que les boutons. Contenu : pour
   chaque epic son **nom** et une **description courte** (une phrase déduite des titres et « fait
-  quand » des lots, jamais inventée au-delà). En tête, un **tableau d'ordre de lancement**
-  (`| Vague | Lot | Titre | Modèle · effort | Après |`) ; puis **un bloc par vague** et, par lot,
+  quand » des US, jamais inventée au-delà). En tête, un **tableau d'ordre de lancement**
+  (`| Vague | US | Titre | Modèle · effort | Après |`) ; puis **un bloc par vague** et, par US,
   un titre `#### #id — titre`, une ligne `` `modèle · effort` · ~Nk tokens · ⏳ à lancer · après
   #id ``, le **« fait quand »** (champ `scope` du backlog) et des puces courtes verify /
-  périmètre / US. **Jamais de syntaxe de tâche `- [x]`** : le panneau la rend cochée-barrée et
-  les lots paraissent déjà faits. Le plan est **en lecture seule** : on n'y coche rien, il le dit
-  en pied (« Pour écarter un lot : bouton « Écarter certains lots » ou réponds « sans #id » »),
+  périmètre / spec. **Jamais de syntaxe de tâche `- [x]`** : le panneau la rend cochée-barrée et
+  les US paraissent déjà faites. Le plan est **en lecture seule** : on n'y coche rien, il le dit
+  en pied (« Pour écarter une US : bouton « Écarter certaines US » ou réponds « sans #id » »),
   avec modèle maître, parallélisme, capacité. Sans panneau
   (session hors fenêtre, autre hôte) : le même plan en Markdown dans la conversation, ou en
   widget HTML (`show_widget`) **en lecture seule** — un widget n'est **jamais** le moyen de
   répondre : un bouton `sendPrompt` peut rester sans effet selon l'hôte (constaté : clic sur
   « Lancer la sélection » sans aucun envoi), et l'utilisateur croirait avoir lancé.
-- **Réponse, toujours par les boutons natifs** (AskUserQuestion) : « Lancer tous les lots
-  (Recommandé) » / « Écarter certains lots » / « Annuler ». Sur « Écarter » : une seconde
-  question à **choix multiples** (vraies cases, une option par lot `#id titre — modèle · effort`),
-  les lots cochés sont écartés (au-delà de 4 lots, plafond de l'outil : une option par vague,
-  ou la réponse libre « Other » « sans #12, #15 »). Sans AskUserQuestion : texte « Je lance ces lots tels quels ?
+- **Réponse, toujours par les boutons natifs** (AskUserQuestion) : « Lancer toutes les US
+  (Recommandé) » / « Écarter certaines US » / « Annuler ». Sur « Écarter » : une seconde
+  question à **choix multiples** (vraies cases, une option par US `#id titre — modèle · effort`),
+  les US cochées sont écartées (au-delà de 4 US, plafond de l'outil : une option par vague,
+  ou la réponse libre « Other » « sans #12, #15 »). Sans AskUserQuestion : texte « Je lance ces US telles quelles ?
   Pour en décocher : « sans #12, #15 ». » Une question **fermée sans réponse** = rien n'est
-  lancé, les lots restent « à faire » ; ne jamais interpréter un silence comme un oui.
+  lancé, les US restent « à faire » ; ne jamais interpréter un silence comme un oui.
 
-Si des lots sont décochés : relance avec `--skip 12,15`, réaffiche, et ne redemande que si un
-lot est devenu **bloqué** (dépendance sur un lot décoché). N'embarque **jamais** un lot absent de
+Si des US sont décochées : relance avec `--skip 12,15`, réaffiche, et ne redemande que si une
+US est devenue **bloquée** (dépendance sur une US décochée). N'embarque **jamais** une US absente de
 la sortie du script.
 
 Plan confirmé : **sème le plan complet dans la bande** (rien n'est démarré, backlog intact) —
 `backlog.js epicmaster --live-seed` avec les **mêmes** `--epic`/`--skip`/`--max-parallel` que le
 plan validé, plus `--wave-labels "1=…;2=…"` : un **libellé court par vague** (2 à 4 mots, déduit
-des titres de ses lots, jamais inventé au-delà — ex. « Socle registre », « Providers TheFork »).
+des titres de ses US, jamais inventé au-delà — ex. « Socle registre », « Providers TheFork »).
 La bande affiche aussitôt epic et vagues (« Vague 2 (#10, #11) · libellé ») ; son bouton **Plan**
-ouvre le plan complet (vagues, lots, modèle · effort, « fait quand ») dans un panneau.
+ouvre le plan complet (vagues, US, modèle · effort, « fait quand ») dans un panneau.
 
 Puis **renomme ta propre session** (une session maître se nomme elle-même, dès le lancement) :
 `backlog.js epicmaster --session-title` (mêmes `--epic`/`--skip`) donne
-« [XXX · Epicmaster] Epic · #a–#b » ; dans l'app desktop, outil de titre de session avec
+« [XXX · EP#a–#b] <nom de l'epic> » ; dans l'app desktop, outil de titre de session avec
 `session_id: "self"`. Hors app : ignore cette étape, sans le signaler.
 
 Si le script préconise un autre modèle que le tien pour la session maître, dis-le en une
@@ -67,31 +67,31 @@ ligne (`/model …`) avant de lancer — tu orchestres, tu n'as pas besoin de ra
 
 ## 2. Lancement, vague par vague
 
-Pour **chaque vague** du plan, et **jamais plus de lots en vol que le parallélisme affiché** :
-1. Pour chaque lot de la vague : `backlog.js epicmaster --brief --id <id>` → colle le brief
-   **tel quel** dans le prompt de l'outil Agent, avec `model` = modèle préconisé du lot et
+Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme affiché** :
+1. Pour chaque US de la vague : `backlog.js epicmaster --brief --id <id>` → colle le brief
+   **tel quel** dans le prompt de l'outil Agent, avec `model` = modèle préconisé de l'US et
    `effort` = effort préconisé (les deux sont dans le brief ; ne les remplace jamais par les
-   tiens). Démarre le lot : `backlog.js start --id <id> --owner "master/lot-<id>"` (un owner
-   **distinct par lot**, sinon le second démarrage rétrograde le premier en « à faire »).
-   Une vague à plusieurs lots = sous-agents lancés **en parallèle** (arrière-plan) ; une vague
+   tiens). Démarre l'US : `backlog.js start --id <id> --owner "master/lot-<id>"` (un owner
+   **distinct par US**, sinon le second démarrage rétrograde le premier en « à faire »).
+   Une vague à plusieurs US = sous-agents lancés **en parallèle** (arrière-plan) ; une vague
    « série » = un seul sous-agent, attendu avant la suivante.
 2. Attends le rapport de **tous** les sous-agents de la vague. Un rapport est ≤ 250 mots aux
    sections fixes (Fait / Fichiers modifiés / Verify / Non vérifié / Dette / À trancher / Bloc
    CHANGELOG). **Ne relis jamais** le transcript ni la sortie brute d'un sous-agent, ni les
    fichiers qu'il a modifiés : le rapport est ta seule source.
-3. Pour chaque lot livré, **dans l'ordre du plan** (les commandes exactes sont données à la
+3. Pour chaque US livrée, **dans l'ordre du plan** (les commandes exactes sont données à la
    fin du brief) :
    - **Verify verte** → commit **borné au périmètre** (`git add -- ':(glob)…'`, ou `git add -A`
-     pour un lot sans périmètre, seul en vol) + message français court, puis
+     pour une US sans périmètre, seule en vol) + message français court, puis
      `backlog.js done --id <id> --commit "$(git rev-parse --short HEAD)" --verify-verdict ok --tokens <N>`.
      `<N>` = tokens **réels** du sous-agent (ligne d'usage rendue avec son rapport, jamais estimés
      par toi ; absent -> omets `--tokens`, la bande garde l'estimation du plan).
-   - **Lot sans verify** (non vérifiable par commande : doc, choix visuel) → commit + `done
+   - **US sans verify** (non vérifiable par commande : doc, choix visuel) → commit + `done
      --verify-verdict none --tokens <N>` : clos **sans preuve**, et dit comme tel dans le handoff.
    - **Verify rouge** → **pas de commit** ; `backlog.js note --id <id> --note "verify rouge :
-     <cause en une ligne>" --decide` (le lot entre dans « à trancher » de la bande), puis
-     `backlog.js done --id <id> --verify-verdict failed --tokens <N>` (la bande passe le lot en
-     rouge) et `backlog.js reopen --id <id> --note "verify rouge : <cause>"` : le lot reste
+     <cause en une ligne>" --decide` (l'US entre dans « à trancher » de la bande), puis
+     `backlog.js done --id <id> --verify-verdict failed --tokens <N>` (la bande passe l'US en
+     rouge) et `backlog.js reopen --id <id> --note "verify rouge : <cause>"` : l'US reste
      **ouvert** dans le backlog et passe dans « À trancher » du handoff. Si la cause est
      triviale (< 5 min), relance **un** sous-agent de correction au même modèle, une seule fois.
    - Un sous-agent qui a écrit **hors de son périmètre** : ne commite pas ses écritures hors zone
@@ -99,12 +99,12 @@ Pour **chaque vague** du plan, et **jamais plus de lots en vol que le paralléli
    - Toute décision qui attend l'humain (« À trancher » du rapport d'un sous-agent) :
      `backlog.js note --id <id> --note "<décision en une ligne>" --decide` — la bande compte
      « N à trancher » en direct.
-4. Ajoute au `CHANGELOG.md` une entrée datée par lot, reprise du « Bloc CHANGELOG » du rapport.
+4. Ajoute au `CHANGELOG.md` une entrée datée par US, reprise du « Bloc CHANGELOG » du rapport.
 
 ## 3. Vigilance contexte (non négociable)
 
-- Le plan dit « au plus N lots par session maître ». **Arrête-toi** après la dernière vague de
-  ta session : les lots restants restent ouverts, la session suivante les reprend avec
+- Le plan dit « au plus N US par session maître ». **Arrête-toi** après la dernière vague de
+  ta session : les US restantes restent ouvertes, la session suivante les reprend avec
   `/epicmaster`.
 - Si le hook Stop prescrit une session fraîche (zone rouge, budget de tours) **avant** la fin :
   termine la vague en cours (commits + `done`), consolide (étape 4) et **arrête-toi** — ne lance
@@ -114,16 +114,16 @@ Pour **chaque vague** du plan, et **jamais plus de lots en vol que le paralléli
 
 ## 4. Consolidation finale
 
-1. Fiche d'archive par lot clos : `node ~/.claude/promptimizer/scripts/archive.js write --id N
+1. Fiche d'archive par US close : `node ~/.claude/promptimizer/scripts/archive.js write --id N
    --stdin` — les sections du rapport (Fait, Non vérifié, Dette, À trancher) se reportent telles
    quelles ; aucun diff ni contenu de fichier.
 2. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
    `.vibe-agent/handoff.md` (écrase ; garde la première ligne `<!-- pmz:handoff:manual -->`) :
-   lots livrés (id + commit), lots restés ouverts et pourquoi, **Non vérifié** agrégé, **Dette
-   consolidée** (une puce par item, lot d'origine entre parenthèses), **À trancher** (décisions
-   qui attendent l'humain — jamais tranchées à sa place), prochaine action (lots restants →
+   US livrées (id + commit), US restées ouvertes et pourquoi, **Non vérifié** agrégé, **Dette
+   consolidée** (une puce par item, US d'origine entre parenthèses), **À trancher** (décisions
+   qui attendent l'humain — jamais tranchées à sa place), prochaine action (US restantes →
    `/epicmaster` ; sinon « plan terminé »). Moins de 800 tokens.
 3. Résume en 5 lignes à l'utilisateur : livrés / ouverts / à trancher / session fraîche
-   recommandée (oui si des lots restent ou si le hook l'a prescrit).
+   recommandée (oui si des US restent ou si le hook l'a prescrit).
 
-Ne déclare jamais un lot « fait » sans verify verte rapportée **et** persistée.
+Ne déclare jamais une US « faite » sans verify verte rapportée **et** persistée.

@@ -27,7 +27,7 @@ function welcomeMessage() {
   return [
     'Promptimizer vient d\'être installé (premier démarrage). Dis-le UNE seule fois à l\'utilisateur, en 2 lignes :',
     `- ${p}init : pose le socle Promptimizer dans le projet courant (après confirmation) ;`,
-    `- ${p}statusline : barre d'état optionnelle (version, lot, occupation du contexte) — opt-in.`,
+    `- ${p}statusline : barre d'état optionnelle (version, US, occupation du contexte) — opt-in.`,
     `(${p}doctor vérifie l'installation.)`,
   ].join('\n');
 }

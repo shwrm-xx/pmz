@@ -132,7 +132,7 @@ function commitScaffold(root, created) {
     if (rel && git(['add', '--', rel], root) !== null) staged += 1;
   }
   if (!staged) return false;
-  const msg = 'chore: socle Promptimizer (CLAUDE.md, AGENTS.md, CHANGELOG.md, plan de lots)';
+  const msg = 'chore: socle Promptimizer (CLAUDE.md, AGENTS.md, CHANGELOG.md, plan des US)';
   return git(['commit', '-m', msg], root) !== null;
 }
 

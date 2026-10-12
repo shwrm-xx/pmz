@@ -12,7 +12,7 @@ lui-même chaque garde-fou ci-dessous.
 
 > Promptimizer actif. Priorité : réduire les relectures de contexte.
 > Utilise git grep/git diff avant Read complet.
-> Clôture chaque lot par vérif ciblée + changelog + commit + handoff court.
+> Clôture chaque US par vérif ciblée + changelog + commit + handoff court.
 
 Puis vérifier si le projet est initialisé (présence de `.vibe-agent/`).
 - **Absent** : proposer la création du socle (`CLAUDE.md`, `AGENTS.md`, `CHANGELOG.md`,
@@ -43,7 +43,7 @@ Codex ne mesure pas les tokens automatiquement : estimer au fil de la conversati
 | Signal observé | Annoce à produire |
 |---|---|
 | ~5-10 fichiers lus ou tour 8+ | `[contexte moyen — préférer git grep/diff à toute nouvelle lecture]` |
-| Beaucoup d'échanges, fichiers volumineux relus | `[contexte élevé — finir ce lot, handoff court, session fraîche recommandée]` |
+| Beaucoup d'échanges, fichiers volumineux relus | `[contexte élevé — finir cette US, handoff court, session fraîche recommandée]` |
 | Session très longue, relecture fréquente | `[contexte critique — clôturer maintenant, nouvelle session]` |
 
 Ne pas attendre que l'utilisateur demande : auto-déclarer le niveau estimé.
@@ -55,10 +55,10 @@ Ne pas attendre que l'utilisateur demande : auto-déclarer le niveau estimé.
 Si la demande couvre plusieurs fichiers, plusieurs fonctionnalités ou plusieurs écrans
 non encore explorés :
 
-> Demande potentiellement large. Je découpe en un premier lot court et ciblé.
+> Demande potentiellement large. Je découpe en une première US courte et ciblée.
 > Périmètre retenu : [X]. Je n'élargis pas sans demande explicite.
 
-Proposer un lot minimal avant de commencer.
+Proposer une US minimale avant de commencer.
 
 ---
 
@@ -78,9 +78,9 @@ exécuter sans demander.
 
 ---
 
-## 5. Protocole de clôture de lot
+## 5. Protocole de clôture d'US
 
-À la fin de chaque lot de travail, dans cet ordre :
+À la fin de chaque US de travail, dans cet ordre :
 
 1. **Vérification ciblée** — uniquement ce qui a changé (test, build, rendu, lint).
    Annoncer ce qui n'a pas pu être vérifié.
@@ -91,7 +91,7 @@ exécuter sans demander.
    - Ce qui reste ou blocages.
    - Fichiers clés touchés.
    - Recommandation : continuer ou session fraîche.
-5. **Session fraîche** — la recommander si le contexte est élevé ou si le lot est terminé.
+5. **Session fraîche** — la recommander si le contexte est élevé ou si l'US est terminée.
 
 Ne pas committer sans vérification. Ne pas annoncer « fait » sans preuve.
 
@@ -100,9 +100,9 @@ Ne pas committer sans vérification. Ne pas annoncer « fait » sans preuve.
 ## 6. Session fraîche
 
 Recommander une nouvelle session quand :
-- Le lot est clôturé et un nouveau sujet commence.
+- L'US est clôturée et un nouveau sujet commence.
 - Le contexte est estimé élevé ou critique (cf. § 2).
-- La session a traité plus de ~3 lots.
+- La session a traité plus de ~3 US.
 
 Formule : `→ Session fraîche recommandée. Handoff ci-dessus suffit pour reprendre.`
 
@@ -125,7 +125,7 @@ la stack. Ne pas lire le code applicatif pour l'initialisation.
 
 ## 8. Définition de « fini »
 
-Un lot est fini quand **tous** ces points sont vrais :
+Une US est finie quand **tous** ces points sont vrais :
 
 - [ ] Demande littérale traitée (pas plus, pas moins).
 - [ ] Scope creep évité.

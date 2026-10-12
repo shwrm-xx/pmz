@@ -199,7 +199,7 @@ function slim(l) {
   return {
     id: l.id, title: l.title, status: l.status, epic: l.epic || null,
     model: l.model_hint || null, effort: l.effort_hint || null, verify: l.verify || null,
-    us: l.us || null, perimeter: Array.isArray(l.perimeter) ? l.perimeter : [],
+    spec: l.spec || null, perimeter: Array.isArray(l.perimeter) ? l.perimeter : [],
     depends_on: Array.isArray(l.depends_on) ? l.depends_on : [], session_owner: l.session_owner || null,
   };
 }
@@ -246,7 +246,7 @@ function lotLine(l, b, waveOf, checked) {
   if (l.verify) det.push(`verify : ${l.verify}`);
   det.push(hasPerimeter(l) ? `périmètre : ${l.perimeter.join(', ')}` : 'sans périmètre → série');
   if (l.depends_on && l.depends_on.length) det.push(`dépend de : ${l.depends_on.map((d) => '#' + d).join(', ')}`);
-  if (l.us) det.push(`US : ${l.us}`);
+  if (l.spec) det.push(`Spec : ${l.spec}`);
   const est = b ? estimateCost(b, l) : null;
   if (est) det.push(`~${Math.round(est.avg / 1000)}k tokens`);
   if (l.status === 'in_progress') det.push(`⟳ en cours${l.session_owner ? ` (session ${l.session_owner})` : ''} — sera repris`);
@@ -258,18 +258,18 @@ function renderPlan(plan, b, pmzBase) {
   const base = pmzBase || '~/.claude/promptimizer';
   const L = [];
   if (!plan.lots.length) {
-    L.push('## Session maître — aucun lot à embarquer (rien n\'est lancé)');
+    L.push('## Session maître — aucune US à embarquer (rien n\'est lancé)');
     if (plan.blocked.length) for (const x of plan.blocked) L.push(`⛔ Bloqué : #${x.id} « ${x.title} » — ${x.reason}.`);
     if (plan.excluded.length) L.push(`Exclus : ${plan.excluded.map((x) => `#${x.id} (${x.reason})`).join(', ')}.`);
     return L.join('\n');
   }
   const waveOf = new Map();
   for (const w of plan.waves) for (const id of w.ids) waveOf.set(id, w);
-  L.push(`## Session maître — ${plan.lots.length} lot(s) à embarquer (proposition, rien n'est lancé)`);
+  L.push(`## Session maître — ${plan.lots.length} US à embarquer (proposition, rien n'est lancé)`);
   L.push('Tous cochés par défaut. Décocher : « sans #id » (ou `epicmaster --skip id,id`).');
   L.push('');
   for (const g of plan.groups) {
-    L.push(`### Epic « ${g.epic} » — ${g.ids.length} lot(s)`);
+    L.push(`### Epic « ${g.epic} » — ${g.ids.length} US`);
     for (const id of g.ids) L.push(lotLine(plan._lotsById.get(id), b, waveOf));
     L.push('');
   }
@@ -294,16 +294,16 @@ function renderPlan(plan, b, pmzBase) {
   const bg = plan.budget;
   const src = { config: 'borne rules.yaml', window: 'zone rouge du modèle', 'fresh-session': 'seuil « session fraîche »' }[bg.red_zone_source] || bg.red_zone_source;
   L.push(`### Session maître — modèle préconisé : ${plan.master.model} · effort ${plan.master.effort}`);
-  L.push(`- borne ${Math.round(bg.red_zone_tokens / 1000)}k (${src}) · socle ~${Math.round(bg.baseline_tokens / 1000)}k · ~${Math.round(bg.per_lot_tokens / 1000)}k par lot délégué (brief + rapport ≤ ${REPORT_MAX_WORDS} mots + clôture)`);
-  L.push(`- capacité : ${bg.max_lots_per_session} lot(s) par session maître → ${bg.sessions_needed} session(s) pour ${plan.lots.length} lot(s)`);
-  L.push(`- consommation des sous-agents : au moins ${plan.lots.length} × ~${Math.round(bg.subagent_base_tokens / 1000)}k ≈ ${Math.round(bg.subagents_min_total / 1000)}k tokens (socle mesuré par sous-agent, hors travail propre du lot)`);
+  L.push(`- borne ${Math.round(bg.red_zone_tokens / 1000)}k (${src}) · socle ~${Math.round(bg.baseline_tokens / 1000)}k · ~${Math.round(bg.per_lot_tokens / 1000)}k par US déléguée (brief + rapport ≤ ${REPORT_MAX_WORDS} mots + clôture)`);
+  L.push(`- capacité : ${bg.max_lots_per_session} US par session maître → ${bg.sessions_needed} session(s) pour ${plan.lots.length} US`);
+  L.push(`- consommation des sous-agents : au moins ${plan.lots.length} × ~${Math.round(bg.subagent_base_tokens / 1000)}k ≈ ${Math.round(bg.subagents_min_total / 1000)}k tokens (socle mesuré par sous-agent, hors travail propre de l'US)`);
   if (plan.sessions.length > 1) {
     plan.sessions.forEach((ids, i) => L.push(`  - session ${i + 1} : ${ids.map((id) => '#' + id).join(', ')}`));
-    L.push('  Après la dernière vague d\'une session : handoff consolidé, puis session fraîche — `/epicmaster` reprend les lots restés ouverts.');
+    L.push('  Après la dernière vague d\'une session : handoff consolidé, puis session fraîche — `/epicmaster` reprend les US restées ouvertes.');
   }
   L.push('');
-  L.push('⚠️ Proposition seule : aucun lot démarré, aucun sous-agent lancé.');
-  L.push(`Lancer (après confirmation) : /epicmaster — brief d'un lot : node ${base}/scripts/backlog.js epicmaster --brief --id <id>.`);
+  L.push('⚠️ Proposition seule : aucune US démarrée, aucun sous-agent lancé.');
+  L.push(`Lancer (après confirmation) : /epicmaster — brief d'une US : node ${base}/scripts/backlog.js epicmaster --brief --id <id>.`);
   return L.join('\n');
 }
 
@@ -312,21 +312,21 @@ function renderPlan(plan, b, pmzBase) {
 function renderBrief(l, b, pmzBase) {
   const base = pmzBase || '~/.claude/promptimizer';
   const L = [];
-  L.push(`# Lot #${l.id} « ${l.title} » — brief de sous-agent (session maître Promptimizer)`);
+  L.push(`# US#${l.id} « ${l.title} » — brief de sous-agent (session maître Promptimizer)`);
   L.push(`Modèle : ${l.model_hint || '?'} · effort ${l.effort_hint || '?'} — à passer à l'outil Agent (model=${l.model_hint || '?'}${l.effort_hint ? `, effort=${l.effort_hint}` : ''}).`);
   if (l.epic) L.push(`Epic : ${l.epic}`);
   L.push(`Fait quand : ${l.scope || '(non précisé — demande au maître avant de coder)'}`);
-  L.push(`Verify (preuve de clôture, à exécuter avant de rendre la main) : ${l.verify || '(aucune — lot non vérifiable par commande)'}`);
-  if (l.us) L.push(`US (contrat du lot, à lire en premier) : ${l.us}`);
+  L.push(`Verify (preuve de clôture, à exécuter avant de rendre la main) : ${l.verify || '(aucune — US non vérifiable par commande)'}`);
+  if (l.spec) L.push(`Spec (contrat de l'US, à lire en premier) : ${l.spec}`);
   L.push(hasPerimeter(l)
     ? `Périmètre EXCLUSIF — n'écris NULLE PART ailleurs (d'autres sous-agents travaillent en parallèle) : ${l.perimeter.join(', ')}`
-    : 'Périmètre : aucun — tu es seul en vol, mais reste strictement dans le sujet du lot.');
+    : 'Périmètre : aucun — tu es seul en vol, mais reste strictement dans le sujet de l\'US.');
   if (l.depends_on && l.depends_on.length) {
     const st = l.depends_on.map((d) => { const x = b && lotsOf(b).find((y) => y.id === d); return `#${d}${x ? ` (${x.status === 'done' ? 'clos' : x.status})` : ''}`; });
     L.push(`Dépend de : ${st.join(', ')} — déjà livré(s) dans l'arbre de travail.`);
   }
   const est = b ? estimateCost(b, l) : null;
-  if (est) L.push(`Coût attendu : ~${Math.round(est.avg / 1000)}k tokens de sortie (${est.count} lot(s) comparable(s)).`);
+  if (est) L.push(`Coût attendu : ~${Math.round(est.avg / 1000)}k tokens de sortie (${est.count} US comparable(s)).`);
   L.push('');
   L.push('Règles :');
   L.push('- Ne commite JAMAIS, ne touche ni à .vibe-agent/ ni à CHANGELOG.md : le maître commite, clôt et consolide.');
@@ -354,7 +354,7 @@ function closeCommands(l, pmzBase) {
     ? `git add -- ${l.perimeter.map((g) => `':(glob)${g}'`).join(' ')}`
     : 'git add -A';
   return [
-    `${add} && git commit -m "<type>(<zone>): lot #${l.id} — ${String(l.title || '').slice(0, 60)}"`,
+    `${add} && git commit -m "<type>(<zone>): US#${l.id} — ${String(l.title || '').slice(0, 60)}"`,
     `node ${base}/scripts/backlog.js done --id ${l.id} --commit "$(git rev-parse --short HEAD)" --verify-verdict <ok|failed|none>`,
   ];
 }
@@ -369,7 +369,7 @@ function renderMasterHandoff(plan, opts) {
   L.push(MANUAL_MARKER);
   L.push('## Handoff session fraîche — SESSION MAÎTRE');
   L.push('');
-  L.push(`Objectif : lancer ${plan.lots.length} lot(s) ouvert(s)${o.epic ? ` de l'epic « ${o.epic} »` : ''} en sous-agents (modèle + effort préconisés par lot), puis consolider en un handoff dette / à trancher.`);
+  L.push(`Objectif : lancer ${plan.lots.length} US ouverte(s)${o.epic ? ` de l'epic « ${o.epic} »` : ''} en sous-agents (modèle + effort préconisés par US), puis consolider en un handoff dette / à trancher.`);
   L.push(`Modèle à poser pour CETTE session : ${plan.master.model} · effort ${plan.master.effort} (/model ${plan.master.model}).`);
   L.push('');
   L.push(`Plan (${plan.waves.length} vague(s), parallélisme max ${plan.parallelism.max}) :`);
@@ -382,15 +382,15 @@ function renderMasterHandoff(plan, opts) {
   if (plan.blocked.length) L.push(`Bloqués (non embarqués) : ${plan.blocked.map((x) => `#${x.id} — ${x.reason}`).join(' ; ')}.`);
   L.push('');
   const bg = plan.budget;
-  L.push(`Budget contexte : au plus ${bg.max_lots_per_session} lot(s) par session maître (borne ${Math.round(bg.red_zone_tokens / 1000)}k, ~${Math.round(bg.per_lot_tokens / 1000)}k/lot) → ${bg.sessions_needed} session(s) maître ; sous-agents ≥ ${Math.round(bg.subagents_min_total / 1000)}k tokens au total.`);
+  L.push(`Budget contexte : au plus ${bg.max_lots_per_session} US par session maître (borne ${Math.round(bg.red_zone_tokens / 1000)}k, ~${Math.round(bg.per_lot_tokens / 1000)}k/US) → ${bg.sessions_needed} session(s) maître ; sous-agents ≥ ${Math.round(bg.subagents_min_total / 1000)}k tokens au total.`);
   if (plan.sessions.length > 1) L.push(`Cette session s'arrête après : ${plan.sessions[0].map((id) => '#' + id).join(', ')} ; handoff consolidé, puis session fraîche + /epicmaster pour la suite.`);
   L.push('');
   L.push('Prochaine action recommandée :');
   L.push('- /epicmaster (ou /pmz:epicmaster) — confirme la liste (tout coché), puis lance les vagues.');
   L.push('');
   L.push('Contrainte budget :');
-  L.push(`- ne jamais relire la sortie brute d'un sous-agent : rapport ≤ ${REPORT_MAX_WORDS} mots par lot, sections fixes.`);
-  L.push('- après chaque vague : commit + `done` par lot, rien de plus en contexte.');
+  L.push(`- ne jamais relire la sortie brute d'un sous-agent : rapport ≤ ${REPORT_MAX_WORDS} mots par US, sections fixes.`);
+  L.push('- après chaque vague : commit + `done` par US, rien de plus en contexte.');
   L.push(`- plan machine : node ${base}/scripts/backlog.js epicmaster --json`);
   let text = L.join('\n') + '\n';
   if (text.length > MAX_INJECT_CHARS) text = text.slice(0, MAX_INJECT_CHARS - 40) + '\n[handoff maître tronqué]\n';

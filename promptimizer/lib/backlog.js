@@ -58,11 +58,13 @@ const MAX_MODEL_HINT = 40; // préconisation de modèle par lot (ex. « sonnet �
 const EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh']; // effort de raisonnement par lot, cf. --effort
 const MAX_EPIC = 60; // label d'epic optionnel du lot, cf. .vibe-agent/epic (lib/lot.js)
 const MAX_VERIFY = 150; // commande shell de preuve de clôture, exécutée par /close-batch avant done
-// Chemin (relatif au dépôt) vers une US détaillée du lot (persona/besoin/bénéfice, critères
-// d'acceptation numérotés — cf. templates/us-template.md). Le backlog ne porte qu'un POINTEUR
+// Chemin (relatif au dépôt) vers la SPEC détaillée du lot (persona/besoin/bénéfice, critères
+// d'acceptation numérotés — cf. templates/spec-template.md). Ex-champ `us` (lots #101/#106/#107),
+// renommé `spec` quand « US » est devenu le nom affiché de l'item du backlog (migration au
+// chargement, cf. loadBacklog). Le backlog ne porte qu'un POINTEUR
 // vérifié à l'écriture (addLot refuse un chemin inexistant), jamais le contenu : même pattern
 // que le résumé court + fichier référencé imposé par truncGuard pour scope/note qui débordent.
-const MAX_US = 200;
+const MAX_SPEC = 200;
 const MAX_OWNER = 80; // id de session propriétaire d'un lot en cours (mode fleet, cf. D3)
 const MAX_DEPENDS = 20; // ids de lots dont ce lot dépend (ordre de réintégration, cf. D3)
 const MAX_NOTE = 200;
@@ -105,13 +107,13 @@ const CLOSED_VERIFY_VALUES = ['ok', 'failed', 'timeout', 'none'];
 // On les repère ici pour permettre au CLI de REJETER explicitement plutôt que tronquer.
 // Flags qui consomment une valeur (mono ou liste répétable — cf. flag()/flagList()) :
 const VALUE_FLAGS = ['cwd', 'id', 'epic', 'set', 'model', 'effort', 'title', 'scope',
-  'verify', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
+  'verify', 'spec', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
   'gate', 'final-gate', 'branch', 'state', 'verify-verdict', 'tokens',
   'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file'];
 // Flags booléens (ne consomment aucune valeur) — listés pour documentation ;
 // tout flag hors VALUE_FLAGS est traité comme booléen (ne consomme rien).
 const BOOL_FLAGS = ['json', 'suggest', 'execute', 'allow-trunc', 'no-session', 'no-occupancy', 'allow-no-gate', 'new',
-  'allow-incomplete-us', 'no-verify', 'write-handoff', 'brief'];
+  'allow-incomplete-spec', 'allow-incomplete-us', 'no-verify', 'write-handoff', 'brief'];
 
 // Garde anti-troncature de champ (lot #90), 2e vecteur après les orphelins argv (#88) :
 // une valeur QUOTÉE mais au-delà de son plafond MAX_* serait stockée coupée par trunc()
@@ -214,7 +216,9 @@ function loadBacklog(root) {
       effort_hint: EFFORT_LEVELS.includes(l.effort_hint) ? l.effort_hint : null,
       epic: l.epic ? trunc(l.epic, MAX_EPIC) : null,
       verify: l.verify ? trunc(l.verify, MAX_VERIFY) : null,
-      us: l.us ? trunc(l.us, MAX_US) : null,
+      // Migration ex-champ `us` -> `spec` (fail-open) : un backlog antérieur au renommage
+      // porte encore `us` ; on le relit dans `spec` et la clé `us` disparaît (objet reconstruit).
+      spec: (l.spec || l.us) ? trunc(l.spec || l.us, MAX_SPEC) : null,
       closed_commit: l.closed_commit || null,
       closed_at: l.closed_at || null,
       closed_session_id: l.closed_session_id || null,
@@ -305,17 +309,17 @@ function openCount(b) {
   return b.lots.filter((l) => l.status === 'todo' || l.status === 'in_progress').length;
 }
 
-// null si titre vide, plan déjà au cap, effort fourni mais hors énum, ou US fournie mais
+// null si titre vide, plan déjà au cap, effort fourni mais hors énum, ou spec fournie mais
 // introuvable sous la racine (refus doux, c'est au CLI de l'expliquer). perimeter/dependsOn
 // (optionnels, trailing) : parallélisation gouvernée (D3) — vides par défaut, donc lot
-// séquentiel classique. us (optionnel, trailing) : chemin relatif au dépôt vers une US
+// séquentiel classique. spec (optionnel, trailing) : chemin relatif au dépôt vers une spec
 // détaillée — VÉRIFIÉ ici (garde défensive, doublée du refus explicite côté CLI) : un
-// pointeur mort serait pire qu'aucune US, jamais accepté en silence.
-function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimeter, dependsOn, us) {
+// pointeur mort serait pire qu'aucune spec, jamais accepté en silence.
+function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimeter, dependsOn, spec) {
   const t = trunc(title, MAX_TITLE);
   if (!t) return null;
   if (effortHint && !EFFORT_LEVELS.includes(effortHint)) return null;
-  if (us && !fs.existsSync(path.join(root, us))) return null;
+  if (spec && !fs.existsSync(path.join(root, spec))) return null;
   const b = loadBacklog(root);
   if (openCount(b) >= MAX_LOTS_OPEN) return null;
   const lot = {
@@ -327,7 +331,7 @@ function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimet
     effort_hint: effortHint && EFFORT_LEVELS.includes(effortHint) ? effortHint : null,
     epic: epic ? trunc(epic, MAX_EPIC) : null,
     verify: verify ? trunc(verify, MAX_VERIFY) : null,
-    us: us ? trunc(us, MAX_US) : null,
+    spec: spec ? trunc(spec, MAX_SPEC) : null,
     closed_commit: null,
     closed_at: null,
     closed_session_id: null,
@@ -382,38 +386,38 @@ function setVerify(root, id, verify) {
   return saveBacklog(root, b) ? lot : null;
 }
 
-// Édite le POINTEUR US d'un lot existant (lot #106) : un lot créé sans `--us` n'avait aucun
+// Édite le POINTEUR de spec d'un lot existant (lot #106) : un lot créé sans `--spec` n'avait aucun
 // chemin CLI pour en recevoir un après coup — il fallait éditer backlog.json à la main, hors
-// des gardes. Même garde d'existence qu'addLot (un pointeur mort est pire qu'aucune US), et
+// des gardes. Même garde d'existence qu'addLot (un pointeur mort est pire qu'aucune spec), et
 // même frontière : on ne stocke QUE le chemin, jamais le contenu.
 // null si lot introuvable/clos, chemin vide, ou fichier absent sous la racine.
-function setUs(root, id, us) {
-  const u = trunc(us, MAX_US);
+function setSpec(root, id, spec) {
+  const u = trunc(spec, MAX_SPEC);
   if (!u) return null;
   if (!fs.existsSync(path.join(root, u))) return null;
   const b = loadBacklog(root);
   const lot = findLot(b, id);
   if (!lot || lot.status === 'done' || lot.status === 'dropped') return null;
-  lot.us = u;
+  lot.spec = u;
   return saveBacklog(root, b) ? lot : null;
 }
 
-// Chemin conventionnel de l'US d'un lot, relatif à la racine du dépôt. Convention unique et
+// Chemin conventionnel de la spec d'un lot, relatif à la racine du dépôt. Convention unique et
 // prévisible (pas de slug de titre : le titre bouge, le chemin resterait faux) — c'est celle
-// déjà documentée pour `--us` (docs/us/US-42.md).
-const US_DIR = 'docs/us';
-function usPathFor(id) {
-  return `${US_DIR}/US-${Number(id)}.md`;
+// documentée pour `--spec` (docs/specs/SPEC-42.md).
+const SPEC_DIR = 'docs/specs';
+function specPathFor(id) {
+  return `${SPEC_DIR}/SPEC-${Number(id)}.md`;
 }
 
-// Rend le gabarit templates/us-template.md pour un lot donné (substitution des jetons {{…}}).
+// Rend le gabarit templates/spec-template.md pour un lot donné (substitution des jetons {{…}}).
 // Le gabarit part tel quel dans les deux canaux d'install (miroir plat et plugin), donc il est
 // résolu depuis l'emplacement du code, jamais depuis le dépôt utilisateur.
 // '' si le gabarit est illisible (fail-silent : le CLI refuse alors proprement).
-function renderUsTemplate(lot) {
+function renderSpecTemplate(lot) {
   let tpl;
   try {
-    tpl = fs.readFileSync(path.join(__dirname, '..', 'templates', 'us-template.md'), 'utf8');
+    tpl = fs.readFileSync(path.join(__dirname, '..', 'templates', 'spec-template.md'), 'utf8');
   } catch (_) { return ''; }
   return tpl
     .replace(/\{\{ID\}\}/g, String(lot.id))
@@ -421,49 +425,49 @@ function renderUsTemplate(lot) {
     .replace(/\{\{EPIC\}\}/g, lot.epic || '—');
 }
 
-// Pose le fichier US d'un lot depuis le gabarit ET rattache le pointeur (lot #106) : les deux
+// Pose le fichier de spec d'un lot depuis le gabarit ET rattache le pointeur (lot #106) : les deux
 // gestes sont indissociables — un fichier posé sans pointeur serait invisible du backlog, un
-// pointeur sans fichier est refusé par setUs. REFUS DOUX si le fichier existe déjà : cette
-// commande génère, elle n'écrase jamais une US rédigée (le rattachement d'un fichier existant
-// passe par setUs / `us --set`).
+// pointeur sans fichier est refusé par setSpec. REFUS DOUX si le fichier existe déjà : cette
+// commande génère, elle n'écrase jamais une spec rédigée (le rattachement d'un fichier existant
+// passe par setSpec / `spec --set`).
 // Retourne { ok:true, rel, lot } ou { ok:false, reason, rel, lot } —
 // reason ∈ nolot | closed | exists | template | write.
-function createUsFile(root, id) {
+function createSpecFile(root, id) {
   const b = loadBacklog(root);
   const lot = findLot(b, id);
-  const rel = usPathFor(id);
+  const rel = specPathFor(id);
   if (!lot) return { ok: false, reason: 'nolot', rel, lot: null };
   if (lot.status === 'done' || lot.status === 'dropped') return { ok: false, reason: 'closed', rel, lot };
   const abs = path.join(root, rel);
   if (fs.existsSync(abs)) return { ok: false, reason: 'exists', rel, lot };
-  const body = renderUsTemplate(lot);
+  const body = renderSpecTemplate(lot);
   if (!body) return { ok: false, reason: 'template', rel, lot };
   try {
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, body);
   } catch (_) { return { ok: false, reason: 'write', rel, lot }; }
-  const linked = setUs(root, id, rel);
+  const linked = setSpec(root, id, rel);
   if (!linked) return { ok: false, reason: 'write', rel, lot };
   return { ok: true, rel, lot: linked };
 }
 
 // Titres de section obligatoires du gabarit (lot #107) — figés ici plutôt que dérivés du
-// gabarit courant : une US déjà rédigée reste jugée sur les titres qu'elle porte, pas sur une
-// version future de templates/us-template.md qui pourrait renommer une section.
-const US_REQUIRED_SECTIONS = ['Récit', 'Critères d\'acceptation', 'Hors périmètre', 'Preuve de clôture', 'Notes'];
+// gabarit courant : une spec déjà rédigée reste jugée sur les titres qu'elle porte, pas sur une
+// version future de templates/spec-template.md qui pourrait renommer une section.
+const SPEC_REQUIRED_SECTIONS = ['Récit', 'Critères d\'acceptation', 'Hors périmètre', 'Preuve de clôture', 'Notes'];
 
-// Vérifie la STRUCTURE (présence des titres de section obligatoires) du fichier US pointé par
+// Vérifie la STRUCTURE (présence des titres de section obligatoires) du fichier de spec pointé par
 // un lot — jamais le contenu d'un critère (un « ... » resté en l'état est un problème de
-// rédaction humaine, pas de structure). null si le lot ne pointe vers aucune US ou si le
+// rédaction humaine, pas de structure). null si le lot ne pointe vers aucune spec ou si le
 // fichier est illisible (fail-silent : l'appelant décide de la suite, refus ou non).
 // Retourne { missing: string[] } — [] = toutes les sections obligatoires sont présentes.
-function checkUsStructure(root, us) {
-  if (!us) return null;
+function checkSpecStructure(root, spec) {
+  if (!spec) return null;
   let content;
   try {
-    content = fs.readFileSync(path.join(root, us), 'utf8');
+    content = fs.readFileSync(path.join(root, spec), 'utf8');
   } catch (_) { return null; }
-  return { missing: US_REQUIRED_SECTIONS.filter((s) => !content.includes(`## ${s}`)) };
+  return { missing: SPEC_REQUIRED_SECTIONS.filter((s) => !content.includes(`## ${s}`)) };
 }
 
 // Persiste le VERDICT de la commande verify exécutée à la clôture (lot #96), distinct de
@@ -845,18 +849,6 @@ function lastDoneLot(b) {
   return done[0];
 }
 
-// Rang (1-based) d'un lot DANS SON PLAN (epic) : position par id croissant parmi les lots du
-// même epic, tous statuts confondus (stable, indépendant des drops/ordre de clôture). C'est le
-// « Lot #X » du titre de session — l'utilisateur pense « lot 1..5 de CE plan », pas en id global
-// (#34, #40) qui ne remet jamais à zéro entre plans (retour utilisateur 2026-07-13). null si le
-// lot n'a pas d'epic (pas de plan où le ranger → « Session Libre » sans « Lot #X »).
-function lotRankInEpic(b, l) {
-  if (!l || !l.epic) return null;
-  const peers = b.lots.filter((x) => x.epic === l.epic).sort((a, c) => (a.id || 0) - (c.id || 0));
-  const idx = peers.findIndex((x) => x.id === l.id);
-  return idx >= 0 ? idx + 1 : null;
-}
-
 // Lot clos par UNE session donnée (closed_session_id === sid) — signal d'attribution fiable
 // posé par stop.js à l'auto-clôture. Renvoie le plus grand id parmi les correspondances (la
 // dernière chose que cette session a faite si elle en a clos plusieurs), ou null. C'est le
@@ -885,9 +877,9 @@ function summaryLines(root) {
     const p = progress(b);
     const cur = currentLot(b);
     const lines = [];
-    let head = `Plan de lots : ${p.done}/${p.total} faits.`;
+    let head = `Plan des US : ${p.done}/${p.total} faites.`;
     if (cur) {
-      head += ` Lot en cours : #${cur.id} « ${trunc(cur.title, 60)} »`;
+      head += ` US en cours : #${cur.id} « ${trunc(cur.title, 60)} »`;
       head += modelEffortTag(cur);
       if (cur.scope) head += ` — ${trunc(cur.scope, 120)}`;
     }
@@ -982,7 +974,7 @@ function planWaves(b) {
   let remaining = withPerim.filter((l) => {
     const deps = Array.isArray(l.depends_on) ? l.depends_on : [];
     if (deps.some((d) => unplannableIds.has(d))) {
-      blocked.push({ lot: l, reason: 'dépend d’un lot non parallélisable' });
+      blocked.push({ lot: l, reason: 'dépend d’une US non parallélisable' });
       return false;
     }
     return true;
@@ -1035,7 +1027,7 @@ function reconcile(root) {
       l.status = 'todo';
       l.started_at = null;
       l.session_owner = null;
-      fixed.push(`#${l.id} rétrogradé en « à faire » (un seul lot en cours à la fois)`);
+      fixed.push(`#${l.id} rétrogradé en « à faire » (une seule US en cours à la fois)`);
     }
   }
   // 2. done sans commit → attache le dernier commit connu.
@@ -1048,7 +1040,7 @@ function reconcile(root) {
   // 3. Lots faits en désordre → informatif seulement, l'ordre du tableau est indicatif.
   const doneAfterTodo = b.lots.some((l, i) => l.status === 'done' &&
     b.lots.slice(0, i).some((m) => m.status === 'todo'));
-  if (doneAfterTodo) warnings.push('Des lots ont été faits dans le désordre — rien à réparer, ordre indicatif.');
+  if (doneAfterTodo) warnings.push('Des US ont été faites dans le désordre — rien à réparer, ordre indicatif.');
   if (fixed.length) saveBacklog(root, b);
   return { fixed, warnings };
 }
@@ -1063,7 +1055,7 @@ function reconcile(root) {
 // `cost_tokens` : ce sont des mesures FIGÉES À LA CLÔTURE, pas un cumul courant. Les omettre
 // ferait mentir l'export par omission — le lot #111 vient précisément de rendre l'accrétion
 // mesurable, et c'est elle qui dit si un lot s'est alourdi ou non à prix égal.
-const EXPORT_COLUMNS = ['id', 'title', 'status', 'epic', 'us', 'model_hint', 'effort_hint', 'verify', 'closed_verify', 'cost_tokens', 'closed_commit', 'closed_at',
+const EXPORT_COLUMNS = ['id', 'title', 'status', 'epic', 'spec', 'model_hint', 'effort_hint', 'verify', 'closed_verify', 'cost_tokens', 'closed_commit', 'closed_at',
   'closed_session_id', 'closed_occupancy', 'cost_turns', 'closed_avg_cost_per_turn', 'reopened',
   'command_optimizer_provider', 'command_tokens_saved', 'command_saving_ratio', 'command_evidence'];
 
@@ -1102,13 +1094,13 @@ function exportMarkdown(b) {
 }
 
 module.exports = {
-  backlogFile, loadBacklog, saveBacklog, addLot, setVerify, setClosedVerify, setPerimeter, setDepends, setUs,
-  usPathFor, renderUsTemplate, createUsFile, checkUsStructure, US_REQUIRED_SECTIONS, US_DIR,
+  backlogFile, loadBacklog, saveBacklog, addLot, setVerify, setClosedVerify, setPerimeter, setDepends, setSpec,
+  specPathFor, renderSpecTemplate, createSpecFile, checkSpecStructure, SPEC_REQUIRED_SECTIONS, SPEC_DIR,
   startLot, doneLot, dropLot, noteLot, reopenLot,
-  touchLot, addCost, currentLot, costLotFor, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, lotRankInEpic, progress, summaryLines, reconcile,
+  touchLot, addCost, currentLot, costLotFor, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, progress, summaryLines, reconcile,
   epicBilan, estimateCost, canCoexist, pairwiseCoexist, planWaves, waveBranch,
   todoSnapshotFile, writeTodoSnapshot, readTodoSnapshot, modelEffortTag,
   exportCsv, exportMarkdown, orphanArgs, overflowFields, isTruncated, VALUE_FLAGS, BOOL_FLAGS,
-  MAX_LOTS_OPEN, MAX_TITLE, MAX_SCOPE, MAX_MODEL_HINT, MAX_EPIC, MAX_VERIFY, MAX_US, MAX_OWNER, MAX_DEPENDS, MAX_NOTE, MAX_REOPEN, MAX_TODOS, EFFORT_LEVELS,
+  MAX_LOTS_OPEN, MAX_TITLE, MAX_SCOPE, MAX_MODEL_HINT, MAX_EPIC, MAX_VERIFY, MAX_SPEC, MAX_OWNER, MAX_DEPENDS, MAX_NOTE, MAX_REOPEN, MAX_TODOS, EFFORT_LEVELS,
   COST_BUDGET_TOKENS, COST_WARN_TOKENS, CLOSED_VERIFY_VALUES,
 };

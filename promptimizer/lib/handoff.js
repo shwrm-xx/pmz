@@ -250,7 +250,7 @@ function writeAutoHandoff(root, sessionId) {
       'pour un handoff riche (objectif, décisions, non-vérifié), lancer /fresh-session',
       'ou /close-batch avant de quitter la session.',
       '',
-      `- Epic / lot en cours : « ${readEpic(root)} » — lot ${getLotCounter(root) + 1}`,
+      `- Epic / US en cours : « ${readEpic(root)} » — US#${getLotCounter(root) + 1}`,
       `- Branche : ${branch} — dernier commit : ${last}`,
     ];
     for (const l of waveHandoffLines(root)) lines.push(`- ${l}`);
@@ -297,7 +297,7 @@ function writeAutoHandoff(root, sessionId) {
       for (const l of dirty.slice(0, MAX_DIRTY_LINES)) lines.push(`  - ${l}`);
       if (dirty.length > MAX_DIRTY_LINES) lines.push(`  - … +${dirty.length - MAX_DIRTY_LINES} autres`);
     } else {
-      lines.push('- Working tree : propre (lot précédent commité)');
+      lines.push('- Working tree : propre (US précédente commitée)');
     }
     return writeAtomicText(f, lines.join('\n') + '\n');
   } catch (_) {

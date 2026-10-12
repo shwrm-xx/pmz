@@ -100,7 +100,7 @@ function ficheBlock(root, cur, verifyVerdict) {
       commit: (git(['rev-parse', '--short', 'HEAD'], root) || '').trim(),
       verifyCmd: cur.verify,
       verify: verifyVerdict,
-      us: cur.us || undefined,
+      spec: cur.spec || undefined,
     });
     return `
 ## Fiche d'archive (tier 1)
@@ -171,14 +171,14 @@ function main() {
         : `\n- Verify (\`${bl.current.verify}\`) : ÉCHEC — refus doux, corriger avant de marquer fait (clôture non bloquée automatiquement) :\n  ${v.tail}\n  Après correction, re-vérifie en subagent isolé (outil Agent/Task) : seul le verdict revient ici, jamais la sortie des tests`;
   }
   const backlogBlock = bl ? `
-## Plan de lots
+## Plan des US
 
-- Avancement : ${bl.done}/${bl.total} faits${bl.current ? ` — en cours : #${bl.current.id} « ${bl.current.title} »` : ' — aucun lot en cours'}
-- Périmètre conforme au lot du backlog : à confirmer (dévié → node ${PMZ_BASE}/scripts/backlog.js note --id N --note "…")${verifyLine}
+- Avancement : ${bl.done}/${bl.total} faites${bl.current ? ` — en cours : #${bl.current.id} « ${bl.current.title} »` : ' — aucune US en cours'}
+- Périmètre conforme à l'US du backlog : à confirmer (dévié → node ${PMZ_BASE}/scripts/backlog.js note --id N --note "…")${verifyLine}
 - Après le commit : node ${PMZ_BASE}/scripts/backlog.js done --id ${bl.current ? bl.current.id : 'N'}${verifyEnum ? ` --verify-verdict ${verifyEnum}` : ''} (SHA du HEAD pris automatiquement ; \`--verify-verdict\` persiste la preuve ci-dessus SANS relancer la suite — sans ce flag, \`done\` réexécute la verify lui-même)${bl.next ? `
-- Lot suivant à reprendre dans le handoff : #${bl.next.id} « ${bl.next.title} »${modelEffortTag(bl.next)} — reporter ce tag modèle/effort dans le handoff (champ « Prochaine action recommandée »)` : ''}
+- US suivante à reprendre dans le handoff : #${bl.next.id} « ${bl.next.title} »${modelEffortTag(bl.next)} — reporter ce tag modèle/effort dans le handoff (champ « Prochaine action recommandée »)` : ''}
 ` : '';
-  const out = `## Clôture du lot
+  const out = `## Clôture de l'US
 
 Handoff à écrire dans : \`${handoffRel(d.root)}\`
 
@@ -199,7 +199,7 @@ ${backlogBlock}${ficheBlock(d.root, bl && bl.current, verifyVerdict)}${rtkGainBl
 - relectures faites : voir .vibe-agent/context-ledger.json (repeated_reads)
 - contexte redondant probable : voir alertes de palier (occupancy)
 - session fraîche recommandée : ${d.needs_closure ? 'après clôture' : yn(fresh.fresh)}
-- raison : ${d.needs_closure ? 'lot ouvert (modifs non commitées)' : fresh.reason}
+- raison : ${d.needs_closure ? 'US ouverte (modifs non commitées)' : fresh.reason}
 
 Décision :
 - ${closable ? 'clôturable' : 'non clôturable (modifs non commitées ou hors git)'}
@@ -207,5 +207,5 @@ Décision :
   process.stdout.write(out);
 }
 
-try { main(); } catch (_) { process.stdout.write('## Clôture du lot\n\n(erreur d\'audit)\n'); }
+try { main(); } catch (_) { process.stdout.write('## Clôture de l\'US\n\n(erreur d\'audit)\n'); }
 process.exit(0);

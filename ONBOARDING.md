@@ -4,7 +4,7 @@ PMZ est un système local qui s'installe une fois dans **Claude Code desktop** e
 s'active automatiquement sur tous tes projets. Il t'aide à :
 
 - **suivre le coût réel** de tes sessions (contexte, tours chers) sans rien t'imposer ;
-- **clôturer proprement** un lot de travail (vérif → changelog → commit → handoff) ;
+- **clôturer proprement** une US de travail (vérif → changelog → commit → handoff) ;
 - **initialiser prudemment** un nouveau projet, seulement si tu le demandes.
 
 Rien n'écrase jamais tes fichiers sans confirmation, et PMZ peut être mis en pause ou désinstallé
@@ -62,16 +62,16 @@ toute nouvelle installation.
 - **Commande destructive** (`git reset --hard`, `rm -rf`…) : confirmation demandée ; les
   commandes catastrophiques sont bloquées. Les lectures/éditions normales ne sont pas ralenties.
 - **Fin de tour** : alerte de coût si le contexte ou le dernier tour deviennent chers ; rappel de
-  clôture si un lot est ouvert sans commit.
-- **Grosse demande** : `/pmz:scope` la découpe en 2-5 lots persistants, avec une préconisation de
-  modèle par lot — le plan survit aux sessions et aux compactions.
+  clôture si une US est ouverte sans commit.
+- **Grosse demande** : `/pmz:scope` la découpe en 2-5 US persistantes, avec une préconisation de
+  modèle par US — le plan survit aux sessions et aux compactions.
 
 ## 3. Commandes utiles
 
 `/pmz:init` · `/pmz:scope` · `/budget` · `/check-context` · `/close-batch` · `/fresh-session` ·
 `/pmz:about`
 
-`/pmz:about` affiche la version installée et le lot en cours du projet. `/budget` et
+`/pmz:about` affiche la version installée et l'US en cours du projet. `/budget` et
 `/check-context` chiffrent ton statut (vert/orange/rouge) en tokens réels.
 
 ## 4. Mettre en pause ou désinstaller

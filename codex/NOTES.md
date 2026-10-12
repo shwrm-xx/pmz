@@ -12,7 +12,7 @@ Codex       = AGENTS.md + skill éventuelle + wrapper optionnel    (delta)
 ```
 
 Codex lit `AGENTS.md` comme instructions persistantes. Le projet reçoit donc le même socle de
-règles (lots courts, contexte minimal, clôture propre). On **ne reproduit pas** les hooks Claude
+règles (US courtes, contexte minimal, clôture propre). On **ne reproduit pas** les hooks Claude
 Code côté Codex.
 
 ## Mise en place

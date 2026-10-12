@@ -205,7 +205,7 @@ function main() {
   lines.push('- utiliser git diff / git status');
   lines.push('- utiliser git grep');
   lines.push('- lire uniquement le bloc nécessaire');
-  lines.push('- clôturer le lot si la demande est traitée');
+  lines.push('- clôturer l\'US si la demande est traitée');
   process.stdout.write(lines.join('\n') + '\n');
 }
 

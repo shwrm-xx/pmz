@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Bande epicmaster affichable à la demande : `/epicband` (v2.9.1)
+
+- Nouvelle commande locale `/epicband` (déclarée par le mod, aucun appel au modèle) : force la bande sur le plan le plus récent — fichier live local, sinon copie du projet courant, sinon copie la plus récemment semée — sans exiger un `/epicmaster` saisi dans la session ni un semis postérieur. Réaffiche un récap déjà masqué.
+- `/epicband plan` ouvre aussi le panneau Plan ; `/epicband off` retire la bande. Sans plan actif : message explicite et ligne « aucun plan actif, en attente… ».
+- Nouvel atom de session `manual` (contrat `types/index.d.ts`).
+- Tests du mod : 2 cas `/epicband` (16 pass) ; suite à 2492 OK. VERSION 2.9.1.
+
+## 2026-10-12 — Nomenclature US : titres de session et vocabulaire (v2.9.0)
+
+- Titres de session à un seul numéro, l'id backlog global : « [XXX · US#105] Epic · résumé » (sans epic : « [XXX · US#105] résumé »), « [XXX · HS] résumé » pour une session hors US (ex-« Session Libre »), « [XXX · EP#113–#117] Deck Cocina v2 » pour une session maître. Le rang dans le plan (« Lot #X ») et `lotRankInEpic` sont retirés.
+- Vocabulaire affiché : « lot » devient « US » (féminin) dans les sorties CLI, les messages des hooks, la statusline (`US#7`), l'archive, les gabarits, la bande epicmaster, les commandes, la skill, README et ARCHITECTURE. Inchangés : clés JSON (`lots`…), trailer `PMZ-Lot`, noms de fichiers, branches et commandes, historique.
+- Le champ `us` (pointeur vers un fichier de User Story) est renommé `spec` : `add --spec`, sous-commande `spec`, `--allow-incomplete-spec`, `[Spec : …]`, colonne d'export `spec`, gabarit `templates/spec-template.md`, chemin par défaut `docs/specs/SPEC-<id>.md`. Anciens noms acceptés en alias ; un backlog avec `us` est migré au chargement.
+- Le CHANGELOG pré-rempli écrit « (US#N — …) » ; la déduction de titre reconnaît l'ancien « (lot N) » et le nouveau format.
+- Tests U7, U8, N8, O8 ; suite à 2492 OK. VERSION 2.9.0.
+
 ## 2026-10-12 — La session active se titre elle-même (v2.8.3)
 
 - Corrige : PMZ renommait toujours la session précédente, jamais la session active. Le démarrage n'injecte plus de titre ; au 1er prompt, la session courante se renomme elle-même (`session_id: "self"`).

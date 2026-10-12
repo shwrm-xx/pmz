@@ -6,6 +6,8 @@
 // Source : .vibe-agent/epicmaster-live.json (lot #136), lu par $.fs ; rafraîchie par un sondage
 // léger (2 s) qui ne redessine que si le fichier change (+ une fois par minute pour les durées).
 // Fail-open absolu : hors epicmaster, fichier absent / illisible / invalide -> next(e), rien d'affiché.
+// Secours manuel (/epicband) : force la bande sur le plan le plus récent (local, sinon copie de projet),
+// sans exiger qu'il ait été semé après un /epicmaster de la session ; `/epicband off` la retire.
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
@@ -20,6 +22,7 @@ const expanded = atom({ plugin: 'epicmaster-band', key: 'expanded' } as const, f
 const armedAt = atom({ plugin: 'epicmaster-band', key: 'armedAt' } as const, null as number | null)
 const boundFile = atom({ plugin: 'epicmaster-band', key: 'boundFile' } as const, null as string | null)
 const dismissed = atom({ plugin: 'epicmaster-band', key: 'dismissed' } as const, null as EpicmasterBandDismissed)
+const manual = atom({ plugin: 'epicmaster-band', key: 'manual' } as const, false)
 
 const POLL_MS = 2000
 const MINUTE_TICKS = 30 // 30 × 2 s : redessin périodique des temps écoulés
@@ -29,6 +32,7 @@ const PLAN_PANE = 'epicmaster-plan'
 const SEED_SLACK_MS = 5000 // horloges du moteur et de node : même machine, marge de sûreté
 const GLOBAL_DIR = 'promptimizer/epicmaster-live'
 const CALL_RE = /^\s*\/(?:pmz:)?epicmaster(?![\w-])/
+const BAND_CMD = 'epicband'
 
 const WAVE_GLYPH: Record<LiveLot['status'], string> = { done: '✓', running: '⟳', pending: '⧗', failed: '✗' }
 const SEG: Record<LiveLot['status'], { glyph: string; color: string }> = {
@@ -44,6 +48,15 @@ type Fs = {
 }
 type Env = { get: (n: string) => Promise<string | undefined> }
 type Dollar = Parameters<typeof read>[0] & { fs: Fs; env: Env }
+
+// Même slug que lib/epicmaster-live.js liveSlug (FNV-1a 32 bits du chemin absolu) : en manuel, la
+// copie de projet du dossier courant passe avant la plus récente des autres.
+function liveSlug(abs: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < abs.length; i++) { h ^= abs.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 }
+  const base = (abs.replace(/\/+$/, '').split('/').pop() || '').replace(/[^\w.-]+/g, '-').slice(0, 40) || 'projet'
+  return `${base}-${h.toString(16).padStart(8, '0')}`
+}
 
 const asText = (t: unknown) => (typeof t === 'string' ? t : null)
 // Plan semé après le /epicmaster de cette session ? Un fichier local sans seeded_at (antérieur au
@@ -66,8 +79,9 @@ async function globalDir($: Dollar): Promise<string | null> {
 async function readLive($: Dollar, now: number, bind = false): Promise<string | null> {
   const armed = await read($, armedAt)
   if (armed === null) return null
+  const forced = await read($, manual)
   const local = asText(await $.fs.read(LIVE_PATH).catch(() => null))
-  if (local && parseLive(local, now) && seededSince(local, armed, false)) return local
+  if (local && parseLive(local, now) && (forced || seededSince(local, armed, false))) return local
   const bound = await read($, boundFile)
   if (bound) {
     const text = asText(await $.fs.read(bound).catch(() => null))
@@ -76,12 +90,21 @@ async function readLive($: Dollar, now: number, bind = false): Promise<string | 
   const dir = await globalDir($)
   if (!dir) return null
   const entries = await $.fs.list(dir).catch(() => [])
+  const pwd = forced ? await $.env.get('PWD').catch(() => undefined) : undefined
+  const own = pwd ? `${liveSlug(pwd)}.json` : null
   let best: { path: string; text: string; at: number } | null = null
   for (const ent of entries) {
     if (ent.kind !== 'file' || !ent.name.endsWith('.json')) continue
     const path = `${dir}/${ent.name}`
     const text = asText(await $.fs.read(path).catch(() => null))
-    if (!text || !parseLive(text, now) || !seededSince(text, armed, true)) continue
+    if (!text || !parseLive(text, now)) continue
+    if (forced) {
+      // Manuel : la copie du projet courant d'abord, sinon la plus récemment semée.
+      const at = ent.name === own ? Infinity : seededAt(text) ?? 0
+      if (!best || at > best.at) best = { path, text, at }
+      continue
+    }
+    if (!seededSince(text, armed, true)) continue
     const at = seededAt(text) as number
     if (!best || at < best.at) best = { path, text, at }
   }
@@ -93,9 +116,11 @@ async function readLive($: Dollar, now: number, bind = false): Promise<string | 
   return chosen.text
 }
 
-const arm = async ($: Dollar, now: number) => {
+const arm = async ($: Dollar, now: number, force = false) => {
   await update($, armedAt, () => now)
   await update($, boundFile, () => null) // nouveau /epicmaster : on relie au prochain plan semé
+  await update($, manual, () => force)
+  if (force) await update($, dismissed, () => null) // un récap déjà vu se réaffiche à la demande
 }
 
 // Segments de la barre groupés par vague (une espace entre deux vagues) ; sans vagues : à plat.
@@ -142,22 +167,29 @@ export const register: Register = on => {
   let ticks = 0
 
   // Sondage : seule façon d'être réveillé par un fichier modifié hors session (pas de watch fs).
+  // Lancé quelle que soit la surface : l'app desktop démarre la session sans surface (null) et ne
+  // s'attache qu'ensuite — un sondage gardé sur `e.surface` ne tournait jamais dans le Code tab.
+  // Sans /epicmaster saisi, chaque tick s'arrête à la lecture de armedAt.
   on('session.start', async ($, e, next) => {
     try {
-      if (e.surface !== null) {
-        $.clock.every(POLL_MS, () => {
-          $.clock.now()
-            .then(now => readLive($, now, true))
-            .then(text => {
-              ticks = (ticks + 1) % MINUTE_TICKS
-              if (text !== lastText || (text !== null && ticks === 0)) {
-                lastText = text
-                $.ui.invalidate('ui.render')
-              }
-            })
-            .catch(() => undefined)
-        })
-      }
+      await $.command.register({
+        name: BAND_CMD,
+        description: 'Affiche la bande epicmaster à la demande (/epicband, /epicband plan, /epicband off)',
+      })
+    } catch (_) { /* fail-open */ }
+    try {
+      $.clock.every(POLL_MS, () => {
+        $.clock.now()
+          .then(now => readLive($, now, true))
+          .then(text => {
+            ticks = (ticks + 1) % MINUTE_TICKS
+            if (text !== lastText || (text !== null && ticks === 0)) {
+              lastText = text
+              $.ui.invalidate('ui.render')
+            }
+          })
+          .catch(() => undefined)
+      })
     } catch (_) { /* fail-open */ }
     return next(e)
   })
@@ -184,6 +216,34 @@ export const register: Register = on => {
       try { await arm($, await $.clock.now()) } catch (_) { /* fail-open */ }
       return next(e)
     }).catch(($, e, next) => next(e))
+  }
+
+  // /epicband : commande locale (aucun appel au modèle). Secours quand la bande ne s'est pas armée seule.
+  for (const command of ['epicband', 'pmz:epicband']) {
+    on('command.run', { command }, async ($, e) => {
+      try {
+        const arg = String(e.args || '').trim().toLowerCase()
+        if (arg === 'off') {
+          await update($, manual, () => false)
+          await update($, armedAt, () => null)
+          await update($, boundFile, () => null)
+          $.ui.invalidate('ui.render')
+          return { text: 'Bande epicmaster masquée.' }
+        }
+        const now = await $.clock.now()
+        await arm($, now, true)
+        const view = parseLive(await readLive($, now, true), now)
+        $.ui.invalidate('ui.render')
+        if (view && arg === 'plan') await $.ui.open({ id: PLAN_PANE, title: `Plan epicmaster · ${view.epic}` })
+        return {
+          text: view
+            ? `Bande epicmaster affichée · ${view.epic} (✓${view.done} ⟳${view.running} ⧗${view.pending}).`
+            : 'Aucun plan epicmaster actif trouvé (fichier live absent ou périmé) — la bande attendra le prochain plan semé.',
+        }
+      } catch (_) {
+        return { text: 'Bande epicmaster : lecture impossible.' }
+      }
+    })
   }
 
   // Panneau « Plan » : le plan complet de la session (vagues, lots, fait quand), suivi en direct.
@@ -218,9 +278,10 @@ export const register: Register = on => {
         const armed = await read($, armedAt)
         if (armed === null || now - armed > ARM_MS) return next(e)
         const { Box, Text } = $.ui.resolve(e)
+        const waitLabel = (await read($, manual)) ? '◆ epicmaster · aucun plan actif, en attente… ' : '◆ epicmaster · plan en préparation… '
         return (
           <Box key="em-band" flexDirection="row">
-            <Text key="em-wait" bold wrap="truncate">{'◆ epicmaster · plan en préparation… '}</Text>
+            <Text key="em-wait" bold wrap="truncate">{waitLabel}</Text>
             <Text key="em-wait-bar" dimColor>□□□</Text>
           </Box>
         )

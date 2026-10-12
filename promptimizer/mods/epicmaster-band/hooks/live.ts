@@ -118,7 +118,7 @@ function waveStatus(lots: LiveLot[]): LotStatus {
 }
 
 // Vagues du plan (`wave_plan`, semé par lib/epicmaster-live.js) ; à défaut, regroupées par le champ
-// `wave` des lots (libellé : titre du lot seul ou « N lots en parallèle ») ; aucune -> [].
+// `wave` des lots (libellé : titre du lot seul ou « N US en parallèle ») ; aucune -> [].
 function readWaves(raw: Rec, lots: LiveLot[]): LiveWave[] {
   const byLot = new Map(lots.map((l) => [l.id, l]))
   const plan: { index: number; ids: string[]; label: string }[] = []
@@ -136,7 +136,7 @@ function readWaves(raw: Rec, lots: LiveLot[]): LiveWave[] {
     .map((w) => {
       const members = w.ids.map((id) => byLot.get(id)).filter((l): l is LiveLot => !!l)
       if (!members.length) return null
-      const label = w.label || (members.length === 1 ? members[0].title : `${members.length} lots en parallèle`)
+      const label = w.label || (members.length === 1 ? members[0].title : `${members.length} US en parallèle`)
       const starts = members.map((l) => l.startedAt).filter((t): t is number => t !== null)
       return {
         index: w.index, ids: members.map((l) => l.id), label, parallel: members.length > 1,
@@ -269,7 +269,7 @@ export function planMarkdown(v: LiveView, now: number): string {
     for (const w of v.waves) {
       L.push('')
       L.push(`### ${STATE_GLYPH[w.status]} Vague ${w.index} — ${w.label}`)
-      L.push(`_${w.parallel ? `${w.ids.length} lots en parallèle` : 'série'} · ${STATE_LABEL[w.status]}_`)
+      L.push(`_${w.parallel ? `${w.ids.length} US en parallèle` : 'série'} · ${STATE_LABEL[w.status]}_`)
       L.push('')
       for (const id of w.ids) { const l = byId.get(id); if (l) lotBlock(l) }
     }

@@ -1,6 +1,6 @@
 # AGENTS.md — Promptimizer
 
-Instructions persistantes. Travailler par petits lots, contexte minimal.
+Instructions persistantes. Travailler par petites US, contexte minimal.
 
 <!-- pmz:rules:start -->
 ## Avant de modifier
@@ -25,7 +25,7 @@ demande explicite.
 Vérifier uniquement ce qui a changé (UI : rendu/test ciblé ; API : endpoint/unitaire ;
 contenu : cohérence + rendu). Annoncer ce qui n'a pas pu être vérifié.
 
-## Fin de lot
+## Fin d'US
 
 1. Vérification ciblée.
 2. `CHANGELOG.md` mis à jour (entrée datée, en français).
@@ -42,7 +42,7 @@ départ ; ne pas relire les fichiers qu'il liste sauf changement.
 ## Contexte élevé
 
 Si la session est longue ou que beaucoup de fichiers ont été lus, signaler :
-`[contexte élevé — finir ce lot, handoff court, session fraîche recommandée]`
+`[contexte élevé — finir cette US, handoff court, session fraîche recommandée]`
 
 ## Définition de « fini »
 

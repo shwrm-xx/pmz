@@ -3,9 +3,9 @@ name: promptimizer
 description: >-
   Gouvernance de session vibecoding (Claude Code desktop). À utiliser pour : nouveau projet,
   init projet, scaffold, setup Claude Code, optimisation de session, économie de tokens,
-  cache read, relecture de contexte, coût tokens, clôture de lot, changelog, commit, handoff,
+  cache read, relecture de contexte, coût tokens, clôture d'US, changelog, commit, handoff,
   session fraîche. Initialise les projets prudemment, réduit le contexte relu, force une
-  clôture propre des lots, et fournit un delta AGENTS.md pour Codex.
+  clôture propre des US, et fournit un delta AGENTS.md pour Codex.
 ---
 
 # Promptimizer
@@ -23,7 +23,7 @@ Quand un projet n'est pas initialisé (présence de `.vibe-agent/` absente) :
    section « Règles Promptimizer » taguée (`pmz:rules:start/end`) — append-only, idempotent,
    réversible en supprimant le bloc.
 3. Finaliser `CLAUDE.md`/`AGENTS.md` avec **lecture minimale** (déduire la stack des seuls
-   manifestes), sans les rallonger. Puis proposer un premier lot court.
+   manifestes), sans les rallonger. Puis proposer une première US courte.
 
 ## 2. Budget de contexte
 - Préférer `git status`, `git diff`, `git grep`, lecture partielle, résumé local.
@@ -33,35 +33,35 @@ Quand un projet n'est pas initialisé (présence de `.vibe-agent/` absente) :
 
 ## 2bis. Lotir une grosse demande
 Demande large (plusieurs sujets, ≥ 6 puces, refactor global…) : proposer un découpage en
-**2 à 5 lots**, le faire valider en une question, puis le persister via `/scope` ou
+**2 à 5 US**, le faire valider en une question, puis le persister via `/scope` ou
 `node ~/.claude/promptimizer/scripts/backlog.js add --title "…" --scope "…"` (+ `start --id N`).
 Au découpage, proposer aussi un **nom de plan court (≤ 3 mots, validé par l'utilisateur)** et le
-poser sur chaque lot via `--epic "<NomDePlan>"` : c'est lui qui nomme le plan dans le titre de
-session (`[XXX · #Y] NomDePlan · Lot #X · résumé` — `#Y` = id backlog global, `Lot #X` = rang
-dans le plan). Sans nom de plan, la session s'affiche `[XXX · #Y] Session
-Libre · résumé`.
-`/scope` pense la parallélisation d'office (périmètre ou « série » motivé par lot) et se
+poser sur chaque US via `--epic "<NomDePlan>"` : c'est lui qui nomme le plan dans le titre de
+session (`[XXX · US#Y] NomDePlan · résumé` — `#Y` = id backlog global, seul numéro
+affiché). Sans nom de plan, la session s'affiche `[XXX · US#Y] résumé` ; une session sans US
+s'affiche `[XXX · HS] résumé`.
+`/scope` pense la parallélisation d'office (périmètre ou « série » motivé par US) et se
 termine **toujours** par la préparation de la **session maître** :
 `backlog.js epicmaster --epic "…" --write-handoff` calcule les vagues (périmètres disjoints en
-parallèle, lots sans périmètre seuls en vol), le parallélisme borné, le budget de contexte du
-maître et son modèle, puis écrit le handoff maître — la session de scope **ne démarre aucun
-lot**. La session fraîche suivante reçoit ce handoff et lance `/epicmaster`.
+parallèle, US sans périmètre seules en vol), le parallélisme borné, le budget de contexte du
+maître et son modèle, puis écrit le handoff maître — la session de scope **ne démarre aucune
+US**. La session fraîche suivante reçoit ce handoff et lance `/epicmaster`.
 
 ## 2ter. Session maître (`/epicmaster`)
-Lance **tous les lots ouverts** du backlog (une epic ou plusieurs) en **sous-agents**, chacun au
-**modèle + effort préconisés** par le lot, après **une** confirmation (lots classés par epic,
-tous cochés, décochables : `--skip`). Vague par vague, jamais plus de sous-agents en vol que le
+Lance **toutes les US ouvertes** du backlog (une epic ou plusieurs) en **sous-agents**, chacune au
+**modèle + effort préconisés** par l'US, après **une** confirmation (US classées par epic,
+toutes cochées, décochables : `--skip`). Vague par vague, jamais plus de sous-agents en vol que le
 parallélisme affiché ; le maître ne relit **jamais** la sortie brute d'un sous-agent (rapport
 ≤ 250 mots, sections fixes), commite **par périmètre**, clôt (`done --verify-verdict`), et
-s'arrête à la borne « N lots par session maître » ou dès que le hook Stop prescrit une session
-fraîche — les lots restants restent ouverts, `/epicmaster` les reprend. Sortie : handoff
+s'arrête à la borne « N US par session maître » ou dès que le hook Stop prescrit une session
+fraîche — les US restantes restent ouvertes, `/epicmaster` les reprend. Sortie : handoff
 consolidé (`templates/epicmaster-handoff.md`) avec **dette** et **à trancher**.
 
-**Règle de découpe** : 1 lot = 1 session sous ~300k tokens, 1 commit, un critère
-« fait quand : … » vérifiable. Un lot qui dépasse l'un de ces trois → le redécouper plutôt
+**Règle de découpe** : 1 US = 1 session sous ~300k tokens, 1 commit, un critère
+« fait quand : … » vérifiable. Une US qui dépasse l'un de ces trois → la redécouper plutôt
 que de le grossir.
 
-## 3. Clôturer un lot
+## 3. Clôturer une US
 `node ~/.claude/promptimizer/scripts/close-batch.js` puis :
 vérification ciblée → `CHANGELOG.md` → commit (français, court) → handoff < 800 tokens
 **écrit dans `.vibe-agent/handoff.md`** (écrasé ; 1re ligne `<!-- pmz:handoff:manual -->`) →

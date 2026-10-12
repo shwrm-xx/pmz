@@ -3,7 +3,7 @@ description: Pose ou retire la statusline Promptimizer (opt-in ; préserve toute
 allowed-tools: Bash(node *)
 ---
 
-Gère la **statusline Promptimizer** (opt-in) : `PMZ v<version> · <epic> · lot #<id> <titre> · <faits>/<total> · ctx <occupation>`.
+Gère la **statusline Promptimizer** (opt-in) : `PMZ v<version> · <epic> · US#<id> <titre> · <faits>/<total> · ctx <occupation>`.
 
 1. Diagnostic : `node ~/.claude/promptimizer/install/merge-settings.js --check`
    - lis le champ `statusline` : `none` (aucune), `pmz` (déjà la nôtre), `third-party` (tierce).

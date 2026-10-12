@@ -29,7 +29,7 @@ function backlogSummary(root) {
         integrations: cur.integrations || null,
         // epic + us (lots #101/#103) : nécessaires à la fiche d'archive (en-tête + section Liens).
         epic: cur.epic || null,
-        us: cur.us || null,
+        spec: cur.spec || null,
       } : null,
       next: nxt ? {
         id: nxt.id, title: nxt.title,
@@ -70,7 +70,7 @@ function compute(cwd) {
 
 function toMarkdown(d) {
   const lines = [];
-  lines.push('## Audit du lot');
+  lines.push('## Audit de l\'US');
   lines.push('');
   if (!d.is_git_repo) { lines.push('Pas un dépôt git — rien à auditer.'); return lines.join('\n') + '\n'; }
   lines.push(`- Fichiers modifiés non commités : ${d.modified_files.length}`);
@@ -79,7 +79,7 @@ function toMarkdown(d) {
   lines.push(`- Commit existant : ${d.has_commit ? 'oui' : 'non'}`);
   lines.push(`- Clôture nécessaire : ${d.needs_closure ? 'oui' : 'non'}`);
   if (d.backlog) {
-    lines.push(`- Plan de lots : ${d.backlog.done}/${d.backlog.total} faits`
+    lines.push(`- Plan des US : ${d.backlog.done}/${d.backlog.total} faites`
       + (d.backlog.current ? ` — en cours : #${d.backlog.current.id} « ${d.backlog.current.title} »` : ''));
   }
   return lines.join('\n') + '\n';
