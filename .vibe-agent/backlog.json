@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 147,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-12T08:37:02.128Z",
+  "updated_at": "2026-10-12T08:39:44.594Z",
   "lots": [
     {
       "id": 1,
@@ -4175,24 +4175,24 @@
       "id": 146,
       "title": "Doc et release install sans couture",
       "scope": "fait quand : README « Nouveau poste en un double-clic » (une étape par OS), canal manuel présenté en secours, ARCHITECTURE et CHANGELOG à jour, VERSION montée, tests verts",
-      "status": "in_progress",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "low",
       "epic": "Install sans couture",
       "verify": "node test/run-tests.js",
       "us": null,
-      "closed_commit": null,
-      "closed_at": null,
+      "closed_commit": "6346321",
+      "closed_at": "2026-10-12T08:39:44.403Z",
       "closed_session_id": null,
       "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_verify": "ok",
       "cost_tokens": 0,
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
       "started_at": "2026-10-12T08:37:02.127Z",
-      "lot_number": null,
-      "note": null,
+      "lot_number": 615,
+      "note": "Section README plugin « alternatif » : renommer ou fusionner avec « Nouveau poste » ?",
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [
@@ -4200,15 +4200,7 @@
         144,
         145
       ],
-      "session_owner": "master/lot-146",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
+      "session_owner": "master/lot-146"
     }
   ]
 }
