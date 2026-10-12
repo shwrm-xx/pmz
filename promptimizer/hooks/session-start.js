@@ -19,7 +19,7 @@ const { injectContext, systemMessage, passThrough } = require('../lib/output');
 const { gitRoot, isFullyInitialized, hasAnyCommit, carriesRules } = require('../lib/project');
 const { runBootstrap, commitScaffold } = require('../lib/bootstrap');
 const { loadSessionState, saveSessionState } = require('../lib/state');
-const { suggestedTitle } = require('../lib/lot');
+const { suggestedTitle, nomenclatureSet } = require('../lib/lot');
 const { readHandoff, parseSkipPaths, parseSummaryLines, markConsumed, purgeOrphanLotHandoffs } = require('../lib/handoff');
 const { seedAvoidReread, seedSummaries, avoidRereadNotes, topSummaries } = require('../lib/ledger');
 const { loadBacklog, currentLot, nextLot, blockedByOf, progress, readTodoSnapshot } = require('../lib/backlog');
@@ -182,7 +182,7 @@ function main() {
       // suggestedTitle (via previousSessionId) doit lire session-state.json AVANT le
       // saveSessionState ci-dessous, qui l'écrase avec le session_id de CETTE session.
       const title = suggestedTitle(root);
-      msg = msg + '\n\n' + sessionTitleMessage(title);
+      msg = msg + '\n\n' + sessionTitleMessage(title, { nomenclature: !nomenclatureSet(root) });
       // Persisté pour un 2e rappel au 1er UserPromptSubmit (lot #40) — jamais recalculé
       // depuis là-bas (suggestedTitle a un effet de bord : touchLot incrémente le
       // compteur « (partie N) », un recalcul le fausserait).

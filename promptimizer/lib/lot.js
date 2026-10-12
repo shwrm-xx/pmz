@@ -298,4 +298,25 @@ function suggestedTitle(root) {
   return deduced ? `${libre} · ${truncateTitle(stripLotPrefix(deduced))}` : libre;
 }
 
-module.exports = { readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, titleForMasterSession, idRanges, MAX_EPIC };
+// Titre de la session COURANTE d'après son lot en cours (renommage transparent, « self »).
+// null si rien de sûr à annoncer : aucun lot en cours, vague à plusieurs lots sans lot attribué à
+// cette session, ou session maître (un lot piloté « master/lot-* » : le maître a son propre titre).
+function currentSessionTitle(root, sid) {
+  try {
+    const backlog = require('./backlog');
+    const b = backlog.loadBacklog(root);
+    const inProg = b.lots.filter((l) => l.status === 'in_progress');
+    if (!inProg.length || inProg.some((l) => /^master\//.test(String(l.session_owner || '')))) return null;
+    const mine = sid ? inProg.filter((l) => l.session_owner === sid) : [];
+    const l = mine.length === 1 ? mine[0] : (inProg.length === 1 ? inProg[0] : null);
+    if (!l) return null;
+    return titleForLot(trigramLib.readTrigram(root), l, 0, backlog.lotRankInEpic(b, l));
+  } catch (_) { return null; }
+}
+
+// Nomenclature posée = trigramme choisi (fichier .vibe-agent/trigram présent, pas seulement dérivé).
+function nomenclatureSet(root) {
+  try { return fs.existsSync(trigramLib.trigramFile(root)); } catch (_) { return true; }
+}
+
+module.exports = { readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, titleForMasterSession, idRanges, currentSessionTitle, nomenclatureSet, MAX_EPIC };

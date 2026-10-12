@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-12 — Renommage de session transparent (v2.8.2)
+
+- Nomenclature posée (`.vibe-agent/trigram` présent) : la session précédente est renommée en silence, sans question ni annonce.
+- La session courante se nomme elle-même (`session_id: "self"`) dès que son lot en cours est connu ou change. Le titre n'est réinjecté que s'il change ; jamais pour un lot piloté par une session maître.
+- Seule exception, la première session d'un projet, quand le trigramme n'est pas encore posé : une question immédiate pour fixer la nomenclature (`trigram --set`), puis renommage.
+- Tests T2 et Q5 réécrits ; suite à 2489 OK. VERSION 2.8.2.
+
 ## 2026-10-12 — Mise à jour du plugin à version égale + titre de session maître (v2.8.1)
 
 - Corrige : `install-plugin.js` laissait l'ancien code en place quand la version n'avait pas changé, car `claude plugin update` ne recopie rien dans ce cas. Les nouvelles bandes restaient donc invisibles. L'installeur compare désormais le contenu installé au build et réinstalle s'ils diffèrent (`uninstall --keep-data` + `install`). Test B143-8.
