@@ -51,3 +51,18 @@ ne jamais toucher au `~/.claude` réel sans demande explicite.
 **Tests** : `node test/run-tests.js` (zéro-dépendance, bac à sable auto, exit 0 si tout passe) —
 couvre fail-open, verdicts `pre-tool-use`, occupation, `merge-settings`, bootstrap. À lancer
 avant tout commit touchant `lib/`, `hooks/` ou `install/`.
+
+## Release (chaque version et sous-version)
+
+À chaque nouvelle version ou sous-version (X.Y.0 comme X.Y.Z), faire **tout** le nécessaire, sans
+attendre qu'on le demande — sinon les postes ne voient pas la mise à jour :
+
+1. Bumper `promptimizer/VERSION` **et** `promptimizer/.claude-plugin/plugin.json` (même valeur).
+2. Entrée datée « Release vX.Y.Z » dans [CHANGELOG.md](CHANGELOG.md) ; README/ARCHITECTURE à jour.
+3. `node test/run-tests.js` vert (lire le résultat, ne pas le supposer), puis commit
+   `chore(release): vX.Y.Z` (working tree propre).
+4. Publier : `git push origin main`, puis `node promptimizer/install/publish-plugin.js --push`
+   (régénère et pousse la branche orpheline `plugin-release`, force-push attendu).
+5. Dire à l'utilisateur la commande côté poste collègue :
+   `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`
+   (ne **pas** relancer `marketplace add` : refusé si la source déclarée diffère), puis redémarrage.
