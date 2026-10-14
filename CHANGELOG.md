@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-14 — Release v2.10.1
+
+- Regroupe #150 (un dossier par US : spec et maquettes) et #151 (renommage systématique de chaque session).
+- `VERSION` et `plugin.json` alignés sur 2.10.1 pour que les postes voient la mise à jour.
+
 ## 2026-10-12 — US#151 Renommage systématique de chaque session
 
 - Toute session se renomme au 1er prompt, y compris pendant un lot `master/lot-*` ; seule la session maître est exclue.
