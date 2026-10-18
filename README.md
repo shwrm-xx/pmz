@@ -106,14 +106,14 @@ il déclare le plugin en source `git-subdir` pointant le dossier `promptimizer/`
 `plugin-release`. Côté utilisateur final, une seule commande à retenir :
 
 ```
-claude plugin marketplace add shwrm-xx/promptimiser
+claude plugin marketplace add shwrm-xx/pmz
 claude plugin install pmz@pmz-marketplace
 ```
 
 Sur un **autre poste, pour un autre utilisateur**, c'est tout ce qu'il faut : le plugin `pmz`
 embarque tout (hooks, commandes, skill **et** bande epicmaster ; aucun `CLAUDE_CODE_PLUGIN_DIRS`,
 aucun second plugin). Forme équivalente depuis la commande interactive :
-`/plugin install pmz --marketplace shwrm-xx/promptimiser`.
+`/plugin install pmz --marketplace shwrm-xx/pmz`.
 
 Prérequis : le dépôt doit être **public** (`marketplace add owner/repo` lit le dépôt sans
 authentification). Côté mainteneur, publier l'artefact de build à chaque release :
@@ -128,7 +128,7 @@ n'a pas à être retouché : il suit la branche, et Claude Code sert la nouvelle
 `plugin.json` change de `version` (donc dès que `VERSION` est bumpée).
 
 La branche `plugin-release` porte aussi son propre `.claude-plugin/marketplace.json` (fallback
-historique : `marketplace add https://github.com/shwrm-xx/promptimiser.git#plugin-release`). Les
+historique : `marketplace add https://github.com/shwrm-xx/pmz.git#plugin-release`). Les
 deux portent le **même nom** `pmz-marketplace` : ce sont deux chemins vers la même marketplace, et
 Claude Code n'en enregistre qu'une par nom — ajouter l'un remplace l'autre. Canal recommandé :
 `main`.
