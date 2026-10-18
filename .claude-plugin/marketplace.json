@@ -15,14 +15,14 @@
       "author": {
         "name": "Marwan"
       },
-      "homepage": "https://github.com/shwrm-xx/promptimiser",
-      "repository": "https://github.com/shwrm-xx/promptimiser",
+      "homepage": "https://github.com/shwrm-xx/pmz",
+      "repository": "https://github.com/shwrm-xx/pmz",
       "license": "MIT",
       "category": "workflow",
       "keywords": ["session", "contexte", "tokens", "handoff", "gouvernance", "vibecoding"],
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/shwrm-xx/promptimiser.git",
+        "url": "https://github.com/shwrm-xx/pmz.git",
         "path": "promptimizer",
         "ref": "plugin-release"
       }

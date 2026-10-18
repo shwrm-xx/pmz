@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-18 — Release v2.10.2
+
+- Dépôt unique `shwrm-xx/pmz` : catalogue `marketplace.json`, `plugin.json`, README et ARCHITECTURE ne pointent plus vers `promptimiser` (qui restait sur l'ancienne version).
+- Côté poste : `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`.
+
 ## 2026-10-14 — Release v2.10.1
 
 - Regroupe #150 (un dossier par US : spec et maquettes) et #151 (renommage systématique de chaque session).

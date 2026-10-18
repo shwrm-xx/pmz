@@ -1610,7 +1610,7 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   `keywords` mais aucun `license`/`homepage`/`repository` — champs optionnels du schéma manifeste
   officiel (`docs/en/plugins-reference`) mais attendus pour une diffusion publique sérieuse. Ajout
   de `license: "MIT"` (`LICENSE` créé à la racine du dépôt, absent jusqu'ici) et
-  `homepage`/`repository` pointant sur `github.com/shwrm-xx/promptimiser` (dérivés du remote
+  `homepage`/`repository` pointant sur `github.com/shwrm-xx/pmz` (dérivés du remote
   `origin`, pas inventés). `marketplace.json` (généré par `build-plugin.js`) était déjà conforme
   au schéma requis (`name`, `owner.name`, `plugins[].name`+`source`) — vérifié contre la doc
   officielle, aucun changement nécessaire côté marketplace elle-même. `VERSION` bumpée
@@ -1683,7 +1683,7 @@ manuelle (miroir plat vers `~/.claude/`) reste le canal de **secours**, document
   seul fichier du canal plugin versionné sur `main`, et **jamais** un artefact de build : il ne
   contient que des métadonnées + une source `git-subdir`
   (`url` = dépôt, `path` = `promptimizer`, `ref` = `plugin-release`). Conséquence : le dépôt nu est
-  ajoutable en une commande (`claude plugin marketplace add shwrm-xx/promptimiser` puis
+  ajoutable en une commande (`claude plugin marketplace add shwrm-xx/pmz` puis
   `claude plugin install pmz@pmz-marketplace`), pendant que `main` reste le miroir plat source
   intact. Trois points **vérifiés contre la doc officielle**, à ne pas régresser :
   - le fichier doit être **à la racine du dépôt** (`marketplace add owner/repo` ne le cherche pas
