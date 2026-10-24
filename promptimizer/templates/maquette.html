@@ -1,0 +1,101 @@
+<!doctype html>
+<!-- Gabarit Promptimizer (/maquette). Maquette AUTONOME : zéro CDN, zéro police distante, zéro
+     image externe, zéro dépendance — tout est inline (CSS, SVG, JS minimal). Ouvrable hors ligne
+     en double-clic. Posé par `maquette.js new --id <N> --slug {{SLUG}}` ; à remplir à la main :
+     un <section class="ecran"> par écran, un <div class="etat" data-etat="…"> par état. -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITRE}}</title>
+<style>
+  :root {
+    --fond: #f4f4f6; --surface: #ffffff; --texte: #1d1d23; --discret: #6b6b78;
+    --bord: #dcdce3; --accent: #3a5bd9; --erreur: #c62828; --ombre: 0 1px 3px rgba(0,0,0,.12);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fond: #16161a; --surface: #222228; --texte: #ececf1; --discret: #9a9aa8; --bord: #3a3a44; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--texte); }
+  .barre { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--bord); }
+  .barre h1 { font-size: 15px; margin: 0 12px 0 0; }
+  .barre .meta { color: var(--discret); font-size: 12px; margin-right: auto; }
+  .barre button { font: inherit; font-size: 13px; padding: 4px 10px; border: 1px solid var(--bord);
+    background: transparent; color: var(--texte); border-radius: 6px; cursor: pointer; }
+  .barre button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .groupe { display: flex; gap: 4px; }
+  main { padding: 24px 16px; display: grid; gap: 32px; justify-items: center; }
+  .ecran { width: 100%; max-width: 1280px; }
+  .ecran > h2 { font-size: 14px; color: var(--discret); margin: 0 0 8px; font-weight: 600; }
+  .cadre { margin: 0 auto; background: var(--surface); border: 1px solid var(--bord); border-radius: 10px;
+    box-shadow: var(--ombre); overflow: hidden; min-height: 420px; transition: width .2s; }
+  body[data-taille="mobile"] .cadre { width: 375px; }
+  body[data-taille="desktop"] .cadre { width: 100%; }
+  .etat { display: none; padding: 16px; }
+  body[data-etat="nominal"] .etat[data-etat="nominal"],
+  body[data-etat="vide"] .etat[data-etat="vide"],
+  body[data-etat="chargement"] .etat[data-etat="chargement"],
+  body[data-etat="erreur"] .etat[data-etat="erreur"] { display: block; }
+  /* Briques génériques réutilisables par la maquette. */
+  .squelette { background: var(--bord); border-radius: 6px; height: 14px; margin: 10px 0; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  .alerte { border-left: 4px solid var(--erreur); padding: 10px 12px; background: rgba(198,40,40,.08); }
+  .vide { text-align: center; color: var(--discret); padding: 48px 16px; }
+  .bouton { display: inline-block; padding: 8px 14px; border-radius: 6px; background: var(--accent); color: #fff; border: 0; font: inherit; }
+</style>
+</head>
+<body data-taille="desktop" data-etat="nominal">
+<header class="barre">
+  <h1>{{TITRE}}</h1>
+  <span class="meta">maquette « {{SLUG}} » · {{DATE}}</span>
+  <div class="groupe" role="group" aria-label="Taille">
+    <button type="button" data-taille="mobile" aria-pressed="false">Mobile 375</button>
+    <button type="button" data-taille="desktop" aria-pressed="true">Desktop</button>
+  </div>
+  <div class="groupe" role="group" aria-label="État">
+    <button type="button" data-etat="nominal" aria-pressed="true">Nominal</button>
+    <button type="button" data-etat="vide" aria-pressed="false">Vide</button>
+    <button type="button" data-etat="chargement" aria-pressed="false">Chargement</button>
+    <button type="button" data-etat="erreur" aria-pressed="false">Erreur</button>
+  </div>
+</header>
+<main>
+  <!-- ÉCRAN : dupliquer ce bloc pour chaque écran validé dans la proposition. -->
+  <section class="ecran" data-ecran="ecran-1">
+    <h2>Écran 1 — &lt;nom de l'écran&gt;</h2>
+    <div class="cadre">
+      <div class="etat" data-etat="nominal">
+        <p>&lt;contenu nominal : données réalistes, pas de lorem ipsum&gt;</p>
+        <button class="bouton" type="button">Action principale</button>
+      </div>
+      <div class="etat" data-etat="vide">
+        <div class="vide">&lt;état vide : message + action pour sortir du vide&gt;</div>
+      </div>
+      <div class="etat" data-etat="chargement">
+        <div class="squelette" style="width:60%"></div>
+        <div class="squelette"></div>
+        <div class="squelette" style="width:80%"></div>
+      </div>
+      <div class="etat" data-etat="erreur">
+        <div class="alerte">&lt;message d'erreur compréhensible + moyen de réessayer&gt;</div>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+  // Bascule taille/état : pur DOM, aucune dépendance.
+  document.querySelectorAll('.barre button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var cle = b.dataset.taille ? 'taille' : 'etat';
+      document.body.dataset[cle] = b.dataset[cle];
+      document.querySelectorAll('.barre button[data-' + cle + ']').forEach(function (x) {
+        x.setAttribute('aria-pressed', String(x === b));
+      });
+    });
+  });
+</script>
+</body>
+</html>
