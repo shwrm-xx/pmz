@@ -12,9 +12,25 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
 1. Reformuler la demande en **2 à 5 US** : un titre court + un critère « fait quand : … »
    par US. Une US = une **unité livrable** (1 commit cohérent), pas une étape d'exécution
    (les étapes fines restent dans la todo-list, capturée automatiquement).
-   Pour **chaque** US, préconiser un **modèle** (ex. `sonnet` pour du mécanique/CRUD,
-   `opus` pour du raisonnement lourd/archi) **et un effort de raisonnement**
-   (`low` | `medium` | `high` | `xhigh`) — les deux sont obligatoires, jamais omis.
+   Pour **chaque** US, préconiser un **modèle** **et un effort de raisonnement**
+   (`low` | `medium` | `high` | `xhigh`) — les deux sont obligatoires, jamais omis — en
+   prenant la **première ligne qui s'applique** de cette grille (au doute entre deux lignes,
+   la plus haute) :
+
+   | Nature de l'US | Modèle · effort |
+   |---|---|
+   | Machine à états multi-couches, état async, sécurité, migration de données, UI existante fragile — fort risque de régression | `opus` · `high` |
+   | Jugement, design, rédaction : prompts, copywriting, choix visuels, passe de parité UI, architecture de portée limitée | `opus` · `medium` |
+   | Logique métier non triviale ou plomberie multi-fichiers, spec nette | `sonnet` · `high` |
+   | Plomberie bien spécifiée : CRUD, mapping, tables, config, câblage simple, tests d'une logique existante | `sonnet` · `medium` |
+   | Retouche triviale entièrement spécifiée : texte, constante, renommage, doc factuelle — aucun risque de régression | `haiku` · `low` |
+
+   `xhigh` ne se propose que pour une décision d'architecture structurante ou un débogage sans
+   piste, raison donnée en quelques mots. Le hint est le **nom de famille** (`opus`, `sonnet`,
+   `haiku`), joignable par `/model` ; gamme courante : Opus 5.5, Sonnet 5.5, Haiku 5.5.
+   **Fable n'est jamais proposé** — ni par cette grille ni au titre d'une autre instruction
+   (CLAUDE.md global compris) : c'est un choix **réservé à l'utilisateur**. Ne poser
+   `--model fable` que s'il le demande explicitement pour une US donnée.
    Si ce découpage porte une **feature/epic** identifiable, proposer aussi un **nom de plan
    court (≤ 3 mots, cap 60 caractères)** — c'est lui qui nomme le plan dans le titre de
    session (`[XXX · US#Y] NomDePlan · résumé` — `#Y` = id backlog global, seul numéro

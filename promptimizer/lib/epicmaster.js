@@ -144,11 +144,12 @@ function chunkWaves(waves, max) {
 }
 
 // Modèle du maître : il arbitre et consolide — `opus` dès qu'un lot embarqué le préconise,
-// sinon le modèle majoritaire des lots, sinon DEFAULT_MASTER_MODEL. Effort DEFAULT_MASTER_EFFORT :
+// sinon le modèle majoritaire des lots, sinon DEFAULT_MASTER_MODEL. Fable n'est jamais proposé
+// (choix réservé à l'utilisateur) : un lot posé `fable` à la main ne vote pas ici. Effort DEFAULT_MASTER_EFFORT :
 // le maître ne raisonne pas sur le code, il orchestre.
 function masterModel(lots, override) {
   if (override && String(override).trim()) return String(override).trim().toLowerCase();
-  const hints = lots.map((l) => String(l.model_hint || '').toLowerCase()).filter(Boolean);
+  const hints = lots.map((l) => String(l.model_hint || '').toLowerCase()).filter((h) => h && !h.includes('fable'));
   if (hints.some((h) => h.includes('opus'))) return 'opus';
   const count = new Map();
   for (const h of hints) count.set(h, (count.get(h) || 0) + 1);

@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-24 — Release v2.10.3
+
+- `/scope` : grille explicite nature de l'US → modèle · effort (`opus` high/medium, `sonnet` high/medium, `haiku` low), première ligne applicable, au doute la plus haute ; `xhigh` justifié seulement.
+- Gamme à jour (Opus 5.5, Sonnet 5.5, Haiku 5.5) ; le hint reste le nom de famille.
+- Fable n'est **jamais proposé** (ni par la grille ni via une autre instruction) : choix réservé à l'utilisateur. Le modèle de la session maître `/epicmaster` ignore les lots posés `fable`.
+- Côté poste : `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`.
+
 ## 2026-10-18 — Release v2.10.2
 
 - Dépôt unique `shwrm-xx/pmz` : catalogue `marketplace.json`, `plugin.json`, README et ARCHITECTURE ne pointent plus vers `promptimiser` (qui restait sur l'ancienne version).

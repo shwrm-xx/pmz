@@ -15,7 +15,8 @@ poursuit trois objectifs :
    `/fresh-session`) et **injecté automatiquement au démarrage de la session suivante**.
    Une grosse demande peut être **découpée en US** (`/scope`) en un plan de 2-5 US persistant
    (`.vibe-agent/backlog.json`), **chaque US portant une préconisation de modèle**
-   (`sonnet`/`opus`, réaffichée à chaque `show`/`start`, au resume et dans le handoff — avec
+   (`haiku`/`sonnet`/`opus` selon une grille nature de l'US → modèle · effort ; Fable n'est
+   jamais proposé, seulement posé à la main par l'utilisateur ; réaffichée à chaque `show`/`start`, au resume et dans le handoff — avec
    suggestion `/model` si le modèle diffère, muette pour un runtime tiers) et, si vérifiable par
    commande, une **`verify`** rejouée comme preuve à la clôture (une US sans elle est signalée
    « close sans preuve ») : chaque US est close automatiquement au commit, la suivante est annoncée,
