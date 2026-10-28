@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-28 — US#155 Parallélisme réel
+
+- `/epicmaster` et `/pickymaster` : lancement groupé de la vague, tous les `Agent` dans un seul message avec `run_in_background`.
+- Pipeline glissant : une place libérée part à l’US éligible suivante, sans barrière de vague.
+- `subagent-live` : alerte `systemMessage` non bloquante, une fois par vague, si la concurrence reste à 1 sur une vague de 2 US ou plus.
+- Nouveau test `test/run-tests-parallelisme.js`, branché dans la suite.
+
 ## 2026-10-28 — US#154 Découpage orienté sonnet
 
 - `/scope` : découpage orienté sonnet, avec cadrage obligatoire (fichiers visés, contrat, critères testables) pour chaque US d’exécution.
