@@ -10596,6 +10596,12 @@ section('US#156 — clôture groupée close-wave (test/run-tests-close-wave.js)'
   ok(rcw.status === 0, 'close-wave : ' + ((rcw.stdout || '') + (rcw.stderr || '')).trim().split('\n').slice(-3).join(' | '));
 }
 
+section('US#159 — arbitrages epicmaster (test/run-tests-arbitrages.js)');
+{
+  const rar = spawnSync(process.execPath, [path.join(__dirname, 'run-tests-arbitrages.js')], { encoding: 'utf8' });
+  ok(rar.status === 0, 'arbitrages : ' + ((rar.stdout || '') + (rar.stderr || '')).trim().split('\n').slice(-3).join(' | '));
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);

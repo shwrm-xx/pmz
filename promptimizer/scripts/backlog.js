@@ -753,6 +753,7 @@ function main() {
     // /pmz:scope exécute pour le plan qu'il découpe.
     let addMsg =`US#${newLot.id} « ${newLot.title} » ajoutée (à faire)${backlog.modelEffortTag(newLot)}${newLot.epic ? ` [epic : ${newLot.epic}]` : ''}${newLot.verify ? ` [verify : ${newLot.verify}]` : ''}${newLot.spec ? ` [Spec : ${newLot.spec}]` : ''}${newLot.perimeter.length ? ` [périmètre : ${newLot.perimeter.join(', ')}]` : ''}${newLot.depends_on.length ? ` [dépend de : ${newLot.depends_on.map((d) => '#' + d).join(', ')}]` : ''}.`;
     addMsg += estimateSuffix(backlog.loadBacklog(root), newLot);
+    addMsg += backlog.costlyChoiceWarning(model, effort, flag('why'));
     return out(addMsg);
   }
 
