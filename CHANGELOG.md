@@ -2,6 +2,26 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-28 — US#159 Arbitrages epicmaster
+
+- `backlog.js add` avertit (sans refuser, fail-open) quand opus ou un effort high/xhigh est posé sans `--why "…"`.
+- Nouveau flag `--why` ; helper `costlyChoiceWarning` dans `lib/backlog.js`.
+- Test `run-tests-arbitrages.js` : avertissement, plafond de tours/contexte et règle « itérer en sonnet, juger en opus » du brief.
+- Commit de suivi `close-wave` inchangé (décision humaine).
+
+## 2026-10-28 — US#158 Robustesse CLI epicmaster
+
+- `--wave-labels "…"` accepté avec la valeur après espace (flag ajouté à `VALUE_FLAGS`).
+- `--max-parallel` persisté dans l’état live (`max_parallel`), conservé par `load()`.
+- `subagent-live` : plus d’alerte « concurrence restée à 1 » quand le plafond vaut 1.
+- Tests `close-wave` : `done` refusé (spec incomplète) et verdict timeout.
+
+## 2026-10-28 — US#157 Doc et désinstallation
+
+- README et ARCHITECTURE décrivent `/pickymaster`, le maître sonnet, le pipeline glissant et `close-wave`.
+- `uninstall.js` retire aussi `pickymaster.md`.
+- Étape « 3bis » renumérotée 4 à l’identique dans `epicmaster.md` et `pickymaster.md`, renvois corrigés.
+
 ## 2026-10-28 — US#156 Clôture groupée close-wave
 
 - Nouveau `backlog.js close-wave` : commit, `done`, fiche d’archive et CHANGELOG d’une vague en un appel.
