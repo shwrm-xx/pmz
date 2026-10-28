@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-28 — Release v2.10.3
+
+- Regroupe US#157 (doc et désinstallation), US#158 (robustesse CLI epicmaster) et US#159 (arbitrages epicmaster).
+- `VERSION` et `plugin.json` en 2.10.3.
+
 ## 2026-10-28 — US#159 Arbitrages epicmaster
 
 - `backlog.js add` avertit (sans refuser, fail-open) quand opus ou un effort high/xhigh est posé sans `--why "…"`.
