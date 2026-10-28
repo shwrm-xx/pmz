@@ -55,6 +55,7 @@ function load(root) {
     if (Array.isArray(raw.to_decide)) st.to_decide = raw.to_decide;
     if (typeof raw.seeded_at === 'string') st.seeded_at = raw.seeded_at;
     if (Array.isArray(raw.wave_plan)) st.wave_plan = raw.wave_plan;
+    if (Number.isFinite(raw.max_parallel) && raw.max_parallel >= 1) st.max_parallel = raw.max_parallel;
     return st;
   } catch (_) { return emptyState(); }
 }
@@ -250,6 +251,10 @@ function seedFromPlan(root, plan, b, opts, now) {
       const label = labels[w.index] || (one ? one.title : `${ids.length} US en parallèle`);
       return { index: w.index, ids, parallel: ids.length > 1, label: clipStr(label, 80) };
     });
+    // Plafond de sous-agents en vol (--max-parallel, déjà borné par le plan) : le hook subagent-live
+    // n'alerte pas « concurrence restée à 1 » quand ce plafond vaut 1.
+    const mp = Number(o.maxParallel != null ? o.maxParallel : plan.parallelism && plan.parallelism.max);
+    if (Number.isFinite(mp) && mp >= 1) st.max_parallel = Math.floor(mp);
     st.finished = false;
     st.to_decide = (plan.blocked || []).map((x) => ({ id: x.id, title: clipStr(x.title, MAX_STR), reason: clipStr(x.reason, MAX_NOTE) }));
     refreshProgress(st);
