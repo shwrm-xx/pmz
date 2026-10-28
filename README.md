@@ -312,7 +312,7 @@ l'install, un message unique rappelle `/pmz:init` et `/pmz:statusline`.
 
 ## Slash commands (secours)
 
-`/init` · `/scope` · `/maquette` · `/epicmaster` · `/parallelize` · `/reintegrate` · `/budget` · `/check-context` ·
+`/init` · `/scope` · `/maquette` · `/epicmaster` · `/pickymaster` · `/parallelize` · `/reintegrate` · `/budget` · `/check-context` ·
 `/close-batch` · `/fresh-session` · `/archive` · `/dashboard` · `/rtk` · `/about` · `/help` ·
 `/statusline`
 
@@ -334,6 +334,16 @@ fixes), commite **par périmètre**, clôt chaque US avec verdict de verify pers
 un **handoff consolidé** portant la **dette** et ce qui reste **à trancher**. `/scope` se termine
 **systématiquement** par la préparation de cette session maître (handoff maître écrit, injecté à la
 session fraîche suivante) et ne démarre plus d'US lui-même.
+
+`/pickymaster` est la variante **sélective** : même moteur que `/epicmaster`, mais le plan est proposé
+avant lancement (cases précochées, décochables) au lieu d'être lancé en direct. **Maître sonnet** :
+le maître orchestre (il ne raisonne pas sur le code), il tourne donc en `sonnet` / effort `medium`
+quel que soit le modèle des US (plus de contagion opus). **Pipeline glissant** : pas de barrière de
+vague, dès qu'un rapport arrive le maître le traite et lance aussitôt la ou les US éligibles
+suivantes (dépendances closes, périmètre libre, parallélisme borné). **`close-wave`** :
+`backlog.js close-wave --stdin` clôt une vague en UN appel (commit borné aux chemins, `done`,
+fiche d'archive, CHANGELOG ; `--dry-run` pour prévisualiser ; verify rouge = pas de commit, US
+rouverte). Désinstallation : `uninstall.js` retire aussi `commands/pickymaster.md`.
 
 **Bande epicmaster** (US#136-#138) : pendant la session maître, une bande live affiche les
 sous-agents en vol / terminés (`EM ▶n ✔n ⚙n` dans la statusline ; `backlog.js epicmaster --live`

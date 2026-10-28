@@ -815,6 +815,21 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   vagues restant toujours visible. Coût par US non imputé au maître quand plusieurs US sont en
   vol (`costLotFor` : owners `master/lot-N` ≠ session) — trou de mesure visible, assumé, jamais une
   imputation au hasard.
+- **`/pickymaster`, maître sonnet, pipeline glissant, `close-wave`** (epic « Dette Epicmaster ») :
+  `commands/pickymaster.md` est la variante **sélective** de `/epicmaster` (même moteur
+  `backlog.js epicmaster`, plan proposé en UNE question à cases précochées décochables avant
+  lancement ; `/epicmaster` reste direct, sans question). `masterModel` renvoie `sonnet`
+  (`DEFAULT_MASTER_MODEL`, effort `medium`) quel que soit le modèle des lots : fin de la contagion
+  opus, le maître orchestre sans raisonner sur le code. **Pipeline glissant** : plus de barrière de
+  vague ; chaque rapport de sous-agent est traité à sa notification puis les US éligibles suivantes
+  (dépendances closes, périmètre libre, ≤ parallélisme) partent dans le même message. **`close-wave`**
+  (`backlog.js close-wave --stdin`, JSON `{items:[{id,paths,message,verdict,tokens,fiche,changelog}]}`,
+  `--dry-run`) clôt une vague en un appel : commit borné (`git commit -- <chemins>`, fichier partagé
+  = premier commit seul), `done`, fiche d'archive, CHANGELOG ; verify rouge = pas de commit, US
+  rouverte ; spec incomplète → `--allow-incomplete-spec`. Les commandes unitaires restent le repli
+  manuel (étape « Pour chaque US livrée », numérotée 4 à l'identique dans `epicmaster.md` et
+  `pickymaster.md`, l'ancienne « 3bis » disparaît). Retrait : `uninstall.js` supprime aussi
+  `commands/pickymaster.md`.
 - **Packaging de la bande epicmaster** (lot #138) : `install.js` copie `promptimizer/` en entier,
   donc `mods/epicmaster-band/` suit, via un filtre de copie qui exclut `<mod>/.claude-plugin/types/`
   (généré par le moteur de mods au chargement, jamais livré) ; `mods/` est purgé avant recopie
