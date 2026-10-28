@@ -69,7 +69,15 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    Un rapport est ≤ 250 mots aux sections fixes (Fait / Fichiers modifiés / Verify / Non vérifié / Dette / À trancher / Bloc
    CHANGELOG). **Ne relis jamais** le transcript ni la sortie brute d'un sous-agent, ni les
    fichiers qu'il a modifiés : le rapport est ta seule source.
-3. Pour chaque US livrée, **dans l'ordre du plan** (les commandes exactes sont données à la
+3. **Clôture groupée (`close-wave`)** : dès que les rapports d'une vague sont arrivés, clos-la en
+   UN appel (commit, `done`, fiche d'archive, CHANGELOG) au lieu des commandes ci-dessous :
+   `node ~/.claude/promptimizer/scripts/backlog.js close-wave --stdin` avec un JSON
+   `{"items":[{"id","paths":[…],"message","verdict","tokens","fiche","changelog":{"title","bullets":[…]}}]}`
+   (`--dry-run` pour prévisualiser). Le commit est borné aux chemins (`git commit -- <chemins>`) ;
+   un fichier partagé par plusieurs US n'ira que dans le premier commit ; si `done` refuse une spec
+   incomplète, relaie `--allow-incomplete-spec`. Verify rouge : pas de commit, l'US est rouverte.
+   Le détail ci-dessous reste la règle de fond (et le repli manuel) :
+3bis. Pour chaque US livrée, **dans l'ordre du plan** (les commandes exactes sont données à la
    fin du brief) :
    - **Verify verte** → commit **borné au périmètre** (`git add -- ':(glob)…'`, ou `git add -A`
      pour une US sans périmètre, seule en vol) + message français court, puis
@@ -93,7 +101,8 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    - Toute décision qui attend l'humain (« À trancher » du rapport d'un sous-agent) :
      `backlog.js note --id <id> --note "<décision en une ligne>" --decide` — la bande compte
      « N à trancher » en direct.
-4. Ajoute au `CHANGELOG.md` une entrée datée par US, reprise du « Bloc CHANGELOG » du rapport.
+4. Ajoute au `CHANGELOG.md` une entrée datée par US, reprise du « Bloc CHANGELOG » du rapport
+   (fait par `close-wave` quand il est utilisé).
 
 ## 3. Vigilance contexte (non négociable)
 
@@ -108,7 +117,7 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
 
 ## 4. Consolidation finale
 
-1. Fiche d'archive par US close : `node ~/.claude/promptimizer/scripts/archive.js write --id N
+1. Fiche d'archive par US close (déjà écrite par `close-wave` si `fiche` y figurait) : `node ~/.claude/promptimizer/scripts/archive.js write --id N
    --stdin` — les sections du rapport (Fait, Non vérifié, Dette, À trancher) se reportent telles
    quelles ; aucun diff ni contenu de fichier.
 2. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
