@@ -9633,6 +9633,9 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   const onlySonnet = em.planMaster(repoEm, b, { only: '2,3' });
   ok(onlySonnet.master.model === 'sonnet', 'EM-3 : sans lot opus embarqué -> sonnet');
   ok(em.planMaster(repoEm, b, { masterModel: 'haiku', masterEffort: 'low' }).master.model === 'haiku', 'EM-3 : --master-model respecté');
+  ok(em.masterModel([{ model_hint: 'fable' }, { model_hint: 'fable' }, { model_hint: 'sonnet' }]) === 'sonnet',
+    'EM-3 : Fable posé à la main ne vote pas pour le maître (jamais proposé)');
+  ok(em.masterModel([{ model_hint: 'fable' }]) === em.DEFAULT_MASTER_MODEL, 'EM-3 : que des lots Fable -> modèle maître par défaut');
 
   // EM-4. --skip : décoche ; un lot dépendant d'un lot décoché (ouvert, non embarqué) est BLOQUÉ.
   const skipped = em.planMaster(repoEm, b, { skip: '2' });
