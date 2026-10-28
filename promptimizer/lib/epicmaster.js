@@ -46,6 +46,7 @@ const MASTER_COST_PER_LOT = 4000;
 // cela, en plus de son travail propre (estimateCost quand une famille comparable existe).
 const SUBAGENT_BASE_TOKENS = 60000;
 const REPORT_MAX_WORDS = 250;         // plafond du rapport rendu par un sous-agent
+const MAX_TURNS_HINT = 40;            // plafond indicatif de tours d'un sous-agent (brief) avant rapport partiel
 const DEFAULT_MASTER_MODEL = 'sonnet';
 const DEFAULT_MASTER_EFFORT = 'medium';
 const NO_EPIC = '(sans epic)';
@@ -143,18 +144,13 @@ function chunkWaves(waves, max) {
   return out;
 }
 
-// Modèle du maître : il arbitre et consolide — `opus` dès qu'un lot embarqué le préconise,
-// sinon le modèle majoritaire des lots, sinon DEFAULT_MASTER_MODEL. Effort DEFAULT_MASTER_EFFORT :
-// le maître ne raisonne pas sur le code, il orchestre.
+// Modèle du maître : il arbitre et consolide, il ne raisonne pas sur le code → DEFAULT_MASTER_MODEL
+// (sonnet) quel que soit le modèle des lots (fin de la contagion opus : une US opus ne fait plus
+// passer tout le maître en opus). Seul un override explicite (--master-model) change ce choix.
+// Effort DEFAULT_MASTER_EFFORT. Le paramètre `lots` est conservé pour compatibilité d'appel.
 function masterModel(lots, override) {
   if (override && String(override).trim()) return String(override).trim().toLowerCase();
-  const hints = lots.map((l) => String(l.model_hint || '').toLowerCase()).filter(Boolean);
-  if (hints.some((h) => h.includes('opus'))) return 'opus';
-  const count = new Map();
-  for (const h of hints) count.set(h, (count.get(h) || 0) + 1);
-  let best = null;
-  for (const [h, n] of count) if (!best || n > best.n) best = { h, n };
-  return best ? best.h : DEFAULT_MASTER_MODEL;
+  return DEFAULT_MASTER_MODEL;
 }
 
 // 3. BUDGET DE CONTEXTE du maître. `root` sert à lire rules.yaml (borne de projet) ; null → fenêtre.
@@ -333,6 +329,8 @@ function renderBrief(l, b, pmzBase) {
   L.push('- Ne lance aucun script Promptimizer (backlog.js, close-batch.js…) : le suivi est tenu par le maître.');
   L.push('- Lecture minimale (git grep, lecture partielle) ; pas de scan large du dépôt.');
   L.push('- Exécute la verify avant de rendre la main ; si elle est rouge, dis-le, ne la contourne pas.');
+  L.push(`- Plafond : ~${MAX_TURNS_HINT} tours d'outils ou contexte à ~60 % de ta fenêtre. Au plafond, STOPPE et rends un rapport PARTIEL (Fait / Non vérifié / reste à faire) plutôt que de dériver : le maître relancera ou re-découpera.`);
+  L.push('- Boucles visuelles (render → look → retouche) : itère en sonnet ; ne rends le jugement final (conformité, qualité) qu\'en opus, une seule fois, hors boucle.');
   L.push(`- Rapport final ≤ ${REPORT_MAX_WORDS} mots, EXACTEMENT ces sections, rien d'autre :`);
   L.push('  Fait / Fichiers modifiés / Verify (verdict ok|failed|none + 5 dernières lignes si rouge) / Non vérifié / Dette / À trancher / Bloc CHANGELOG (3 à 6 puces).');
   L.push('- Interdits dans le rapport : diff, contenu de fichier, listing de code, sortie complète de tests.');
