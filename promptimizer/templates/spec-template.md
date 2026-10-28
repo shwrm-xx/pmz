@@ -14,9 +14,18 @@ En tant que <persona>,
 je veux <besoin>,
 afin de <bénéfice>.
 
+## Cadrage d'exécution
+
+Ce qu'un exécutant **sonnet** doit savoir pour livrer sans concevoir (un trou = conception à trancher avant).
+
+- Fichiers visés : <chemins ou globs à créer/modifier — le périmètre>
+- Contrat : <interfaces, signatures, formats, options, écrans listés — figés, non rediscutés>
+- Dépend de : <US qui fige le contrat consommé, ou « aucune »>
+- Modèle · effort : sonnet · medium <sinon : justification d'une ligne — qu'est-ce qui empêche sonnet ?>
+
 ## Critères d'acceptation
 
-Un critère est **vérifiable** (état observable, sortie de commande) ou ce n'est pas un critère.
+Un critère est **testable** (état observable, sortie de commande) ou ce n'est pas un critère.
 Forme : étant donné <état>, quand <action>, alors <résultat observable>.
 
 1. ...

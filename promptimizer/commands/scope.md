@@ -8,13 +8,53 @@ Découpe la demande courante en un plan d'US persistant.
 Rappel de découpe : **1 US = 1 session sous ~300k tokens, 1 commit, un critère « fait
 quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une US.
 
+**Découper pour sonnet.** Le but du découpage est qu'un exécutant **sonnet** livre chaque US
+sans avoir à concevoir : la réflexion se fait **ici** (ou dans une US de conception courte),
+pas dans chaque sous-agent. Une US d'exécution porte donc **obligatoirement** un cadrage :
+- **fichiers visés** — les chemins (ou globs) à créer/modifier, = son périmètre ;
+- **contrat** — ce qui est figé avant d'exécuter : interfaces, signatures, formats de données,
+  noms de commandes/options, écrans listés ; l'exécutant le respecte, il ne le rediscute pas ;
+- **critères testables** — « étant donné / quand / alors » observables, et la commande `--verify`
+  qui les rejoue.
+Ce cadrage vit dans la spec de l'US (gabarit `templates/spec-template.md`, section « Cadrage
+d'exécution »). Une US qu'on ne sait pas cadrer ainsi n'est **pas** une raison de passer en opus :
+c'est une conception à extraire (ci-dessous).
+
+**Conception séparée de l'exécution.** Quand un choix d'architecture, de format ou d'interface
+reste ouvert, le trancher **dans cette session** (spec rédigée à l'étape 1) ; s'il demande une
+vraie exploration, en faire une **US de conception** courte — `opus`, livrable = le contrat écrit
+(spec, interface, schéma), **pas de code de production** — dont les US d'exécution (`sonnet`)
+dépendent. Jamais une US qui mélange « décider » et « tout coder » en opus·high.
+
+**Grille modèle · effort** (sonnet par défaut) :
+
+| Modèle | Quand | Effort par défaut |
+|---|---|---|
+| `haiku` | mécanique sans décision : renommage, bump, doc recopiée, relevé/lecture, mise en forme | `low` |
+| `sonnet` | **défaut** : toute US d'exécution cadrée (fichiers + contrat + critères), y compris le code non trivial, les tests, l'itération visuelle | `medium` |
+| `opus` | conception courte (contrat, archi, arbitrage), juge/revue indépendante, raisonnement que le cadrage ne peut pas lever | `medium` |
+
+`high`/`xhigh` et **`opus`** ne se prescrivent que sur **justification écrite** d'une ligne
+(« qu'est-ce qui empêche sonnet / medium ? »), présentée à la validation ; sans elle, retomber
+sur `sonnet · medium`. **`opus · high` est l'exception**, jamais le réflexe de prudence.
+
+**Taille minimale — fusion des micro-US.** Chaque sous-agent repaie un socle de contexte
+(~60k tokens : prompt système, outils, skills) avant la première ligne utile. Une US dont le
+travail tient en quelques lignes ou un seul petit fichier (micro-US : bump, renommage, une
+consigne de doc, un test isolé) se **fusionne** avec une US voisine de même périmètre ou de
+même epic plutôt que d'exister seule. Borne haute ~300k, borne basse : une US doit valoir
+plus que son socle.
+
 Étapes :
 1. Reformuler la demande en **2 à 5 US** : un titre court + un critère « fait quand : … »
    par US. Une US = une **unité livrable** (1 commit cohérent), pas une étape d'exécution
    (les étapes fines restent dans la todo-list, capturée automatiquement).
-   Pour **chaque** US, préconiser un **modèle** (ex. `sonnet` pour du mécanique/CRUD,
-   `opus` pour du raisonnement lourd/archi) **et un effort de raisonnement**
-   (`low` | `medium` | `high` | `xhigh`) — les deux sont obligatoires, jamais omis.
+   Pour **chaque** US, préconiser un **modèle** **et un effort de raisonnement**
+   (`low` | `medium` | `high` | `xhigh`) selon la **grille ci-dessus** (`sonnet · medium` par
+   défaut, `opus` ou `high`/`xhigh` avec leur justification d'une ligne) — les deux sont
+   obligatoires, jamais omis. Pour chaque US d'exécution, poser son **cadrage** (fichiers visés,
+   contrat, critères testables) ; repérer les **micro-US** à fusionner et les **conceptions** à
+   extraire avant de compter les 2 à 5 US.
    Si ce découpage porte une **feature/epic** identifiable, proposer aussi un **nom de plan
    court (≤ 3 mots, cap 60 caractères)** — c'est lui qui nomme le plan dans le titre de
    session (`[XXX · US#Y] NomDePlan · résumé` — `#Y` = id backlog global, seul numéro
@@ -27,14 +67,19 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    garde-fou anti-invention demeure : ne **jamais** deviner un périmètre incertain — au
    doute, « série » assumé et annoncé (l'US reste périmètre-vide, séquentiel classique).
    Si un ordre s'impose entre US, poser un `depends_on` (id des US qui doivent être
-   clos avant).
+   clos avant). **Dépendre du contrat, pas du livrable** : une US dépend de l'US qui **fige le
+   contrat** qu'elle consomme (US de conception, interface publiée), pas de toute US qui produit
+   un livrable voisin. Si le contrat est déjà figé dans la spec à l'étape 1, aucune dépendance
+   n'est due — les US partent en parallèle sur leurs périmètres disjoints.
    **Statuer enfin « écrans : oui/non »** pour **chaque** US (une US produit des écrans si elle
    crée ou modifie une page, un formulaire, une modale, un composant visible…). Si au moins une
    US produit des écrans : préparer la **liste des écrans à maquetter** (un slug + un titre par
    écran, proposition d'abord comme `/maquette`) et l'US dédiée « Maquettes — <epic> » (modèle
    et effort préconisés, « fait quand : maquettes produites et liées aux specs des US à écrans »,
-   déroulant `/maquette`), qui compte alors dans les 2 à 5 US. Aucune US à écrans : rien à
-   proposer, ne pas en parler.
+   déroulant `/maquette`), qui compte alors dans les 2 à 5 US. Le **contrat d'écran** (écrans
+   listés, états, données affichées, interface du composant) est figé dans la spec de chaque US
+   à écrans dès cette étape : c'est lui que l'exécution consomme, pas le rendu des maquettes.
+   Aucune US à écrans : rien à proposer, ne pas en parler.
    **Statuer aussi sur la spec** pour **chaque** US : soit un chemin de fichier de spec existant,
    soit « pas de spec » assumé, soit une spec **à créer** — dans ce dernier cas, **rédiger tout de
    suite** son contenu (gabarit `templates/spec-template.md` : récit persona/besoin/bénéfice,
@@ -44,7 +89,9 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    fichier existant, ni inventer un critère hors de ce que la demande couvre.
 2. Faire valider le découpage, les modèles préconisés, l'epic éventuel, le périmètre/les
    dépendances proposés, **le statut spec de chaque US et le contenu rédigé des specs à créer**
-   par l'utilisateur en **UNE** question (pas dix). Si des US produisent des écrans, **cette même
+   par l'utilisateur en **UNE** question (pas dix). Chaque `opus` et chaque `high`/`xhigh` y
+   figure **avec sa justification** (« qu'est-ce qui empêche sonnet ? »), pour être contesté avant
+   d'être persisté ; les fusions de micro-US et les US de conception extraites y sont signalées. Si des US produisent des écrans, **cette même
    question** présente la liste des écrans à maquetter et demande « on maquette ? » (oui / non).
 3. Si un epic a été validé, l'enregistrer — **toujours**, même s'il était déjà posé par un
    découpage précédent : `node ~/.claude/promptimizer/scripts/backlog.js epic --set "Nom de l'epic"`
@@ -61,8 +108,10 @@ quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une U
    preuve » — à réserver aux US réellement non vérifiables par commande (doc, choix visuel).
    Elle est éditable après coup : `backlog.js verify --set "…" --id <id>`.
    **Maquettes** : sur **oui**, persister d'abord l'US « Maquettes — <epic> » **en vague 1**
-   (sans `--depends`, périmètre `docs/us/**`), puis poser `--depends <id Maquettes>` sur
-   **chaque** US à écrans (en plus de leurs autres dépendances) ; les écrans validés à l'étape 2
+   (sans `--depends`, périmètre `docs/us/**`). Les US à écrans dépendent du **contrat d'écran**
+   figé dans leur spec, pas du rendu : ne poser `--depends <id Maquettes>` que sur une US dont
+   le contrat **ne peut pas** être figé sans voir les maquettes (choix visuel ouvert, à dire en
+   une ligne) ; les autres partent en parallèle des maquettes et s'y alignent à la livraison ; les écrans validés à l'étape 2
    figurent dans le « fait quand » ou la spec de l'US Maquettes. Sur **non** : n'ajouter aucune
    US ni dépendance, et **noter le choix** (« maquettes écartées ») dans le handoff écrit à
    l'étape 5.
