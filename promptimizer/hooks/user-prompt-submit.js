@@ -81,7 +81,7 @@ function main() {
   // Injecté au 1er prompt, puis seulement quand le titre change (lot démarré, scope posé) — jamais à
   // chaque tour. Nomenclature non posée : question une seule fois par session. Session maître
   // (/epicmaster) : elle se titre elle-même, on se tait.
-  const isMasterPrompt = /^\s*\/(pmz:)?epicmaster\b/.test(prompt);
+  const isMasterPrompt = /^\s*\/(pmz:)?(epicmaster|pickymaster)\b/.test(prompt);
   if (isMasterPrompt) st.master_session = true; // seule exclue : la session maître se titre elle-même
   if (initialized && !st.master_session) {
     const nomenclature = !lotLib.nomenclatureSet(root);
