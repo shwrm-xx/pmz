@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-28 — US#156 Clôture groupée close-wave
+
+- Nouveau `backlog.js close-wave` : commit, `done`, fiche d’archive et CHANGELOG d’une vague en un appel.
+- Commit borné aux chemins ; un fichier partagé n’est commité qu’une fois, avec avertissement.
+- Verify rouge : pas de commit, l’US est rouverte et marquée « à trancher ».
+- `--allow-incomplete-spec` relayé ; `--dry-run` disponible.
+- `/epicmaster` et `/pickymaster` l’utilisent (étapes 3 et 4) ; tests dans `test/run-tests-close-wave.js`.
+
 ## 2026-10-28 — US#155 Parallélisme réel
 
 - `/epicmaster` et `/pickymaster` : lancement groupé de la vague, tous les `Agent` dans un seul message avec `run_in_background`.
