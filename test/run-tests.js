@@ -10576,6 +10576,12 @@ section('US#154 — découpage orienté sonnet (test/run-tests-scope-sonnet.js)'
   ok(rs.status === 0, 'scope-sonnet : ' + ((rs.stdout || '') + (rs.stderr || '')).trim().split('\n').slice(-3).join(' | '));
 }
 
+section('US#155 — parallélisme réel (test/run-tests-parallelisme.js)');
+{
+  const rpl = spawnSync(process.execPath, [path.join(__dirname, 'run-tests-parallelisme.js')], { encoding: 'utf8' });
+  ok(rpl.status === 0, 'parallélisme : ' + ((rpl.stdout || '') + (rpl.stderr || '')).trim().split('\n').slice(-3).join(' | '));
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);

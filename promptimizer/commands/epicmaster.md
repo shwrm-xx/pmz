@@ -49,16 +49,24 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    `effort` = effort préconisé (les deux sont dans le brief ; ne les remplace jamais par les
    tiens). Démarre l'US : `backlog.js start --id <id> --owner "master/lot-<id>"` (un owner
    **distinct par US**, sinon le second démarrage rétrograde le premier en « à faire »).
-   Une vague à plusieurs US = sous-agents lancés **en parallèle** (arrière-plan) ; une vague
-   « série » = un seul sous-agent, attendu avant la suivante.
+   **Lancement groupé (non négociable)** : prépare d'abord, pour **toutes** les US de la vague
+   (dans la limite du parallélisme affiché), le brief et le `start` ; puis lance **tous** les
+   `Agent` dans **UN SEUL message** (plusieurs appels d'outil côte à côte), chacun avec
+   `run_in_background: true`. Jamais un `Agent` par message, jamais au premier plan : c'est ce qui
+   rend le parallélisme réel. Le hook `subagent-live` alerte si la concurrence reste à 1 sur une
+   vague ≥ 2 US. Une vague « série » = un seul sous-agent.
    **Maquettes** : dans le prompt du sous-agent de l'US « Maquettes », ajoute : « produis les
    maquettes (`/maquette`) et lie-les aux specs (`maquette.js link`), mais **ne les valide pas**
    (`maquette.js validate` interdit) : liste-les dans « À trancher » sous l'intitulé **maquettes
    à valider** (slug + chemin). » Dans le prompt de chaque US à écrans (spec avec section
    « Maquettes »), ajoute : « lis les maquettes liées à ta spec et suis-les ; signale tout écart
    (maquette ↔ implémentation) dans « À trancher », sans trancher toi-même. »
-2. Attends le rapport de **tous** les sous-agents de la vague. Un rapport est ≤ 250 mots aux
-   sections fixes (Fait / Fichiers modifiés / Verify / Non vérifié / Dette / À trancher / Bloc
+2. **Pipeline glissant** : ne fais pas de barrière de vague. Chaque sous-agent en arrière-plan
+   te notifie à sa fin ; dès qu'un rapport arrive, traite-le (étape 3) puis, **sans attendre les
+   autres**, lance dans le même message (groupé s'il y en a plusieurs) la ou les US **éligibles**
+   suivantes (dépendances closes, périmètre libre, jamais plus d'US en vol que le parallélisme
+   affiché) : une place libérée part aussitôt. Ne sonde pas, n'attends que les notifications.
+   Un rapport est ≤ 250 mots aux sections fixes (Fait / Fichiers modifiés / Verify / Non vérifié / Dette / À trancher / Bloc
    CHANGELOG). **Ne relis jamais** le transcript ni la sortie brute d'un sous-agent, ni les
    fichiers qu'il a modifiés : le rapport est ta seule source.
 3. Pour chaque US livrée, **dans l'ordre du plan** (les commandes exactes sont données à la
