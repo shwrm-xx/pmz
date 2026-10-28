@@ -109,7 +109,7 @@ const CLOSED_VERIFY_VALUES = ['ok', 'failed', 'timeout', 'none'];
 const VALUE_FLAGS = ['cwd', 'id', 'epic', 'set', 'model', 'effort', 'title', 'scope',
   'verify', 'spec', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
   'gate', 'final-gate', 'branch', 'state', 'verify-verdict', 'tokens',
-  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels'];
+  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why'];
 // Flags booléens (ne consomment aucune valeur) — listés pour documentation ;
 // tout flag hors VALUE_FLAGS est traité comme booléen (ne consomme rien).
 const BOOL_FLAGS = ['json', 'suggest', 'execute', 'allow-trunc', 'no-session', 'no-occupancy', 'allow-no-gate', 'new',
@@ -296,6 +296,19 @@ function saveBacklog(root, b) {
 
 // Tag d'affichage combiné réutilisé partout (CLI + summaryLines) : « [modèle : X · effort Y] »,
 // ou « [modèle : X] » seul si aucun effort posé. Vide si pas de model_hint (lot legacy).
+// Arbitrage coûteux (lot #159) : opus ou effort high/xhigh sans justification écrite (--why).
+// Avertissement seul (fail-open) — jamais un refus. Renvoie la ligne d'avertissement, ou ''.
+function costlyChoiceWarning(model, effort, why) {
+  try {
+    if (why && String(why).trim()) return '';
+    const costly = [];
+    if (/opus/i.test(String(model || ''))) costly.push('opus');
+    if (effort === 'high' || effort === 'xhigh') costly.push(`effort ${effort}`);
+    if (!costly.length) return '';
+    return `\n⚠️ Choix coûteux (${costly.join(' + ')}) sans justification : ajoute --why "qu'est-ce qui empêche sonnet · medium ?" (avertissement seul, rien n'est refusé).`;
+  } catch (_) { return ''; }
+}
+
 function modelEffortTag(l) {
   if (!l || !l.model_hint) return '';
   return ` [modèle : ${l.model_hint}${l.effort_hint ? ` · effort ${l.effort_hint}` : ''}]`;
@@ -1143,7 +1156,7 @@ module.exports = {
   startLot, doneLot, dropLot, noteLot, reopenLot,
   touchLot, addCost, currentLot, costLotFor, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, progress, summaryLines, reconcile,
   epicBilan, estimateCost, canCoexist, pairwiseCoexist, planWaves, waveBranch,
-  todoSnapshotFile, writeTodoSnapshot, readTodoSnapshot, modelEffortTag,
+  todoSnapshotFile, writeTodoSnapshot, readTodoSnapshot, modelEffortTag, costlyChoiceWarning,
   exportCsv, exportMarkdown, orphanArgs, overflowFields, isTruncated, VALUE_FLAGS, BOOL_FLAGS,
   MAX_LOTS_OPEN, MAX_TITLE, MAX_SCOPE, MAX_MODEL_HINT, MAX_EPIC, MAX_VERIFY, MAX_SPEC, MAX_OWNER, MAX_DEPENDS, MAX_NOTE, MAX_REOPEN, MAX_TODOS, EFFORT_LEVELS,
   COST_BUDGET_TOKENS, COST_WARN_TOKENS, CLOSED_VERIFY_VALUES,

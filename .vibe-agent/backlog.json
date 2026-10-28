@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 160,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-28T13:37:52.053Z",
+  "updated_at": "2026-10-28T13:38:22.385Z",
   "lots": [
     {
       "id": 1,
@@ -4555,6 +4555,38 @@
       "id": 158,
       "title": "Robustesse CLI epicmaster",
       "scope": "fait quand : --wave-labels \"…\" (valeur après espace) est accepté ; --max-parallel est stocké dans l'état live et subagent-live n'alerte plus si le plafond vaut 1 ; close-wave a des tests pour done refusé (spec incomplète) et verdict timeout",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Dette Epicmaster",
+      "verify": "node test/run-tests.js",
+      "spec": null,
+      "closed_commit": "fa65ae8",
+      "closed_at": "2026-10-28T13:38:12.490Z",
+      "closed_session_id": "a3adf0b5-1812-4195-b75f-dd312f118daa",
+      "closed_occupancy": 124099,
+      "closed_verify": "ok",
+      "cost_tokens": 21590,
+      "cost_turns": 1,
+      "cost_subagent_tokens": 20345,
+      "closed_avg_cost_per_turn": 21590,
+      "started_at": "2026-10-28T13:32:56.772Z",
+      "lot_number": 637,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/lib/backlog.js",
+        "promptimizer/lib/epicmaster-live.js",
+        "promptimizer/hooks/subagent-live.js",
+        "test/**"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-158"
+    },
+    {
+      "id": 159,
+      "title": "Arbitrages epicmaster",
+      "scope": "fait quand : backlog.js add avertit (sans refuser, fail-open) quand opus ou effort high/xhigh est posé sans --why \"…\" ; un test dédié vérifie que renderBrief porte le plafond de tours/contexte et la règle « itérer en sonnet, juger en opus » ; commit de suivi close-wave conservé tel quel (CHANGELOG + backlog + archive, décision humaine)",
       "status": "in_progress",
       "model_hint": "sonnet",
       "effort_hint": "medium",
@@ -4566,51 +4598,11 @@
       "closed_session_id": null,
       "closed_occupancy": null,
       "closed_verify": null,
-      "cost_tokens": 21590,
+      "cost_tokens": 3301,
       "cost_turns": 1,
-      "cost_subagent_tokens": 20345,
+      "cost_subagent_tokens": 1162,
       "closed_avg_cost_per_turn": null,
-      "started_at": "2026-10-28T13:32:56.772Z",
-      "lot_number": null,
-      "note": null,
-      "session_touches": 0,
-      "perimeter": [
-        "promptimizer/lib/backlog.js",
-        "promptimizer/lib/epicmaster-live.js",
-        "promptimizer/hooks/subagent-live.js",
-        "test/**"
-      ],
-      "depends_on": [],
-      "session_owner": "master/lot-158",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
-    },
-    {
-      "id": 159,
-      "title": "Arbitrages epicmaster",
-      "scope": "fait quand : backlog.js add avertit (sans refuser, fail-open) quand opus ou effort high/xhigh est posé sans --why \"…\" ; un test dédié vérifie que renderBrief porte le plafond de tours/contexte et la règle « itérer en sonnet, juger en opus » ; commit de suivi close-wave conservé tel quel (CHANGELOG + backlog + archive, décision humaine)",
-      "status": "todo",
-      "model_hint": "sonnet",
-      "effort_hint": "medium",
-      "epic": "Dette Epicmaster",
-      "verify": "node test/run-tests.js",
-      "spec": null,
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
-      "cost_tokens": 0,
-      "cost_turns": 0,
-      "cost_subagent_tokens": 0,
-      "closed_avg_cost_per_turn": null,
-      "started_at": null,
+      "started_at": "2026-10-28T13:38:12.598Z",
       "lot_number": null,
       "note": null,
       "session_touches": 0,
@@ -4622,7 +4614,15 @@
       "depends_on": [
         158
       ],
-      "session_owner": null
+      "session_owner": "master/lot-159",
+      "integrations": {
+        "command_optimizer": {
+          "snapshot_start": {
+            "commands": 0,
+            "delivered_tokens": 0
+          }
+        }
+      }
     }
   ]
 }
