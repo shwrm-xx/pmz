@@ -2,6 +2,29 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-28 — US#154 Découpage orienté sonnet
+
+- `/scope` : découpage orienté sonnet, avec cadrage obligatoire (fichiers visés, contrat, critères testables) pour chaque US d’exécution.
+- Conception séparée de l’exécution : US de conception courte en opus qui livre le contrat, exécution en sonnet.
+- Grille haiku/sonnet/opus, sonnet·medium par défaut ; opus et `high`/`xhigh` seulement avec une justification écrite.
+- Fusion des micro-US : une US doit valoir plus que son socle de contexte.
+- Dépendances au contrat plutôt qu’au livrable ; les US à écrans ne dépendent plus d’office de l’US Maquettes.
+- Gabarit de spec : nouvelle section « Cadrage d’exécution » ; tests dans `test/run-tests-scope-sonnet.js`.
+
+## 2026-10-28 — US#153 Maître et briefs sobres
+
+- Maître en sonnet par défaut : fin de la contagion opus de `masterModel` (override `--master-model` conservé).
+- Brief de sous-agent : plafond d’environ 40 tours ou 60 % du contexte, avec rapport partiel au plafond.
+- Brief : règle « itérer en sonnet, juger en opus » pour les boucles visuelles.
+- Tests EM-3, CLI et handoff alignés sur sonnet.
+
+## 2026-10-28 — US#152 /epicmaster direct et /pickymaster
+
+- `/epicmaster` embarque toutes les US ouvertes sans question (renommage de session et bande semée d’office).
+- Nouvelle commande `/pickymaster` : la sélection précochée et décochable, comme l’ancien `/epicmaster`.
+- Câblée dans build-plugin (`REQUIRED_COMMANDS`), l’annonce d’install, `/help` et la reconnaissance maître de `user-prompt-submit`.
+- Nouveau test `test/run-tests-pickymaster.js`, appelé depuis `run-tests.js`.
+
 ## 2026-10-18 — Release v2.10.2
 
 - Dépôt unique `shwrm-xx/pmz` : catalogue `marketplace.json`, `plugin.json`, README et ARCHITECTURE ne pointent plus vers `promptimiser` (qui restait sur l'ancienne version).
