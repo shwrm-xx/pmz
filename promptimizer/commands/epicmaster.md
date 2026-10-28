@@ -3,7 +3,7 @@ description: Session maître — lance toutes les US ouvertes du backlog en sous
 allowed-tools: Bash(node *), Bash(git *), Agent, Write
 ---
 
-Tu es la **session maître** : tu ne codes pas, tu **lances** les US ouvertes du backlog en
+Tu es la **session maître** (`/epicmaster` = **direct**, sans question ; `/pickymaster` pour choisir les US) : tu ne codes pas, tu **lances** les US ouvertes du backlog en
 **sous-agents** (outil Agent), chacune avec le **modèle et l'effort préconisés par l'US**, puis
 tu **consolides** — commit et clôture par US, CHANGELOG, et UN handoff final qui porte la
 dette et ce qui reste à trancher. Les US peuvent appartenir à une seule epic ou à plusieurs.
@@ -12,60 +12,31 @@ dette et ce qui reste à trancher. Les US peuvent appartenir à une seule epic o
 > en vol / terminés / outils) s'affiche au-dessus de la saisie, chargée automatiquement (plugin `pmz` :
 > embarquée ; install manuelle : `env.CLAUDE_CODE_PLUGIN_DIRS`) ; à défaut `backlog.js epicmaster --live`.
 
-## 1. Plan et confirmation (UNE question, cases précochées)
+## 1. Plan et lancement (AUCUNE question)
+
+`/epicmaster` embarque **toutes les US ouvertes** : **n'ouvre aucune question** (ni AskUserQuestion,
+ni « Je lance ? »). Pour choisir les US à embarquer, l'utilisateur utilise `/pickymaster`.
 
 `node ~/.claude/promptimizer/scripts/backlog.js epicmaster` (ajouter `--epic "…"` pour se limiter
-à une epic ; `--max-parallel N` pour abaisser le plafond de sous-agents en vol).
+à une epic ; `--skip 12,15` si l'utilisateur l'a demandé dans son message ; `--max-parallel N`
+pour abaisser le plafond de sous-agents en vol).
 
-Restitue la sortie **telle quelle** (elle est déjà mise en forme : une ligne alignée par US
-`[x] #id  titre  modèle · effort  ← vague`, détail indenté, ordre de lancement, budget et
-**modèle préconisé pour toi**). Puis demande la confirmation en **UNE** fois, avec des **cases à
-cocher précochées** — jamais une liste à retaper :
+Restitue la sortie **telle quelle** (une ligne par US, ordre de lancement, budget, **modèle
+préconisé pour toi**), puis enchaîne **immédiatement**. N'embarque **jamais** une US absente de
+la sortie du script. Une US **bloquée** (dépendance hors plan) reste ouverte : signale-la en une ligne.
 
-- **Affichage du plan** : dans l'app desktop (outil `show_pane`), même geste qu'en mode plan —
-  écris le plan en Markdown dans le scratchpad (`epicmaster-plan.md`) et ouvre-le dans le
-  panneau latéral (pane `file`) ; la conversation ne garde que les boutons. Contenu : pour
-  chaque epic son **nom** et une **description courte** (une phrase déduite des titres et « fait
-  quand » des US, jamais inventée au-delà). En tête, un **tableau d'ordre de lancement**
-  (`| Vague | US | Titre | Modèle · effort | Après |`) ; puis **un bloc par vague** et, par US,
-  un titre `#### #id — titre`, une ligne `` `modèle · effort` · ~Nk tokens · ⏳ à lancer · après
-  #id ``, le **« fait quand »** (champ `scope` du backlog) et des puces courtes verify /
-  périmètre / spec. **Jamais de syntaxe de tâche `- [x]`** : le panneau la rend cochée-barrée et
-  les US paraissent déjà faites. Le plan est **en lecture seule** : on n'y coche rien, il le dit
-  en pied (« Pour écarter une US : bouton « Écarter certaines US » ou réponds « sans #id » »),
-  avec modèle maître, parallélisme, capacité. Sans panneau
-  (session hors fenêtre, autre hôte) : le même plan en Markdown dans la conversation, ou en
-  widget HTML (`show_widget`) **en lecture seule** — un widget n'est **jamais** le moyen de
-  répondre : un bouton `sendPrompt` peut rester sans effet selon l'hôte (constaté : clic sur
-  « Lancer la sélection » sans aucun envoi), et l'utilisateur croirait avoir lancé.
-- **Réponse, toujours par les boutons natifs** (AskUserQuestion) : « Lancer toutes les US
-  (Recommandé) » / « Écarter certaines US » / « Annuler ». Sur « Écarter » : une seconde
-  question à **choix multiples** (vraies cases, une option par US `#id titre — modèle · effort`),
-  les US cochées sont écartées (au-delà de 4 US, plafond de l'outil : une option par vague,
-  ou la réponse libre « Other » « sans #12, #15 »). Sans AskUserQuestion : texte « Je lance ces US telles quelles ?
-  Pour en décocher : « sans #12, #15 ». » Une question **fermée sans réponse** = rien n'est
-  lancé, les US restent « à faire » ; ne jamais interpréter un silence comme un oui.
+**Maquettes** : si le plan contient une US « Maquettes » (vague 1), **signale-le en une ligne** :
+ses maquettes devront être validées par l'humain avant/pendant les US à écrans, qui en dépendent.
 
-**Maquettes** : si le plan contient une US « Maquettes » (vague 1), **signale-le en une ligne**
-dans la restitution : ses maquettes devront être validées par l'humain avant/pendant les US à
-écrans, qui en dépendent.
-
-Si des US sont décochées : relance avec `--skip 12,15`, réaffiche, et ne redemande que si une
-US est devenue **bloquée** (dépendance sur une US décochée). N'embarque **jamais** une US absente de
-la sortie du script.
-
-Plan confirmé — **première action, sans attendre qu'on te le demande** : **renomme ta propre
-session** (une session maître se nomme elle-même). `backlog.js epicmaster --session-title` (mêmes
-`--epic`/`--skip`) donne « [XXX · EP#a–#b] <nom de l'epic> » ; appelle l'outil `set_session_title`
-avec `session_id: "self"` et ce titre, **avant** le `--live-seed` et la vague 1. Sans cet outil
-(autre hôte) : ignore l'étape, sans le signaler.
+**Première action, sans attendre qu'on te le demande** : **renomme ta propre session**.
+`backlog.js epicmaster --session-title` (mêmes `--epic`/`--skip`) donne « [XXX · EP#a–#b] <nom de
+l'epic> » ; appelle l'outil `set_session_title` avec `session_id: "self"` et ce titre, **avant**
+le `--live-seed` et la vague 1. Sans cet outil (autre hôte) : ignore l'étape, sans le signaler.
 
 Puis **sème le plan complet dans la bande** (rien n'est démarré, backlog intact) —
-`backlog.js epicmaster --live-seed` avec les **mêmes** `--epic`/`--skip`/`--max-parallel` que le
-plan validé, plus `--wave-labels "1=…;2=…"` : un **libellé court par vague** (2 à 4 mots, déduit
-des titres de ses US, jamais inventé au-delà — ex. « Socle registre », « Providers TheFork »).
-La bande affiche aussitôt epic et vagues (« Vague 2 (#10, #11) · libellé ») ; son bouton **Plan**
-ouvre le plan complet (vagues, US, modèle · effort, « fait quand ») dans un panneau.
+`backlog.js epicmaster --live-seed` avec les **mêmes** `--epic`/`--skip`/`--max-parallel`, plus
+`--wave-labels "1=…;2=…"` : un **libellé court par vague** (2 à 4 mots, déduit des titres de ses
+US, jamais inventé au-delà). Son bouton **Plan** ouvre le plan complet dans un panneau.
 
 Si le script préconise un autre modèle que le tien pour la session maître, dis-le en une
 ligne (`/model …`) avant de lancer — tu orchestres, tu n'as pas besoin de raisonner lourd.

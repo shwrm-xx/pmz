@@ -85,7 +85,7 @@ const INSTALL_SHIPPED = ['doctor.js', 'lib-io.js', 'merge-settings.js'];
 const REQUIRED_COMMANDS = [
   'budget.md', 'check-context.md', 'close-batch.md', 'fresh-session.md',
   'about.md', 'init.md', 'scope.md', 'help.md', 'parallelize.md', 'reintegrate.md',
-  'rtk.md', 'archive.md', 'epicmaster.md', 'doctor.md', 'statusline.md', 'maquette.md',
+  'rtk.md', 'archive.md', 'epicmaster.md', 'doctor.md', 'statusline.md', 'maquette.md', 'pickymaster.md',
 ];
 
 function log(s) { process.stdout.write(s + '\n'); }

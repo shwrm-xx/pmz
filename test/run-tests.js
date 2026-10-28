@@ -9628,10 +9628,10 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   ok(plan.parallelism.opportunity === true && plan.parallelism.max >= 2, 'EM-2 : opportunité de parallélisation détectée');
   ok(plan.blocked.length === 0, 'EM-2 : aucun lot bloqué');
 
-  // EM-3. Modèle maître : opus dès qu'un lot le préconise ; effort medium par défaut ; override.
-  ok(plan.master.model === 'opus' && plan.master.effort === 'medium', 'EM-3 : maître = opus · medium (un lot opus embarqué)');
+  // EM-3. Modèle maître : sonnet par défaut (plus de contagion opus) ; effort medium par défaut ; override.
+  ok(plan.master.model === 'sonnet' && plan.master.effort === 'medium', 'EM-3 : maître = sonnet · medium même avec un lot opus embarqué (US#153)');
   const onlySonnet = em.planMaster(repoEm, b, { only: '2,3' });
-  ok(onlySonnet.master.model === 'sonnet', 'EM-3 : sans lot opus embarqué -> modèle majoritaire (sonnet)');
+  ok(onlySonnet.master.model === 'sonnet', 'EM-3 : sans lot opus embarqué -> sonnet');
   ok(em.planMaster(repoEm, b, { masterModel: 'haiku', masterEffort: 'low' }).master.model === 'haiku', 'EM-3 : --master-model respecté');
 
   // EM-4. --skip : décoche ; un lot dépendant d'un lot décoché (ouvert, non embarqué) est BLOQUÉ.
@@ -9678,7 +9678,7 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   ok(/### Epic « Auth »/.test(rh.out) && /### Epic « UI »/.test(rh.out) && rh.out.indexOf('Epic « ' + em.NO_EPIC) !== -1, 'CLI epicmaster : classés par epic');
   ok(/Vague 1 — 2 en parallèle : #1 \[opus · high\], #2 \[sonnet · medium\]/.test(rh.out), 'CLI epicmaster : vague 1 avec modèle·effort par lot');
   ok(/sans périmètre → série/.test(rh.out) && /série \(seul en vol\) : #4/.test(rh.out), 'CLI epicmaster : lot sans périmètre seul en vol');
-  ok(/modèle préconisé : opus · effort medium/.test(rh.out) && /US par session maître/.test(rh.out), 'CLI epicmaster : modèle maître + budget affichés');
+  ok(/modèle préconisé : sonnet · effort medium/.test(rh.out) && /US par session maître/.test(rh.out), 'CLI epicmaster : modèle maître + budget affichés');
   ok(/rien n'est lancé/.test(rh.out) && /aucune US démarrée, aucun sous-agent lancé/.test(rh.out), 'CLI epicmaster : garde-fou « rien lancé »');
   b = backlogLib.loadBacklog(repoEm);
   ok(b.lots.filter((l) => l.id !== 6).every((l) => l.status === 'todo' && l.session_owner === null), 'CLI epicmaster : n\'a rien démarré');
@@ -9696,7 +9696,7 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   const hoText = fs.readFileSync(hfEm, 'utf8');
   const handoffLib = require(path.join(PKG, 'lib', 'handoff'));
   ok(hoText.startsWith(handoffLib.MANUAL_MARKER) && hoText.length < handoffLib.MAX_INJECT_CHARS, 'handoff maître : marqueur manuel en 1re ligne, sous le cap d\'injection');
-  ok(/SESSION MAÎTRE/.test(hoText) && /\/model opus/.test(hoText) && /\/epicmaster/.test(hoText) && /epic « Auth »/.test(hoText),
+  ok(/SESSION MAÎTRE/.test(hoText) && /\/model sonnet/.test(hoText) && /\/epicmaster/.test(hoText) && /epic « Auth »/.test(hoText),
     'handoff maître : modèle à poser, prochaine action /epicmaster, epic nommée');
   ok(!/Règles :/.test(hoText), 'handoff maître : aucun brief de lot embarqué (régénérable à la demande)');
   const rd = handoffLib.readHandoff(repoEm, 'sess-em');
@@ -9734,7 +9734,8 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   const cmdEm = fs.readFileSync(path.join(PKG, 'commands', 'epicmaster.md'), 'utf8');
   ok(/^description: Session maître/m.test(cmdEm) && /Agent/.test(cmdEm.split('\n')[2]) && /--skip/.test(cmdEm) && /--brief --id/.test(cmdEm),
     'commands/epicmaster.md : description, outil Agent autorisé, décochage, brief');
-  ok(/\*\*UNE\*\* fois/.test(cmdEm) && /précochées/.test(cmdEm) && /show_pane/.test(cmdEm) && /en lecture seule/.test(cmdEm) && /jamais interpréter un silence/.test(cmdEm) && /jamais plus d'US en vol/i.test(cmdEm) && /Arrête-toi/.test(cmdEm) && /Jamais de syntaxe de tâche/.test(cmdEm), 'commands/epicmaster.md : une question à cases précochées, plan sans `- [x]`, parallélisme borné, arrêt à la borne');
+  const cmdPm = fs.readFileSync(path.join(PKG, 'commands', 'pickymaster.md'), 'utf8'); // US#152 : la question vit dans /pickymaster
+  ok(/\*\*UNE\*\* fois/.test(cmdPm) && /précochées/.test(cmdPm) && /show_pane/.test(cmdPm) && /en lecture seule/.test(cmdPm) && /jamais interpréter un silence/.test(cmdPm) && /jamais plus d'US en vol/i.test(cmdEm) && /Arrête-toi/.test(cmdEm) && /Jamais de syntaxe de tâche/.test(cmdPm), 'commands/pickymaster.md : une question à cases précochées, plan sans `- [x]`, parallélisme borné, arrêt à la borne');
   ok(/\[x\] #1   Auth core {2,}opus · high {2,}← vague 1/.test(rh.out) && /\n {8}verify : npm test · périmètre : lib\/a\/\*\*/.test(rh.out), 'CLI epicmaster : ligne alignée + détail indenté (lot #134)');
   ok(/'epicmaster\.md'/.test(fs.readFileSync(path.join(PKG, 'install', 'build-plugin.js'), 'utf8')), 'build-plugin : epicmaster.md requise au plugin');
   const cmdScope = fs.readFileSync(path.join(PKG, 'commands', 'scope.md'), 'utf8');
@@ -10561,6 +10562,18 @@ section('scope / epicmaster / gabarit de spec — consignes maquettes');
     'epicmaster.md : renommage auto de la session maître (set_session_title self) avant --live-seed');
   const tp = rd(path.join(PKG, 'templates', 'spec-template.md'));
   ok(/^## Maquettes\s*$/m.test(tp) && /Optionnelle/.test(tp), 'spec-template.md : section « Maquettes » optionnelle');
+}
+
+section('US#152 — /epicmaster direct et /pickymaster (test/run-tests-pickymaster.js)');
+{
+  const rp = spawnSync(process.execPath, [path.join(__dirname, 'run-tests-pickymaster.js')], { encoding: 'utf8' });
+  ok(rp.status === 0, 'pickymaster : ' + ((rp.stdout || '') + (rp.stderr || '')).trim().split('\n').slice(-3).join(' | '));
+}
+
+section('US#154 — découpage orienté sonnet (test/run-tests-scope-sonnet.js)');
+{
+  const rs = spawnSync(process.execPath, [path.join(__dirname, 'run-tests-scope-sonnet.js')], { encoding: 'utf8' });
+  ok(rs.status === 0, 'scope-sonnet : ' + ((rs.stdout || '') + (rs.stderr || '')).trim().split('\n').slice(-3).join(' | '));
 }
 
 // ============================ RÉSUMÉ ============================

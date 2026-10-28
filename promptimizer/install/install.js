@@ -187,7 +187,7 @@ log('');
 log('── Installé. ──');
 log('• Hooks globaux fusionnés dans : ' + SETTINGS + ' (sauvegarde horodatée créée)');
 log('• Skill : ' + path.join(DEST, 'skills', 'promptimizer', 'SKILL.md'));
-log('• Commands : /init /budget /check-context /close-batch /fresh-session /epicmaster');
+log('• Commands : /init /budget /check-context /close-batch /fresh-session /epicmaster /pickymaster');
 log('• Mod bande epicmaster : ' + path.join(DEST_PMZ, 'mods', 'epicmaster-band') + ' (chargé automatiquement via env.CLAUDE_CODE_PLUGIN_DIRS de settings.json)');
 log('• Redémarre Claude Code pour activer les hooks.');
 log('• Désinstaller : promptimizer/install/uninstall' + (IS_WIN ? '.ps1' : '.command'));
