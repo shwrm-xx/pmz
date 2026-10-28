@@ -797,7 +797,8 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   capacité = (borne − socle 60k) / ~6k par US déléguée (brief + rapport ≤ 250 mots + clôture)) →
   `splitSessions` (sessions maîtres successives si le plan dépasse) ; `masterModel` = opus dès
   qu'une US le préconise, sinon le modèle majoritaire, effort `medium` (le maître orchestre, il ne
-  raisonne pas sur le code). CLI `scripts/backlog.js epicmaster` (`--json`, `--write-handoff`
+  raisonne pas sur le code). Un lot `fable` ne vote pas : Fable n'est jamais **proposé** par PMZ,
+  c'est un choix réservé à l'utilisateur (v2.10.3). CLI `scripts/backlog.js epicmaster` (`--json`, `--write-handoff`
   [+ `--handoff-file`], `--brief --id N`) **PROPOSE** et ne lance rien. `--write-handoff` pose un
   handoff **manuel** (marqueur, < `MAX_INJECT_CHARS`, sans brief d'US — régénérable) : modèle à
   poser (`/model …`), vagues, borne, prochaine action `/epicmaster`. `--brief` rend le brief
@@ -1114,7 +1115,9 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **Plan d'US** (`.vibe-agent/backlog.json`, `lib/backlog.js` + CLI `scripts/backlog.js`) :
   l'US comme **objet persistant trans-session** — id, titre, « fait quand », statut
   (`todo|in_progress|done|dropped`), **préconisation de modèle** (`model_hint`, ex. `sonnet`/
-  `opus`) et **effort de raisonnement** (`effort_hint`, énum `low|medium|high|xhigh`, lot #41),
+  `opus`) et **effort de raisonnement** (`effort_hint`, énum `low|medium|high|xhigh`, lot #41) —
+  choisis par `/scope` selon la **grille** de `commands/scope.md` (nature de l'US → modèle ·
+  effort ; Fable exclu des propositions, v2.10.3),
   commit de clôture, et `closed_session_id` (session qui a clos l'US — auto-rempli depuis
   `.vibe-agent/session-state.json` (`lib/state.js: previousSessionId`) que l'US soit close par
   le hook Stop ou par le CLI `done` (lot #96) ; `null` seulement sur opt-out explicite

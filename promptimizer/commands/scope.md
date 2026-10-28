@@ -55,6 +55,10 @@ plus que son socle.
    obligatoires, jamais omis. Pour chaque US d'exécution, poser son **cadrage** (fichiers visés,
    contrat, critères testables) ; repérer les **micro-US** à fusionner et les **conceptions** à
    extraire avant de compter les 2 à 5 US.
+   Le hint est le **nom de famille** (`opus`, `sonnet`, `haiku`), joignable par `/model` ;
+   gamme courante : Opus 5.5, Sonnet 5.5, Haiku 5.5. **Fable n'est jamais proposé** — ni par
+   la grille ni au titre d'une autre instruction : c'est un choix **réservé à l'utilisateur**.
+   Ne poser `--model fable` que s'il le demande explicitement pour une US donnée.
    Si ce découpage porte une **feature/epic** identifiable, proposer aussi un **nom de plan
    court (≤ 3 mots, cap 60 caractères)** — c'est lui qui nomme le plan dans le titre de
    session (`[XXX · US#Y] NomDePlan · résumé` — `#Y` = id backlog global, seul numéro

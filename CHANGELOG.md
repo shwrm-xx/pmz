@@ -2,10 +2,10 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
-## 2026-10-28 — Release v2.10.3
+## 2026-10-28 — Release v2.10.4
 
 - Regroupe US#157 (doc et désinstallation), US#158 (robustesse CLI epicmaster) et US#159 (arbitrages epicmaster).
-- `VERSION` et `plugin.json` en 2.10.3.
+- `VERSION` et `plugin.json` en 2.10.4 ; fusion de la release v2.10.3 distante (grille `/scope`, Fable jamais proposé).
 
 ## 2026-10-28 — US#159 Arbitrages epicmaster
 
@@ -64,6 +64,13 @@ Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changel
 - Nouvelle commande `/pickymaster` : la sélection précochée et décochable, comme l’ancien `/epicmaster`.
 - Câblée dans build-plugin (`REQUIRED_COMMANDS`), l’annonce d’install, `/help` et la reconnaissance maître de `user-prompt-submit`.
 - Nouveau test `test/run-tests-pickymaster.js`, appelé depuis `run-tests.js`.
+
+## 2026-10-24 — Release v2.10.3
+
+- `/scope` : grille explicite nature de l'US → modèle · effort (`opus` high/medium, `sonnet` high/medium, `haiku` low), première ligne applicable, au doute la plus haute ; `xhigh` justifié seulement.
+- Gamme à jour (Opus 5.5, Sonnet 5.5, Haiku 5.5) ; le hint reste le nom de famille.
+- Fable n'est **jamais proposé** (ni par la grille ni via une autre instruction) : choix réservé à l'utilisateur. Le modèle de la session maître `/epicmaster` ignore les lots posés `fable`.
+- Côté poste : `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`.
 
 ## 2026-10-18 — Release v2.10.2
 
