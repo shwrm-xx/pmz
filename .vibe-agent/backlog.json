@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 160,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-28T13:38:22.385Z",
+  "updated_at": "2026-10-28T13:41:13.585Z",
   "lots": [
     {
       "id": 1,
@@ -4587,24 +4587,24 @@
       "id": 159,
       "title": "Arbitrages epicmaster",
       "scope": "fait quand : backlog.js add avertit (sans refuser, fail-open) quand opus ou effort high/xhigh est posé sans --why \"…\" ; un test dédié vérifie que renderBrief porte le plafond de tours/contexte et la règle « itérer en sonnet, juger en opus » ; commit de suivi close-wave conservé tel quel (CHANGELOG + backlog + archive, décision humaine)",
-      "status": "in_progress",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Dette Epicmaster",
       "verify": "node test/run-tests.js",
       "spec": null,
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_commit": "9a89956",
+      "closed_at": "2026-10-28T13:41:13.464Z",
+      "closed_session_id": "a3adf0b5-1812-4195-b75f-dd312f118daa",
+      "closed_occupancy": 128048,
+      "closed_verify": "ok",
       "cost_tokens": 3301,
       "cost_turns": 1,
       "cost_subagent_tokens": 1162,
-      "closed_avg_cost_per_turn": null,
+      "closed_avg_cost_per_turn": 3301,
       "started_at": "2026-10-28T13:38:12.598Z",
-      "lot_number": null,
-      "note": null,
+      "lot_number": 639,
+      "note": "faut-il persister --why dans le backlog ou garder l'avertissement seul ?",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/lib/backlog.js",
@@ -4614,15 +4614,7 @@
       "depends_on": [
         158
       ],
-      "session_owner": "master/lot-159",
-      "integrations": {
-        "command_optimizer": {
-          "snapshot_start": {
-            "commands": 0,
-            "delivered_tokens": 0
-          }
-        }
-      }
+      "session_owner": "master/lot-159"
     }
   ]
 }

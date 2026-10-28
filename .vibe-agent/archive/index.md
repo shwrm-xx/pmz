@@ -159,7 +159,8 @@
 #0154 | 2026-10-28 | a89452f | epic:Epicmaster sobre | verify:inconnu | fiche:oui | Découpage orienté sonnet
 #0155 | 2026-10-28 | deed4fa | epic:Epicmaster sobre | verify:inconnu | fiche:oui | Parallélisme réel
 #0156 | 2026-10-28 | 852b415 | epic:Epicmaster sobre | verify:inconnu | fiche:oui | Clôture groupée close-wave
-#0157 | 2026-10-28 | 5b70684 | epic:Dette Epicmaster | verify:inconnu | fiche:non | Doc et désinstallation
-#0158 | 2026-10-28 | fa65ae8 | epic:Dette Epicmaster | verify:inconnu | fiche:non | Robustesse CLI epicmaster
+#0157 | 2026-10-28 | 5b70684 | epic:Dette Epicmaster | verify:inconnu | fiche:oui | Doc et désinstallation
+#0158 | 2026-10-28 | fa65ae8 | epic:Dette Epicmaster | verify:inconnu | fiche:oui | Robustesse CLI epicmaster
+#0159 | 2026-10-28 | 9a89956 | epic:Dette Epicmaster | verify:inconnu | fiche:oui | Arbitrages epicmaster
 
 # Archive PMZ — index des lots clos
