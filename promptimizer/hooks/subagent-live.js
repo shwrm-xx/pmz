@@ -28,6 +28,7 @@ function t(iso) { const n = Date.parse(iso); return Number.isFinite(n) ? n : nul
 // Retourne le message d'alerte (string) ou '' : concurrence restée à 1 sur une vague >= 2 US.
 function concurrencyAlert(root, input) {
   const st = live.load(root);
+  if (Number(st.max_parallel) === 1) return ''; // plafond volontaire à 1 : la série est voulue
   const a = st.agents && st.agents[String(input.agent_id || '')];
   if (!a || !a.stopped_at) return '';
   const a0 = t(a.started_at), a1 = t(a.stopped_at);

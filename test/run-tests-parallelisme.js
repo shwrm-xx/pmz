@@ -25,13 +25,13 @@ for (const f of ['epicmaster.md', 'pickymaster.md']) {
 
 // 2. Hook : alerte si la concurrence reste à 1 sur une vague >= 2 US.
 const iso = () => new Date().toISOString();
-function mkRepo(name, waves) {
+function mkRepo(name, waves, extra) {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-par-' + name + '-'));
   execFileSync('git', ['init', '-q', d]);
   fs.mkdirSync(path.join(d, '.vibe-agent'), { recursive: true });
   const lots = {};
   waves.forEach((w, i) => { lots[i + 1] = { id: i + 1, title: 'Lot ' + (i + 1), status: w === 2 ? 'pending' : 'running', wave: w, owner: 'master/lot-' + (i + 1), started_at: iso(), updated_at: iso() }; });
-  fs.writeFileSync(path.join(d, '.vibe-agent', 'epicmaster-live.json'), JSON.stringify({ v: 1, updated_at: iso(), lots, agents: {} }));
+  fs.writeFileSync(path.join(d, '.vibe-agent', 'epicmaster-live.json'), JSON.stringify(Object.assign({ v: 1, updated_at: iso(), lots, agents: {} }, extra || {})));
   return d;
 }
 function hook(d, ev, id) {
@@ -64,6 +64,16 @@ fs.rmSync(d, { recursive: true, force: true });
 d = mkRepo('solo', [1, 2]);
 hook(d, 'SubagentStart', 'c1'); wait(15);
 ok(hook(d, 'SubagentStop', 'c1').out === '', 'hook : vague d\'une US -> aucune alerte');
+fs.rmSync(d, { recursive: true, force: true });
+
+// 2c2. Plafond max_parallel = 1 (--max-parallel 1) : la série est voulue -> silencieux ; plafond 4 -> alerte.
+d = mkRepo('cap1', [1, 1], { max_parallel: 1 });
+hook(d, 'SubagentStart', 'e1'); wait(15);
+ok(hook(d, 'SubagentStop', 'e1').out === '', 'hook : plafond max_parallel=1 -> aucune alerte de concurrence');
+fs.rmSync(d, { recursive: true, force: true });
+d = mkRepo('cap4', [1, 1], { max_parallel: 4 });
+hook(d, 'SubagentStart', 'f1'); wait(15);
+ok(/concurrence restée à 1/.test(hook(d, 'SubagentStop', 'f1').out), 'hook : plafond max_parallel=4 -> alerte conservée');
 fs.rmSync(d, { recursive: true, force: true });
 
 // 2d. Fail-open : entrées invalides / désactivé -> exit 0 muet.

@@ -82,6 +82,34 @@ ok(show1.length > 0, 'git show ok');
 bl('close-wave', '--file', wf);
 ok((rd(path.join(d, 'CHANGELOG.md')).match(/US#1 Un/g) || []).length === 1, 'rejeu : CHANGELOG non dupliqué');
 
+// Done refusé (spec incomplète) : commit fait mais US reste ouverte, avec la cause ; pas de CHANGELOG pour elle.
+// Verdict timeout : jamais close, note « verify rouge », US rouverte.
+for (const t of ['Quatre', 'Cinq']) bl('add', '--title', t, '--scope', 'x', '--verify', 'node -e 0', '--model', 'sonnet', '--effort', 'medium', '--epic', 'T');
+fs.writeFileSync(path.join(d, 'spec4.md'), '# spec vide\n');
+bl('spec', '--id', '4', '--set', 'spec4.md');
+const b0 = JSON.parse(rd(path.join(d, '.vibe-agent', 'backlog.json')));
+if (!(b0.lots.find((x) => x.id === 4) || {}).spec) {
+  // repli : pointeur de spec posé directement dans l'état (le sous-commande `spec` peut différer)
+  b0.lots.find((x) => x.id === 4).spec = 'spec4.md';
+  fs.writeFileSync(path.join(d, '.vibe-agent', 'backlog.json'), JSON.stringify(b0, null, 2));
+}
+bl('start', '--id', '4'); bl('start', '--id', '5');
+fs.writeFileSync(path.join(d, 'd.txt'), 'd'); fs.writeFileSync(path.join(d, 'e.txt'), 'e');
+const wf2 = path.join(d, 'wave2.json');
+fs.writeFileSync(wf2, JSON.stringify({ date: '2026-10-28', items: [
+  { id: 4, paths: ['d.txt'], message: 'feat: US4', verdict: 'ok', changelog: { title: 'Quatre', bullets: ['g', 'h', 'i'] } },
+  { id: 5, paths: ['e.txt'], message: 'feat: US5', verdict: 'timeout', reason: 'verify trop lente' },
+] }));
+const o2 = bl('close-wave', '--file', wf2);
+ok(/0 close\(s\), 2 ouverte\(s\)/.test(o2), 'close-wave : done refusé + timeout -> 0 close, 2 ouvertes (' + o2.split('\n')[0] + ')');
+ok(/US#4 reste ouverte — commit \w+ fait, done refusé : Refusé/.test(o2) && /n'a pas toutes ses sections/.test(o2), 'close-wave : done refusé (spec incomplète) -> US reste ouverte, cause et issue indiquées');
+ok(/US#5 reste ouverte — verify timeout : verify trop lente/.test(o2), 'close-wave : verdict timeout -> US reste ouverte avec la cause');
+const b2 = JSON.parse(rd(path.join(d, '.vibe-agent', 'backlog.json')));
+const st2 = (id) => b2.lots.find((x) => x.id === id);
+ok(st2(4).status !== 'done' && st2(5).status !== 'done', 'backlog : US4 (spec incomplète) et US5 (timeout) non done');
+ok(!/US#4 Quatre/.test(rd(path.join(d, 'CHANGELOG.md'))), 'CHANGELOG : aucune entrée pour une US dont le done est refusé');
+ok(git('log', '--format=%s').split('\n').includes('feat: US4') && !git('log', '--format=%s').split('\n').includes('feat: US5'), 'git : commit US4 fait (done refusé après), aucun commit pour le timeout');
+
 // Entrée invalide : refus doux, exit 0.
 const bad = spawnSync(process.execPath, [BL, 'close-wave', '--stdin', '--cwd', d], { input: '{bad', encoding: 'utf8' });
 ok(bad.status === 0 && /JSON de vague invalide/.test(bad.stdout), 'fail-open : JSON invalide -> refus doux, exit 0');

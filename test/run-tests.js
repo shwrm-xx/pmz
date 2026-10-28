@@ -10058,6 +10058,14 @@ section('Bande par session/projet — copie globale par projet, seeded_at, ancie
     live.seedFromPlan(rA, plan3, b3, { waveLabels: '2=Providers; x=ignoré' }, T0);
     wp = JSON.parse(fs.readFileSync(gA, 'utf8'));
     ok(wp.wave_plan[1].label === 'Providers' && wp.wave_plan[0].label === 'Socle', 'BS-6 : --wave-labels fixe le libellé d\'une vague, entrée invalide ignorée');
+    live.seedFromPlan(rA, Object.assign({ parallelism: { max: 1 } }, plan3), b3, {}, T0);
+    ok(JSON.parse(fs.readFileSync(gA, 'utf8')).max_parallel === 1 && live.load(rA).max_parallel === 1, 'BS-7 : --max-parallel stocké dans l\'état live (depuis plan.parallelism.max) et relu par load');
+    live.seedFromPlan(rA, plan3, b3, { maxParallel: 3 }, T0);
+    ok(live.load(rA).max_parallel === 3, 'BS-7 : maxParallel explicite stocké');
+    {
+      const bl158 = require(path.join(PKG, 'lib', 'backlog'));
+      ok(bl158.orphanArgs(['node', 's', 'epicmaster', '--live-seed', '--wave-labels', '1=Socle;2=Providers'], 3).length === 0, 'US#158 : --wave-labels "valeur" (après espace) n\'est plus un orphelin');
+    }
     ok(live.liveSlug(rA) === live.liveSlug(rA + path.sep) && /^proj-b-[0-9a-f]{8}$/.test(live.liveSlug(rB)), 'BS-5 : slug stable et lisible');
   } finally {
     if (saved.cfg === undefined) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = saved.cfg;
