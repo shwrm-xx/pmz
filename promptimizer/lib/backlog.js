@@ -109,11 +109,11 @@ const CLOSED_VERIFY_VALUES = ['ok', 'failed', 'timeout', 'none'];
 const VALUE_FLAGS = ['cwd', 'id', 'epic', 'set', 'model', 'effort', 'title', 'scope',
   'verify', 'spec', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
   'gate', 'final-gate', 'branch', 'state', 'verify-verdict', 'tokens',
-  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file'];
+  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file'];
 // Flags booléens (ne consomment aucune valeur) — listés pour documentation ;
 // tout flag hors VALUE_FLAGS est traité comme booléen (ne consomme rien).
 const BOOL_FLAGS = ['json', 'suggest', 'execute', 'allow-trunc', 'no-session', 'no-occupancy', 'allow-no-gate', 'new',
-  'allow-incomplete-spec', 'allow-incomplete-us', 'no-verify', 'write-handoff', 'brief'];
+  'allow-incomplete-spec', 'allow-incomplete-us', 'no-verify', 'write-handoff', 'brief', 'stdin', 'dry-run'];
 
 // Garde anti-troncature de champ (lot #90), 2e vecteur après les orphelins argv (#88) :
 // une valeur QUOTÉE mais au-delà de son plafond MAX_* serait stockée coupée par trunc()
@@ -1094,7 +1094,50 @@ function exportMarkdown(b) {
   return [header, sep, ...rows].join('\n');
 }
 
+// --- close-wave (US#156) : clôture groupée d'une vague (logique pure, sans git ni disque) ---
+// Entrée : items [{ id, paths[], message, verdict, tokens?, commit?, fiche?, changelog?{title,bullets[]} }].
+// Un fichier partagé par plusieurs US ne peut aller que dans UN commit : le 1er item (dans l'ordre)
+// le garde, les suivants le perdent (retourné dans `shared`, à signaler, jamais silencieux).
+function planCloseWave(items) {
+  const seen = new Map();
+  const shared = [];
+  const out = [];
+  for (const raw of Array.isArray(items) ? items : []) {
+    const id = Number(raw && raw.id);
+    if (!Number.isFinite(id)) continue;
+    const paths = [];
+    for (const p of Array.isArray(raw.paths) ? raw.paths : []) {
+      const q = String(p || '').trim();
+      if (!q || paths.includes(q)) continue;
+      if (seen.has(q)) { shared.push({ path: q, kept_by: seen.get(q), dropped_for: id }); continue; }
+      seen.set(q, id);
+      paths.push(q);
+    }
+    out.push({ ...raw, id, paths, verdict: ['ok', 'failed', 'timeout', 'none'].includes(raw.verdict) ? raw.verdict : 'none' });
+  }
+  return { items: out, shared };
+}
+
+// Entrée CHANGELOG « ## <date> — US#N Titre » + puces (3 à 6 recommandées, non imposées ici).
+function renderChangelogEntry(date, id, title, bullets) {
+  const bl = (Array.isArray(bullets) ? bullets : []).map((x) => String(x || '').trim()).filter(Boolean)
+    .map((x) => '- ' + x.replace(/^[-*]\s+/, ''));
+  return `## ${date} — US#${id} ${String(title || '').trim()}\n\n${bl.join('\n')}\n`;
+}
+
+// Insère les entrées juste avant la 1re section « ## » (les plus récentes en tête) ; idempotent
+// par en-tête (un en-tête déjà présent n'est pas dupliqué).
+function insertChangelog(text, entries) {
+  let t = String(text || '# Changelog\n');
+  const fresh = entries.filter((e) => !t.includes(e.split('\n')[0]));
+  if (!fresh.length) return t;
+  const block = fresh.join('\n') + '\n';
+  const m = /^## /m.exec(t);
+  return m ? t.slice(0, m.index) + block + t.slice(m.index) : t.replace(/\n*$/, '\n\n') + block;
+}
+
 module.exports = {
+  planCloseWave, renderChangelogEntry, insertChangelog,
   backlogFile, loadBacklog, saveBacklog, addLot, setVerify, setClosedVerify, setPerimeter, setDepends, setSpec,
   specPathFor, renderSpecTemplate, createSpecFile, checkSpecStructure, SPEC_REQUIRED_SECTIONS, SPEC_DIR,
   startLot, doneLot, dropLot, noteLot, reopenLot,

@@ -581,6 +581,91 @@ function epicmaster(root, json) {
   }
 }
 
+// US#156 — close-wave : clôture groupée d'une vague (commit borné, done, fiche d'archive,
+// CHANGELOG) en UN appel. Entrée JSON (--file <chemin> | --stdin) :
+//   { "date"?: "YYYY-MM-DD", "allow_incomplete_spec"?: bool, "items": [ { "id", "paths": [...],
+//     "message", "verdict": "ok|failed|none|timeout", "tokens"?, "fiche"?: "<markdown>",
+//     "changelog"?: { "title", "bullets": [...] }, "reason"? (verify rouge) } ] }
+// Ordre = ordre du plan. Commit BORNÉ aux chemins (`git commit -- <chemins>` : backlog.json déjà
+// indexé par `start` n'est jamais embarqué). Un chemin partagé n'ira que dans un seul commit.
+// Verify rouge : pas de commit, note --decide + done failed + reopen. --dry-run : rien d'écrit.
+// `done` refusé pour spec incomplète : relayer `allow_incomplete_spec` / --allow-incomplete-spec.
+function closeWave(root, json) {
+  const { spawnSync } = require('child_process');
+  const specPath = flag('file');
+  let raw = null;
+  try { raw = process.argv.includes('--stdin') ? fs.readFileSync(0, 'utf8') : (specPath ? fs.readFileSync(specPath, 'utf8') : null); } catch (_) { raw = null; }
+  if (!raw || !raw.trim()) return out('Usage : close-wave --file <vague.json> | --stdin [--dry-run] [--allow-incomplete-spec] [--json]. Entrée vide ou illisible : rien fait.');
+  let input;
+  try { input = JSON.parse(raw); } catch (_) { return out('Refusé : JSON de vague invalide — rien fait.'); }
+  const plan = backlog.planCloseWave(input && input.items);
+  if (!plan.items.length) return out('Refusé : aucune US dans la vague — rien fait.');
+  const dry = process.argv.includes('--dry-run');
+  const allowInc = !!(input && input.allow_incomplete_spec) || process.argv.includes('--allow-incomplete-spec');
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(input.date || '')) ? input.date : new Date().toISOString().slice(0, 10);
+  const git = (args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  const node = (script, args, inp) => {
+    const r = spawnSync(process.execPath, [path.join(__dirname, script), ...args, '--cwd', root], { encoding: 'utf8', input: inp });
+    return ((r.stdout || '') + (r.stderr || '')).trim();
+  };
+  const first = (r) => String((r.stderr || r.stdout) || '').trim().split('\n')[0].slice(0, 160);
+  const rep = { closed: [], open: [], warnings: plan.shared.map((x) => `chemin partagé « ${x.path} » : gardé par US#${x.kept_by}, retiré de US#${x.dropped_for} (un seul commit)`), changelog: null, doc_commit: null };
+  const entries = [];
+  for (const it of plan.items) {
+    const idS = String(it.id);
+    const tk = it.tokens ? ['--tokens', String(it.tokens)] : [];
+    if (it.verdict === 'failed' || it.verdict === 'timeout') {
+      const cause = String(it.reason || `verify ${it.verdict}`).slice(0, 200);
+      if (!dry) {
+        node('backlog.js', ['note', '--id', idS, '--note', `verify rouge : ${cause}`, '--decide']);
+        node('backlog.js', ['done', '--id', idS, '--verify-verdict', it.verdict, ...tk, '--allow-incomplete-spec']);
+        node('backlog.js', ['reopen', '--id', idS, '--note', `verify rouge : ${cause}`]);
+      }
+      rep.open.push({ id: it.id, why: `verify ${it.verdict} : ${cause}` });
+      continue;
+    }
+    if (!it.message || !it.paths.length) { rep.open.push({ id: it.id, why: 'message ou chemins manquants (commit borné impossible)' }); continue; }
+    if (dry) { rep.closed.push({ id: it.id, commit: '(dry-run)', verdict: it.verdict }); continue; }
+    const a = git(['add', '--', ...it.paths]);
+    if (a.status !== 0) { rep.open.push({ id: it.id, why: 'git add : ' + first(a) }); continue; }
+    const c = git(['commit', '-q', '-m', String(it.message), '--', ...it.paths]);
+    if (c.status !== 0) { rep.open.push({ id: it.id, why: 'git commit : ' + first(c) }); continue; }
+    const sha = (git(['rev-parse', '--short', 'HEAD']).stdout || '').trim();
+    const d = node('backlog.js', ['done', '--id', idS, '--commit', sha, '--verify-verdict', it.verdict, ...tk, ...(allowInc ? ['--allow-incomplete-spec'] : [])]);
+    if (/^Refusé/.test(d)) { rep.open.push({ id: it.id, why: `commit ${sha} fait, done refusé : ${d.slice(0, 160)}` }); continue; }
+    let fiche = 'aucune';
+    if (it.fiche && String(it.fiche).trim()) {
+      // Le marqueur de 1re ligne est exigé par archive.js : on l'ajoute s'il manque (le maître n'a pas à le connaître).
+      const mk = require('../lib/archive').ficheMarker(it.id);
+      const body = String(it.fiche).startsWith(mk) ? String(it.fiche) : `${mk}\n${String(it.fiche)}`;
+      fiche = /écrite/.test(node('archive.js', ['write', '--id', idS, '--stdin'], body)) ? 'écrite' : 'refusée';
+    }
+    rep.closed.push({ id: it.id, commit: sha, verdict: it.verdict, fiche });
+    if (it.changelog && it.changelog.title) entries.push(backlog.renderChangelogEntry(date, it.id, it.changelog.title, it.changelog.bullets));
+  }
+  if (!dry && entries.length) {
+    const cl = path.join(root, 'CHANGELOG.md');
+    let cur = ''; try { cur = fs.readFileSync(cl, 'utf8'); } catch (_) { /* absent : créé */ }
+    try { fs.writeFileSync(cl, backlog.insertChangelog(cur, entries)); rep.changelog = 'CHANGELOG.md'; } catch (_) { rep.warnings.push('CHANGELOG.md non écrit'); }
+  }
+  if (!dry && rep.closed.length) {
+    // Commit de suivi borné : CHANGELOG + état du backlog + archive (uniquement ce qui existe).
+    const docPaths = ['CHANGELOG.md', '.vibe-agent/backlog.json', '.vibe-agent/archive'].filter((p) => fs.existsSync(path.join(root, p)));
+    if (docPaths.length && git(['add', '--', ...docPaths]).status === 0) {
+      const ids = rep.closed.map((x) => '#' + x.id).join(', ');
+      const c = git(['commit', '-q', '-m', `docs(changelog): clôture ${ids}`, '--', ...docPaths]);
+      if (c.status === 0) rep.doc_commit = (git(['rev-parse', '--short', 'HEAD']).stdout || '').trim();
+      else rep.warnings.push('commit de suivi non fait : ' + first(c));
+    }
+  }
+  if (json) return out(JSON.stringify(rep, null, 2));
+  out(`close-wave${dry ? ' (dry-run)' : ''} — ${rep.closed.length} close(s), ${rep.open.length} ouverte(s).`);
+  for (const x of rep.closed) out(`  ✓ US#${x.id} commit ${x.commit} · verify ${x.verdict}${x.fiche ? ' · fiche ' + x.fiche : ''}`);
+  for (const x of rep.open) out(`  ✗ US#${x.id} reste ouverte — ${x.why}`);
+  if (rep.changelog) out(`  CHANGELOG mis à jour${rep.doc_commit ? ` · commit de suivi ${rep.doc_commit}` : ''}.`);
+  for (const w of rep.warnings) out(`  ⚠️ ${w}`);
+}
+
 function main() {
   const root = gitRoot(parseCwd());
   if (!root) return out('Pas un dépôt git — backlog indisponible.');
@@ -899,6 +984,8 @@ function main() {
 
   if (cmd === 'epicmaster') return epicmaster(root, json);
 
+  if (cmd === 'close-wave') return closeWave(root, json);
+
   if (cmd === 'fleet') return fleetCmd(root, sub, json);
 
   if (cmd === 'reintegrate') {
@@ -915,7 +1002,7 @@ function main() {
     return;
   }
 
-  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | fleet <join|ready|leave|show> | reintegrate | reconcile | epic | verify | spec | trigram | export.`);
+  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | close-wave | fleet <join|ready|leave|show> | reintegrate | reconcile | epic | verify | spec | trigram | export.`);
 }
 
 if (require.main === module) {
