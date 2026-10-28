@@ -154,5 +154,10 @@
 #0149 | 2026-10-12 | 9e37b56 | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Doc et release maquettes v2.10.0
 #0150 | 2026-10-12 | 31f6cd3 | epic:Maquettes d'écrans | verify:inconnu | fiche:oui | Un dossier par US : spec et maquettes harmonisées
 #0151 | 2026-10-12 | 42de2aa | epic:Titres de session | verify:inconnu | fiche:oui | Renommage systématique de chaque session
+#0152 | 2026-10-28 | b525756 | epic:Epicmaster sobre | verify:inconnu | fiche:oui | /epicmaster direct et /pickymaster
+#0153 | 2026-10-28 | 32e5edd | epic:Epicmaster sobre | verify:inconnu | fiche:oui | Maître et briefs sobres
+#0154 | 2026-10-28 | a89452f | epic:Epicmaster sobre | verify:inconnu | fiche:oui | Découpage orienté sonnet
+#0155 | 2026-10-28 | deed4fa | epic:Epicmaster sobre | verify:inconnu | fiche:oui | Parallélisme réel
+#0156 | 2026-10-28 | 852b415 | epic:Epicmaster sobre | verify:inconnu | fiche:oui | Clôture groupée close-wave
 
 # Archive PMZ — index des lots clos
