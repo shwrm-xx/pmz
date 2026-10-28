@@ -62,7 +62,7 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    « Maquettes »), ajoute : « lis les maquettes liées à ta spec et suis-les ; signale tout écart
    (maquette ↔ implémentation) dans « À trancher », sans trancher toi-même. »
 2. **Pipeline glissant** : ne fais pas de barrière de vague. Chaque sous-agent en arrière-plan
-   te notifie à sa fin ; dès qu'un rapport arrive, traite-le (étape 3) puis, **sans attendre les
+   te notifie à sa fin ; dès qu'un rapport arrive, traite-le (étapes 3 et 4) puis, **sans attendre les
    autres**, lance dans le même message (groupé s'il y en a plusieurs) la ou les US **éligibles**
    suivantes (dépendances closes, périmètre libre, jamais plus d'US en vol que le parallélisme
    affiché) : une place libérée part aussitôt. Ne sonde pas, n'attends que les notifications.
@@ -77,7 +77,7 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    un fichier partagé par plusieurs US n'ira que dans le premier commit ; si `done` refuse une spec
    incomplète, relaie `--allow-incomplete-spec`. Verify rouge : pas de commit, l'US est rouverte.
    Le détail ci-dessous reste la règle de fond (et le repli manuel) :
-3bis. Pour chaque US livrée, **dans l'ordre du plan** (les commandes exactes sont données à la
+4. Pour chaque US livrée, **dans l'ordre du plan** (les commandes exactes sont données à la
    fin du brief) :
    - **Verify verte** → commit **borné au périmètre** (`git add -- ':(glob)…'`, ou `git add -A`
      pour une US sans périmètre, seule en vol) + message français court, puis
@@ -101,7 +101,7 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    - Toute décision qui attend l'humain (« À trancher » du rapport d'un sous-agent) :
      `backlog.js note --id <id> --note "<décision en une ligne>" --decide` — la bande compte
      « N à trancher » en direct.
-4. Ajoute au `CHANGELOG.md` une entrée datée par US, reprise du « Bloc CHANGELOG » du rapport
+5. Ajoute au `CHANGELOG.md` une entrée datée par US, reprise du « Bloc CHANGELOG » du rapport
    (fait par `close-wave` quand il est utilisé).
 
 ## 3. Vigilance contexte (non négociable)
@@ -110,7 +110,7 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
   ta session : les US restantes restent ouvertes, la session suivante les reprend avec
   `/epicmaster`.
 - Si le hook Stop prescrit une session fraîche (zone rouge, budget de tours) **avant** la fin :
-  termine la vague en cours (commits + `done`), consolide (étape 4) et **arrête-toi** — ne lance
+  termine la vague en cours (commits + `done`), consolide (section 4) et **arrête-toi** — ne lance
   pas la vague suivante. Rien n'est perdu : le backlog porte l'état.
 - Jamais de `git diff` complet, jamais de lecture des fichiers livrés « pour vérifier » : la
   preuve est la verify rejouée par le sous-agent et persistée par `done --verify-verdict`.
