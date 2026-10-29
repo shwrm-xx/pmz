@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 162,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-29T07:39:13.953Z",
+  "updated_at": "2026-10-29T07:44:36.087Z",
   "lots": [
     {
       "id": 1,
@@ -4653,24 +4653,24 @@
       "id": 161,
       "title": "Mesure des régressions post-clôture",
       "scope": "fait quand : add --regression-of <id> persiste regression_of (US close, sinon refus) ; show --quality donne par modèle/effort closes, réouvertures, régressions, taux (lecture seule) ; export a la colonne ; scope.md/close-batch.md disent quand le poser ; legacy → 0 ; test run-tests-regressions.js vert (spec US B).",
-      "status": "todo",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Qualité epicmaster",
       "verify": "node test/run-tests.js && node test/run-tests-regressions.js",
       "spec": "docs/audits/2026-10-29-qualite-sonnet-opus.md",
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
-      "cost_tokens": 0,
-      "cost_turns": 0,
-      "cost_subagent_tokens": 0,
-      "closed_avg_cost_per_turn": null,
-      "started_at": null,
-      "lot_number": null,
-      "note": null,
+      "closed_commit": "c7cd5d0",
+      "closed_at": "2026-10-29T07:44:35.979Z",
+      "closed_session_id": "098ac424-ec8b-4214-a587-1a165f7a323f",
+      "closed_occupancy": 125587,
+      "closed_verify": "ok",
+      "cost_tokens": 28484,
+      "cost_turns": 1,
+      "cost_subagent_tokens": 20783,
+      "closed_avg_cost_per_turn": 28484,
+      "started_at": "2026-10-29T07:39:23.989Z",
+      "lot_number": 645,
+      "note": "taux qualité = (réouvertures + régressions)/closes : garder un taux combiné ou deux taux séparés ?",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/lib/backlog.js",
@@ -4682,7 +4682,7 @@
       "depends_on": [
         160
       ],
-      "session_owner": null
+      "session_owner": "master/lot-161"
     }
   ]
 }

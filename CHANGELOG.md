@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — US#161 Mesure des régressions post-clôture
+
+- `add --regression-of <id>` : persiste `regression_of` (US close obligatoire, refus lisible sinon).
+- `show --quality` : closes, réouvertures, régressions et taux par modèle et par modèle · effort (lecture seule, `--json`).
+- `export` : colonne `regression_of` ; tolérance au backlog legacy (0 sans le champ).
+- `scope.md` et `close-batch.md` : quand poser `--regression-of`.
+- Test `test/run-tests-regressions.js` (15 assertions).
+
 ## 2026-10-29 — US#160 Relecture opus en consolidation
 
 - Nouveau `backlog.js epicmaster --review-brief --ids …` : brief du relecteur opus·medium en lecture seule, avec le diff cumulé de la session et les « Non vérifié » agrégés.
