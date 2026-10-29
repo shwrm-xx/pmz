@@ -13,8 +13,18 @@ Summary:
 
 ## Hooks
 
-All seven events below are declared in `promptimizer/hooks/hooks.json`. Each hook is launched as
-`sh bin/pmz-hook hooks/<script>.js`, which finds `node` and runs the script. Hooks receive the
+All eight events below are declared in `promptimizer/hooks/hooks.json` (SessionStart,
+UserPromptSubmit, PreToolUse, PostToolUse, Stop, PreCompact, SubagentStart, SubagentStop). How
+each hook is launched depends on the install channel:
+
+- **Plugin**: `sh "${CLAUDE_PLUGIN_ROOT}/bin/pmz-hook" "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`.
+  `bin/pmz-hook` finds `node` and runs the script.
+- **Manual install**: the command written to `settings.json` by
+  `promptimizer/install/merge-settings.js` is `"<absolute path to node>" <config dir>/promptimizer/hooks/<script>.js`,
+  where `<config dir>` is `~/.claude` (or `$CLAUDE_CONFIG_DIR`). The `node` path is resolved at
+  install time and `bin/pmz-hook` is not involved.
+
+Hooks receive the
 Claude Code hook JSON on stdin (session id, cwd, transcript path, tool input) and print JSON on
 stdout. In the tables, "project" means the git root found with `git rev-parse --show-toplevel`.
 "State dir" is defined in [Files written](#files-written).
@@ -131,7 +141,7 @@ A hook must never break a session:
   (10 s for SessionStart, 5 s for the others, as set in `hooks.json`).
 - Invalid or missing stdin JSON, I/O errors and timeouts end in a silent `exit 0`. No hook ever
   uses `exit 2`.
-- If `node` cannot be found, `bin/pmz-hook` exits 0 without output.
+- If `node` cannot be found, `bin/pmz-hook` (plugin channel) exits 0 without output.
 - When in doubt, the decision is `allow`.
 
 ## Disabling PMZ

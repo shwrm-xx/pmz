@@ -477,6 +477,12 @@ différée au (re)démarrage + renommage de session ; les 8 commandes `/pmz`
 init/broad/model-mismatch au `chat.message` avec résolution locale du `model_hint`. Gaps v1
 assumés : statusline (aucune API OpenCode), filet `ask` sans contrôle de permission actif.
 
+## Confidentialité et sécurité
+
+PMZ tourne en local, sans réseau ni télémétrie. Ce que lit et écrit chaque hook (les huit
+événements) est détaillé dans [docs/PRIVACY.md](docs/PRIVACY.md) ; pour signaler une faille ou un
+écart, voir [SECURITY.md](SECURITY.md).
+
 ## Pour les contributeurs
 
 Ce dépôt est la **source** du package. Voir [CLAUDE.md](CLAUDE.md) (règles) et
