@@ -338,6 +338,53 @@ function renderBrief(l, b, pmzBase) {
   return L.join('\n');
 }
 
+// BRIEF DU RELECTEUR OPUS (US#160) — UN sous-agent par session maître, lancé en consolidation
+// (avant le handoff) si >= REVIEW_MIN_LOTS US closes. Fonction pure : le maître colle le texte
+// dans l'outil Agent (model=opus, effort=medium). `ids` = US closes de la session ; base du diff =
+// commit précédant la 1re US de la session (closed_commit de la plus ancienne, suffixé `^`).
+// `unverified` = lignes « Non vérifié » déjà agrégées par l'appelant (rapports + fiches).
+// Retourne { ok, text, reason, base, ids } ; ok=false + reason lisible si < 2 US closes exploitables.
+const REVIEW_MIN_LOTS = 2;
+const REVIEW_MODEL = 'opus';
+const REVIEW_EFFORT = 'medium';
+const REVIEW_SECTIONS = ['Problèmes confirmés', 'Non vérifié levé', 'Non vérifié confirmé', 'RAS'];
+function renderReviewBrief(b, ids, opts) {
+  const o = opts || {};
+  const want = (Array.isArray(ids) ? ids : []).map(Number).filter(Number.isFinite);
+  const lots = want.map((id) => lotsOf(b).find((x) => x.id === id)).filter((l) => l && l.status === 'done');
+  if (lots.length < REVIEW_MIN_LOTS) {
+    return { ok: false, ids: lots.map((l) => l.id), base: null,
+      reason: `Pas de relecture opus : ${lots.length} US close${lots.length > 1 ? 's' : ''} parmi --ids (minimum ${REVIEW_MIN_LOTS}).` };
+  }
+  const withCommit = lots.filter((l) => l.closed_commit);
+  // La 1re US de la session = la plus anciennement close (closed_at, sinon ordre des --ids).
+  const first = (withCommit.length ? withCommit : lots).slice().sort((a, c) => String(a.closed_at || '').localeCompare(String(c.closed_at || '')))[0];
+  const base = o.base || (first && first.closed_commit ? `${first.closed_commit}^` : null);
+  const base2 = base || '<commit précédant la 1re US>';
+  const base2Cmd = `git diff ${base2}..HEAD`;
+  const L = [];
+  L.push(`# Relecture opus de la session maître — US ${lots.map((l) => '#' + l.id).join(', ')} (brief de sous-agent)`);
+  L.push(`Modèle : ${REVIEW_MODEL} · effort ${REVIEW_EFFORT} — à passer à l'outil Agent (model=${REVIEW_MODEL}, effort=${REVIEW_EFFORT}). Un seul relecteur par session maître.`);
+  L.push('Mission : confirmer ou infirmer chaque « Non vérifié » ci-dessous, et chercher les régressions introduites par le diff cumulé.');
+  L.push(`Diff cumulé des US closes : \`${base2Cmd}\` (base = commit précédant la 1re US de la session). Lis-le par fichiers (\`git diff --stat\` puis \`git diff ${base2}..HEAD -- <chemin>\`), lecture ciblée.`);
+  L.push('US relues :');
+  for (const l of lots) L.push(`- #${l.id} « ${l.title} »${l.closed_commit ? ` (commit ${l.closed_commit})` : ''}${l.scope ? ` — fait quand : ${l.scope}` : ''}`);
+  L.push('');
+  L.push('Non vérifié agrégé (à confirmer ou infirmer un par un) :');
+  const nv = (Array.isArray(o.unverified) ? o.unverified : []).map((x) => String(x).trim()).filter(Boolean);
+  if (nv.length) for (const x of nv) L.push(`- ${x}`); else L.push('- (aucun « Non vérifié » rapporté — cherche seulement les régressions)');
+  L.push('');
+  L.push('Règles :');
+  L.push('- LECTURE SEULE : n\'écris aucun fichier, ne commite jamais, ne touche ni à .vibe-agent/ ni à CHANGELOG.md.');
+  L.push('- Ne lance aucun script Promptimizer (backlog.js, close-batch.js…) ; tu peux rejouer les verify (lecture) et utiliser git/grep.');
+  L.push('- Lecture ciblée (git grep, lecture partielle) ; pas de scan large du dépôt.');
+  L.push('- Ne corrige rien : signale. Le maître classe tes constats en Dette ou À trancher.');
+  L.push(`- Rapport final ≤ ${REPORT_MAX_WORDS} mots, EXACTEMENT ces sections, rien d'autre :`);
+  L.push(`  ${REVIEW_SECTIONS.join(' / ')}.`);
+  L.push('- Interdits dans le rapport : diff, contenu de fichier, listing de code, sortie complète de tests.');
+  return { ok: true, text: L.join('\n'), reason: null, base, ids: lots.map((l) => l.id) };
+}
+
 // Commandes côté maître (texte, rien d'exécuté). `launchCommand` AVANT de lancer le sous-agent :
 // démarre le lot avec un owner distinct par lot (sinon startLot, régime classique, rétrograde le
 // précédent en « à faire »). `closeCommands` À LA RÉCEPTION du rapport : commit borné au
@@ -404,7 +451,8 @@ function writeMasterHandoff(root, text, file) {
 
 module.exports = {
   selectLots, groupByEpic, planMasterWaves, chunkWaves, masterModel, contextBudget, splitSessions,
-  planMaster, renderPlan, renderBrief, launchCommand, closeCommands, renderMasterHandoff, writeMasterHandoff,
+  planMaster, renderPlan, renderBrief, renderReviewBrief,
+  REVIEW_MIN_LOTS, REVIEW_MODEL, REVIEW_EFFORT, REVIEW_SECTIONS, launchCommand, closeCommands, renderMasterHandoff, writeMasterHandoff,
   MAX_PARALLEL_DEFAULT, MAX_PARALLEL_CAP, MASTER_BASELINE_TOKENS, MASTER_COST_PER_LOT, SUBAGENT_BASE_TOKENS,
   REPORT_MAX_WORDS, DEFAULT_MASTER_MODEL, DEFAULT_MASTER_EFFORT, NO_EPIC, OWNER_PREFIX,
 };

@@ -511,6 +511,7 @@ function fleetCmd(root, sub, json) {
 //   --live-seed           sème le plan COMPLET dans .vibe-agent/epicmaster-live.json (lot #141) : epic,
 //                         vagues, lots pending (modèle·effort, depends_on, tokens est.) — mêmes filtres que le plan
 //                         [--wave-labels "1=Socle;2=Providers"] : libellé de chaque vague affiché par la bande
+//   --review-brief --ids a,b [--unverified "…"]  brief du relecteur opus de consolidation (US#160)
 //   --session-title       titre de la session maître (« [XXX · EP#a–#b] <nom de l'epic> »)
 function epicmaster(root, json) {
   // --live [--detailed] (lot #136) : état LIVE de la session maître (.vibe-agent/epicmaster-live.json),
@@ -527,6 +528,23 @@ function epicmaster(root, json) {
   };
   if (opts.masterEffort && !backlog.EFFORT_LEVELS.includes(opts.masterEffort)) {
     return out(`Refusé : --master-effort invalide (« ${opts.masterEffort} »). Valeurs acceptées : ${backlog.EFFORT_LEVELS.join(' | ')}.`);
+  }
+  // --review-brief --ids a,b [--unverified "<texte>" …] (US#160) : brief du relecteur opus de fin de
+  // session maître (1 seul, si >= 2 US closes). Lecture seule : n'écrit rien, ne lance rien.
+  if (process.argv.includes('--review-brief')) {
+    const ids = flagList('ids');
+    const unverified = [];
+    for (let i = 0; i < process.argv.length; i++) if (process.argv[i] === '--unverified' && process.argv[i + 1] != null) unverified.push(process.argv[i + 1]);
+    try { // « Non vérifié » des fiches d'archive déjà écrites (fail-open : absent -> ignoré)
+      const ar = require('../lib/archive');
+      for (const id of ids) {
+        const t = ar.readFiche(root, id);
+        const sec = t ? (t.split(/^## Non vérifié[^\n]*\n/m)[1] || '').split(/^## /m)[0] : '';
+        for (const ln of sec.split('\n').map((x) => x.replace(/^\s*[-*]\s*/, '').trim()).filter(Boolean)) unverified.push(`${ln} (US#${id})`);
+      }
+    } catch (_) { /* fail-open */ }
+    const r = em.renderReviewBrief(b, ids, { unverified });
+    return out(json ? JSON.stringify({ ok: r.ok, ids: r.ids, base: r.base, reason: r.reason, model: em.REVIEW_MODEL, effort: em.REVIEW_EFFORT, brief: r.text }, null, 2) : (r.ok ? r.text : r.reason));
   }
   if (process.argv.includes('--brief')) {
     const rawId = flag('id');
@@ -678,6 +696,9 @@ function main() {
   const rawSub = process.argv[3] || '';
   const sub = cmd === 'fleet' && rawSub && !rawSub.startsWith('--') ? rawSub : null;
   const argStart = (process.argv[2] || '').startsWith('--') ? 2 : (sub ? 4 : 3);
+  // US#160 : flags de `epicmaster --review-brief` déclarés ici (VALUE_FLAGS exporté, mutable) — la
+  // garde anti-orphelins les traite comme mono-valeur ; lib/backlog.js reste hors périmètre.
+  for (const f of ['ids', 'unverified']) if (!backlog.VALUE_FLAGS.includes(f)) backlog.VALUE_FLAGS.push(f);
   const orphans = backlog.orphanArgs(process.argv, argStart);
   if (orphans.length) {
     return out(`Refusé : argument(s) orphelin(s) ignoré(s) — ${orphans.map((o) => `« ${o} »`).join(', ')}. `
