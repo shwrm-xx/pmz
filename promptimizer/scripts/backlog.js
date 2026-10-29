@@ -696,9 +696,6 @@ function main() {
   const rawSub = process.argv[3] || '';
   const sub = cmd === 'fleet' && rawSub && !rawSub.startsWith('--') ? rawSub : null;
   const argStart = (process.argv[2] || '').startsWith('--') ? 2 : (sub ? 4 : 3);
-  // US#160 : flags de `epicmaster --review-brief` déclarés ici (VALUE_FLAGS exporté, mutable) — la
-  // garde anti-orphelins les traite comme mono-valeur ; lib/backlog.js reste hors périmètre.
-  for (const f of ['ids', 'unverified']) if (!backlog.VALUE_FLAGS.includes(f)) backlog.VALUE_FLAGS.push(f);
   const orphans = backlog.orphanArgs(process.argv, argStart);
   if (orphans.length) {
     return out(`Refusé : argument(s) orphelin(s) ignoré(s) — ${orphans.map((o) => `« ${o} »`).join(', ')}. `

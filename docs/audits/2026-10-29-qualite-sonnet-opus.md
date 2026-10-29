@@ -1,12 +1,16 @@
 # Qualité epicmaster — sonnet en exécution, opus en jugement
 
+## Récit
+
 Constat (2026-10-29) : depuis v2.10, le découpage pousse `sonnet · medium` par défaut et le maître
 tourne en sonnet (`masterModel`). Pas de perte visible (réouvertures : sonnet 2/84, opus 2/58 ;
 verify ok partout) mais le signal est aveugle : verify = tests verts, et rien ne rattache un bug
 découvert après coup à l'US qui l'a introduit. Le jugement (« Non vérifié », dette, à trancher)
 est fait par un maître sonnet, alors que la grille de `/scope` réserve la revue à opus.
 
-## US A — Relecture opus en consolidation
+## Critères d'acceptation
+
+### US A (#160) — Relecture opus en consolidation
 
 1. `backlog.js epicmaster --review-brief --ids <a,b,…>` imprime le brief d'**un** sous-agent
    relecteur `opus · medium` :
@@ -24,7 +28,7 @@ est fait par un maître sonnet, alors que la grille de `/scope` réserve la revu
 4. Test `test/run-tests-relecture.js` (brief porte `model=opus`, les sections, la garde ≥ 2 US),
    suite autonome (comme les autres `run-tests-*.js`), jouée par la verify de l'US.
 
-## US B — Mesure des régressions post-clôture
+### US B (#161) — Mesure des régressions post-clôture
 
 1. `backlog.js add --regression-of <id>` persiste `regression_of` (id d'une US close ; sinon
    refus lisible).
@@ -36,4 +40,21 @@ est fait par un maître sonnet, alors que la grille de `/scope` réserve la revu
 5. Fail-open : backlog legacy sans le champ → 0.
 6. Test `test/run-tests-regressions.js` suite autonome (comme les autres `run-tests-*.js`), jouée par la verify de l'US.
 
-Les deux US partagent la CLI `scripts/backlog.js` : B dépend de A (série).
+## Hors périmètre
+
+- Changer le modèle d'exécution des US ou du maître (reste `sonnet · medium`).
+- Relecture opus par vague, ou correction automatique des constats du relecteur.
+- Brancher les suites dédiées dans `test/run-tests.js`.
+
+## Preuve de clôture
+
+- #160 : `node test/run-tests.js && node test/run-tests-relecture.js` — vert (2551 + 25), commit 871b32c.
+- #161 : `node test/run-tests.js && node test/run-tests-regressions.js` — vert (2551 + 15), commit c7cd5d0.
+
+## Notes
+
+- Les deux US partagent la CLI `scripts/backlog.js` : B dépend de A (série).
+- Sections Récit / Critères / Hors périmètre / Preuve / Notes ajoutées a posteriori (clôture faite
+  avec `--allow-incomplete-spec`).
+- Arbitrages 2026-10-29 : `ids`/`unverified` déclarés dans `VALUE_FLAGS` de `lib/backlog.js` (patch
+  runtime retiré) ; taux qualité combiné (réouvertures + régressions) / closes conservé.
