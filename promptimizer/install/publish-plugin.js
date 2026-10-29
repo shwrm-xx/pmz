@@ -42,26 +42,34 @@ function git(args, cwd) {
   return execFileSync('git', args, { cwd: cwd || REPO, encoding: 'utf8' });
 }
 
-// Décision pure : 'create' (pas de tag), 'noop' (même commit), 'conflict' (autre commit).
-function tagPlan({ version, headSha, existingSha }) {
+// Décision pure. localSha / remoteSha : SHA, null (absent) ou undefined (non interrogé).
+// 'create' (aucun tag), 'push' (tag local sur HEAD, absent du remote), 'noop', 'conflict'.
+function tagPlan({ version, headSha, localSha, remoteSha }) {
   if (!version) throw new Error('tagPlan : version manquante');
-  if (!existingSha) return 'create';
-  return existingSha === headSha ? 'noop' : 'conflict';
+  if ((localSha && localSha !== headSha) || (remoteSha && remoteSha !== headSha)) return 'conflict';
+  if (!localSha && !remoteSha) return 'create';
+  if (localSha === headSha && remoteSha === null) return 'push';
+  return 'noop';
 }
 
-// SHA du commit visé par un tag (local d'abord, puis remote si push), ou null.
-function existingTagSha(tag) {
+// SHA du commit visé par le tag local (déréférencé), ou null.
+function localTagSha(tag) {
   try {
     return git(['rev-parse', '--verify', '--quiet', `refs/tags/${tag}^{commit}`]).trim() || null;
-  } catch (_) { /* pas de tag local */ }
-  if (!PUSH) return null;
+  } catch (_) { return null; }
+}
+
+// SHA du commit visé par le tag sur le remote (déréférencé) ; null si absent ;
+// undefined si non interrogé (sans --push) ou remote injoignable.
+function remoteTagSha(tag) {
+  if (!PUSH) return undefined;
   try {
     const out = git(['ls-remote', '--tags', REMOTE, `refs/tags/${tag}`, `refs/tags/${tag}^{}`]).trim();
     if (!out) return null;
     const lines = out.split('\n').map((l) => l.split(/\s+/));
     const peeled = lines.find((l) => l[1].endsWith('^{}'));
     return (peeled || lines[0])[0];
-  } catch (_) { return null; }
+  } catch (_) { return undefined; }
 }
 
 function main() {
@@ -73,7 +81,7 @@ function main() {
   const version = fs.readFileSync(path.join(REPO, 'promptimizer', 'VERSION'), 'utf8').trim();
   const TAG = 'v' + version;
   const headSha = git(['rev-parse', 'HEAD']).trim();
-  const plan = tagPlan({ version, headSha, existingSha: existingTagSha(TAG) });
+  const plan = tagPlan({ version, headSha, localSha: localTagSha(TAG), remoteSha: remoteTagSha(TAG) });
   if (plan === 'conflict') {
     fail(`le tag ${TAG} existe déjà sur un autre commit que HEAD (${headSha.slice(0, 7)}) — ni écrasé ni forcé. Bumper VERSION ou résoudre à la main.`);
   }
@@ -127,11 +135,14 @@ function main() {
         git(['tag', '-a', TAG, '-m', 'Release ' + TAG, headSha]);
         execFileSync('git', ['push', REMOTE, TAG], { cwd: REPO, stdio: 'inherit' });
         log('Tag ' + TAG + ' créé et poussé sur ' + REMOTE + ' (' + headSha.slice(0, 7) + ').');
+      } else if (plan === 'push') {
+        execFileSync('git', ['push', REMOTE, TAG], { cwd: REPO, stdio: 'inherit' });
+        log('Tag ' + TAG + ' présent en local, poussé sur ' + REMOTE + ' (' + headSha.slice(0, 7) + ').');
       } else {
         log('Tag ' + TAG + ' déjà présent sur ce commit — rien à faire.');
       }
     } else {
-      log('Tag prévu (avec --push) : ' + TAG + ' sur ' + headSha.slice(0, 7) + ' (' + (plan === 'create' ? 'à créer' : 'déjà présent') + ').');
+      log('Tag prévu (avec --push) : ' + TAG + ' sur ' + headSha.slice(0, 7) + ' (' + (plan === 'create' ? 'à créer' : 'déjà présent en local') + ').');
       log('Local uniquement (pas de --push). Pour publier :');
       log(`  git push ${REMOTE} ${BRANCH} --force`);
     }
