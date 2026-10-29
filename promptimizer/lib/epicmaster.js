@@ -305,9 +305,51 @@ function renderPlan(plan, b, pmzBase) {
 
 // BRIEF D'UN SOUS-AGENT — ce que le maître colle dans le prompt de l'outil Agent. Autonome :
 // le sous-agent n'a ni le backlog ni la conversation du maître. Toute règle de contrat tient ici.
-function renderBrief(l, b, pmzBase) {
+// US#164 — maquettes validées de la spec (section « Maquettes ») : sortie de `maquette.js brief`
+// pour chaque US citée. Retourne { text, validated } ; null si la spec n'a pas de section « Maquettes ».
+function maquettesSection(l, root) {
+  try {
+    const fs = require('fs');
+    const { execFileSync } = require('child_process');
+    const { gitRoot } = require('./project');
+    const ci = process.argv.indexOf('--cwd');
+    const cwd = root || (ci !== -1 && process.argv[ci + 1]) || process.cwd();
+    const r = gitRoot(cwd) || path.resolve(cwd);
+    const cands = [];
+    if (typeof l.spec === 'string' && l.spec && !/^https?:/i.test(l.spec)) cands.push(l.spec);
+    cands.push(`docs/us/US-${l.id}/spec.md`);
+    const specAbs = cands.map((c) => path.resolve(r, c)).find((f) => fs.existsSync(f));
+    if (!specAbs) return null;
+    const lines = fs.readFileSync(specAbs, 'utf8').split(/\r?\n/);
+    const h = lines.findIndex((x) => /^##\s+Maquettes\s*$/.test(x));
+    if (h === -1) return null;
+    const ids = [];
+    const links = []; // [{ n, slug }] — maquettes réellement citées par la spec
+    for (let i = h + 1; i < lines.length && !/^#{1,2}\s/.test(lines[i]); i++) {
+      for (const m of lines[i].matchAll(/\]\(([^)\s]+\.html)\)/g)) {
+        const u = /(?:^|\/)US-(\d+)\/maquettes\//.exec(m[1]);
+        const n = u ? Number(u[1]) : l.id;
+        if (!ids.includes(n)) ids.push(n);
+        links.push({ n, slug: path.basename(m[1], '.html') });
+      }
+    }
+    if (!ids.length) ids.push(l.id);
+    const mq = path.join(__dirname, '..', 'scripts', 'maquette.js');
+    const parts = ids.map((n) => execFileSync(process.execPath, [mq, 'brief', '--id', String(n), '--cwd', r], { encoding: 'utf8', timeout: 10000 }).replace(/\s*$/, ''));
+    // Validée = au moins une maquette CITÉE figure dans la section « Maquettes validées » de son US.
+    const validSlugs = parts.map((p) => new Set([...(p.split(/^Non validées/m)[0].matchAll(/^- (\S+) ·/gm))].map((x) => x[1])));
+    const validated = links.length
+      ? links.some((k) => validSlugs[ids.indexOf(k.n)].has(k.slug))
+      : parts.some((p) => /^Maquettes validées/m.test(p));
+    return { text: parts.join('\n'), validated };
+  } catch (_) { return null; } // fail-open : pas de section plutôt qu'un brief cassé
+}
+
+function renderBrief(l, b, pmzBase, root) {
   const base = pmzBase || '~/.claude/promptimizer';
   const L = [];
+  const mqs = maquettesSection(l, root);
+  if (mqs && !mqs.validated) L.push('⚠ Maquettes non validées : ne pas coder l\'UI, signale-le dans « À trancher ».');
   L.push(`# US#${l.id} « ${l.title} » — brief de sous-agent (session maître Promptimizer)`);
   L.push(`Modèle : ${l.model_hint || '?'} · effort ${l.effort_hint || '?'} — à passer à l'outil Agent (model=${l.model_hint || '?'}${l.effort_hint ? `, effort=${l.effort_hint}` : ''}).`);
   if (l.epic) L.push(`Epic : ${l.epic}`);
@@ -323,6 +365,7 @@ function renderBrief(l, b, pmzBase) {
   }
   const est = b ? estimateCost(b, l) : null;
   if (est) L.push(`Coût attendu : ~${Math.round(est.avg / 1000)}k tokens de sortie (${est.count} US comparable(s)).`);
+  if (mqs) { L.push(''); L.push(mqs.text); }
   L.push('');
   L.push('Règles :');
   L.push('- Ne commite JAMAIS, ne touche ni à .vibe-agent/ ni à CHANGELOG.md : le maître commite, clôt et consolide.');
