@@ -171,5 +171,7 @@
 #0166 | 2026-10-29 | 28b713a | epic:Distribution publique | verify:inconnu | fiche:non | Transparence : SECURITY et PRIVACY
 #0167 | 2026-10-29 | bf92b14 | epic:Distribution publique | verify:inconnu | fiche:non | CI GitHub Actions
 #0168 | 2026-10-29 | ad4ddf4 | epic:Distribution publique | verify:inconnu | fiche:non | Releases traçables (tags + GitHub Release)
+#0169 | 2026-10-29 | 4a1b49f | epic:Distribution publique | verify:inconnu | fiche:oui | Tag de release : détecter le tag local non poussé
+#0170 | 2026-10-29 | c66af42 | epic:Distribution publique | verify:inconnu | fiche:non | Docs publiques : PRIVACY (8 événements, lancement) + liens README FR
 
 # Archive PMZ — index des lots clos

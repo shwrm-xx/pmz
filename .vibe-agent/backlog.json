@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 169,
+  "next_id": 171,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-29T11:08:44.576Z",
+  "updated_at": "2026-10-29T11:38:39.094Z",
   "lots": [
     {
       "id": 1,
@@ -4972,7 +4972,7 @@
       "closed_avg_cost_per_turn": null,
       "started_at": "2026-10-29T11:00:06.491Z",
       "lot_number": 654,
-      "note": null,
+      "note": "opus: README.md FR sans lien PRIVACY/SECURITY",
       "session_touches": 0,
       "perimeter": [
         "README.en.md",
@@ -5006,7 +5006,7 @@
       "closed_avg_cost_per_turn": null,
       "started_at": "2026-10-29T11:00:06.849Z",
       "lot_number": 655,
-      "note": null,
+      "note": "opus: PRIVACY.md dit 'seven events' (hooks.json en a huit) + lancement sh pmz-hook vrai pour plugin seul",
       "session_touches": 0,
       "perimeter": [
         "SECURITY.md",
@@ -5067,7 +5067,7 @@
       "closed_avg_cost_per_turn": null,
       "started_at": "2026-10-29T11:00:07.685Z",
       "lot_number": 657,
-      "note": null,
+      "note": "opus: tagPlan lit le tag local d'abord : tag local absent du remote => noop, jamais poussé",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/install/publish-plugin.js",
@@ -5079,6 +5079,69 @@
       "depends_on": [],
       "session_owner": "master/lot-168",
       "regression_of": null
+    },
+    {
+      "id": 169,
+      "title": "Tag de release : détecter le tag local non poussé",
+      "scope": "fait quand : tagPlan renvoie 'push' si tag local == HEAD et absent du remote ; 4 cas testés ; run-tests vert",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Distribution publique",
+      "verify": "node test/run-tests.js",
+      "spec": "docs/us/US-169/spec.md",
+      "closed_commit": "4a1b49f",
+      "closed_at": "2026-10-29T11:38:39.041Z",
+      "closed_session_id": "f0e7bcbf-b561-4dbc-aff7-5d0a8fbc2e53",
+      "closed_occupancy": 121554,
+      "closed_verify": "ok",
+      "cost_tokens": 12479,
+      "cost_turns": 1,
+      "cost_subagent_tokens": 9569,
+      "closed_avg_cost_per_turn": 12479,
+      "started_at": "2026-10-29T11:30:45.754Z",
+      "lot_number": 659,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/install/publish-plugin.js",
+        "test/run-tests-release-tag.js",
+        "test/run-tests.js"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-169",
+      "regression_of": 168
+    },
+    {
+      "id": 170,
+      "title": "Docs publiques : PRIVACY (8 événements, lancement) + liens README FR",
+      "scope": "fait quand : PRIVACY.md dit eight events avec le lancement exact par canal, README.md FR lie PRIVACY.md et SECURITY.md",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Distribution publique",
+      "verify": "git grep -q 'eight events' docs/PRIVACY.md && git grep -q 'docs/PRIVACY.md' README.md && git grep -q 'SECURITY.md' README.md",
+      "spec": "docs/us/US-170/spec.md",
+      "closed_commit": "c66af42",
+      "closed_at": "2026-10-29T11:31:42.315Z",
+      "closed_session_id": "f0e7bcbf-b561-4dbc-aff7-5d0a8fbc2e53",
+      "closed_occupancy": 118224,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-10-29T11:30:45.847Z",
+      "lot_number": 658,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "docs/PRIVACY.md",
+        "README.md"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-170",
+      "regression_of": 166
     }
   ]
 }
