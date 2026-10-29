@@ -26,7 +26,7 @@ préconisé pour toi**), puis enchaîne **immédiatement**. N'embarque **jamais*
 la sortie du script. Une US **bloquée** (dépendance hors plan) reste ouverte : signale-la en une ligne.
 
 **Maquettes** : si le plan contient une US « Maquettes » (vague 1), **signale-le en une ligne** :
-ses maquettes devront être validées par l'humain avant/pendant les US à écrans, qui en dépendent.
+ses maquettes devront être validées par l'humain avant les US à écrans, qui en dépendent.
 
 **Première action, sans attendre qu'on te le demande** : **renomme ta propre session**.
 `backlog.js epicmaster --session-title` (mêmes `--epic`/`--skip`) donne « [XXX · EP#a–#b] <nom de
@@ -64,6 +64,12 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    « Maquettes »), ajoute : « le brief contient les maquettes validées : suis-les ; signale tout écart
    (maquette ↔ implémentation) dans « À trancher », sans trancher toi-même. Sans maquette validée
    (avertissement en tête de brief), ne code pas l'UI et signale-le dans « À trancher ». »
+   **Garde-fou maquettes (non négociable)** : dans une epic qui a une US « Maquettes », toutes les
+   autres US de l'epic en dépendent (le script l'impose : jamais en parallèle des maquettes). Un
+   brief qui commence par « ⚠ Maquettes non validées » : **ne lance pas** l'US — demande à
+   l'humain de valider les maquettes (lien de l'index, `maquette.js validate`), donne la place à
+   une autre US éligible, et ne la lance qu'après validation (brief régénéré sans ⚠) ou sur
+   « lance sans maquettes » explicite de l'humain.
 2. **Pipeline glissant** : ne fais pas de barrière de vague. Chaque sous-agent en arrière-plan
    te notifie à sa fin ; dès qu'un rapport arrive, traite-le (étapes 3 et 4) puis, **sans attendre les
    autres**, lance dans le même message (groupé s'il y en a plusieurs) la ou les US **éligibles**

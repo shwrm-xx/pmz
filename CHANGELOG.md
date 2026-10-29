@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — Release v2.12.1 — Garde-fou maquettes
+
+Cause : une US à écrans (#237 côté projet) est partie en parallèle de l'US « Maquettes » (#236),
+son brief n'a rien signalé faute de section « Maquettes » dans la spec, et la relecture opus n'a
+comparé aucune maquette.
+
+- `epicmaster` : dépendance implicite de toute US d'une epic sur son US « Maquettes » (jamais même vague ; bloquée si Maquettes non embarquée).
+- `epicmaster --brief` : alerte « ⚠ Maquettes non validées » même sans section « Maquettes » dans la spec ; dépendances implicites affichées dans le plan et le brief.
+- `epicmaster.md` / `pickymaster.md` : une US dont le brief porte ⚠ n'est pas lancée avant validation humaine.
+- `/scope` : fin du « les US à écrans partent en parallèle des maquettes ».
+- Relecture opus : comparaison maquettes validées ↔ UI livrée obligatoire.
+- `run-tests.js` appelle désormais les suites `relecture`, `maquettes-index`, `maquettes-liaison` et `maquettes-garde`.
+- `VERSION` et `plugin.json` en 2.12.1.
+
 ## 2026-10-29 — US#164 US#164 — Liaison maquettes validées vers US suivantes
 
 - `maquette.js brief --id N` : maquettes validées (chemin, états, lien d'index), brouillons à part.

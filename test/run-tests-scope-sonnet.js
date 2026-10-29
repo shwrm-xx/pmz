@@ -40,8 +40,9 @@ ok(/fusion des micro-US/i.test(sc) && /socle de contexte/.test(sc) && /\*\*fusio
 
 // 5. Dépendre du contrat, pas du livrable (y compris maquettes).
 ok(/Dépendre du contrat, pas du livrable/.test(sc), 'scope.md : dépendance au contrat');
-ok(/contrat d'écran/.test(sc) && /ne poser `--depends <id Maquettes>` que sur/.test(sc),
-  'scope.md : les US à écrans ne dépendent plus d\'office de l\'US Maquettes');
+// v2.12.1 : exception maquettes — les US à écrans dépendent (implicitement) de l'US Maquettes.
+ok(/contrat d'écran/.test(sc) && /en dépendent\s+\*\*implicitement\*\*/.test(sc) && !/ne poser `--depends <id Maquettes>` que sur/.test(sc),
+  'scope.md : les US à écrans dépendent de l\'US Maquettes (jamais en parallèle)');
 
 // 6. Gabarit : section Cadrage d'exécution, sections historiques tenues, sobre, jetons inchangés.
 ok(/^## Cadrage d'exécution\s*$/m.test(tp), 'spec-template.md : section « Cadrage d\'exécution »');

@@ -323,6 +323,9 @@ puis génère des maquettes HTML autonomes (zéro CDN, bascule mobile 375 / desk
 refus d'écrasement) ; `link` ajoute une section « Maquettes » à la spec de l'US. `/scope` statue
 « écrans : oui/non » par US et propose une US « Maquettes » en vague 1 ; `/epicmaster` remonte les
 « maquettes à valider » en à-trancher et impose aux sous-agents de suivre les maquettes liées.
+**Garde-fou (v2.12.1)** : une US à écrans ne part jamais en parallèle de l'US « Maquettes » de son
+epic (dépendance implicite), n'est lancée qu'après validation humaine, et la relecture opus compare
+maquettes ↔ UI livrée.
 Toute fin de production de maquettes lance `maquette.js index` et **restitue le lien cliquable de
 l'index** (`docs/us/maquettes-index.html` + URL `file://`) — « maquettes prêtes » seul est interdit ;
 dans `/epicmaster` / `/pickymaster`, l'index ouvre la liste « maquettes à valider » (US#163).
