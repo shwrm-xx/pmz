@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — Release v2.11.1
+
+- Diffuse les arbitrages US#160-#161 : `ids`/`unverified` déclarés dans `VALUE_FLAGS` de la lib, taux qualité combiné conservé, spec qualité complétée.
+- `VERSION` et `plugin.json` en 2.11.1.
+
 ## 2026-10-29 — Arbitrages US#160-#161
 
 - `ids` et `unverified` déclarés dans `VALUE_FLAGS` de `lib/backlog.js` ; le patch runtime de `scripts/backlog.js` est retiré.
