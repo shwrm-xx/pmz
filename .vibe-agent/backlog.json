@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 162,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-29T07:44:36.087Z",
+  "updated_at": "2026-10-29T07:58:29.020Z",
   "lots": [
     {
       "id": 1,
@@ -29,7 +29,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 2,
@@ -56,7 +57,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 3,
@@ -83,7 +85,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 4,
@@ -110,7 +113,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 5,
@@ -137,7 +141,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 6,
@@ -164,7 +169,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 7,
@@ -191,7 +197,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 8,
@@ -218,7 +225,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 9,
@@ -245,7 +253,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 10,
@@ -272,7 +281,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 11,
@@ -299,7 +309,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 12,
@@ -326,7 +337,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 13,
@@ -353,7 +365,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 14,
@@ -380,7 +393,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 15,
@@ -407,7 +421,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 16,
@@ -434,7 +449,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 17,
@@ -461,7 +477,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 18,
@@ -488,7 +505,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 19,
@@ -515,7 +533,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 20,
@@ -542,7 +561,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 21,
@@ -569,7 +589,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 22,
@@ -596,7 +617,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 23,
@@ -623,7 +645,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 24,
@@ -650,7 +673,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 25,
@@ -677,7 +701,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 26,
@@ -704,7 +729,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 27,
@@ -731,7 +757,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 28,
@@ -758,7 +785,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 29,
@@ -785,7 +813,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 30,
@@ -812,7 +841,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 31,
@@ -839,7 +869,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 32,
@@ -866,7 +897,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 33,
@@ -893,7 +925,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 34,
@@ -920,7 +953,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 35,
@@ -947,7 +981,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 36,
@@ -974,7 +1009,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 37,
@@ -1001,7 +1037,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 38,
@@ -1028,7 +1065,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 39,
@@ -1055,7 +1093,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 40,
@@ -1082,7 +1121,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 41,
@@ -1109,7 +1149,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 42,
@@ -1136,7 +1177,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 43,
@@ -1163,7 +1205,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 44,
@@ -1190,7 +1233,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 45,
@@ -1217,7 +1261,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 46,
@@ -1244,7 +1289,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 47,
@@ -1271,7 +1317,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 48,
@@ -1298,7 +1345,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 49,
@@ -1325,7 +1373,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 50,
@@ -1352,7 +1401,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 51,
@@ -1379,7 +1429,8 @@
       "session_touches": 2,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 52,
@@ -1406,7 +1457,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 53,
@@ -1433,7 +1485,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 54,
@@ -1460,7 +1513,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 55,
@@ -1487,7 +1541,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 56,
@@ -1514,7 +1569,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 57,
@@ -1541,7 +1597,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 58,
@@ -1568,7 +1625,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 59,
@@ -1595,7 +1653,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 60,
@@ -1622,7 +1681,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 61,
@@ -1649,7 +1709,8 @@
       "session_touches": 2,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 62,
@@ -1676,7 +1737,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 63,
@@ -1703,7 +1765,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 64,
@@ -1730,7 +1793,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 65,
@@ -1757,7 +1821,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 66,
@@ -1784,7 +1849,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 67,
@@ -1811,7 +1877,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 68,
@@ -1838,7 +1905,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 69,
@@ -1865,7 +1933,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 70,
@@ -1892,7 +1961,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 71,
@@ -1919,7 +1989,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 72,
@@ -1946,7 +2017,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 73,
@@ -1973,7 +2045,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 74,
@@ -2000,7 +2073,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 75,
@@ -2027,7 +2101,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 76,
@@ -2054,7 +2129,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 77,
@@ -2081,7 +2157,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 78,
@@ -2108,7 +2185,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 79,
@@ -2135,7 +2213,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 80,
@@ -2162,7 +2241,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 81,
@@ -2189,7 +2269,8 @@
       "session_touches": 4,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 82,
@@ -2218,7 +2299,8 @@
       "depends_on": [
         81
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 83,
@@ -2247,7 +2329,8 @@
       "depends_on": [
         81
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 84,
@@ -2277,7 +2360,8 @@
         81,
         83
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 85,
@@ -2307,7 +2391,8 @@
         "skills/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 86,
@@ -2339,7 +2424,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 87,
@@ -2370,7 +2456,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 88,
@@ -2400,7 +2487,8 @@
         "promptimizer/lib/backlog.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 89,
@@ -2429,7 +2517,8 @@
         "promptimizer/lib/perimeter.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 90,
@@ -2460,7 +2549,8 @@
         "test/run-tests.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 91,
@@ -2491,7 +2581,8 @@
         "test/run-tests.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 92,
@@ -2518,7 +2609,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 93,
@@ -2545,7 +2637,8 @@
       "session_touches": 1,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 94,
@@ -2574,7 +2667,8 @@
       "depends_on": [
         93
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 95,
@@ -2603,7 +2697,8 @@
       "depends_on": [
         94
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 96,
@@ -2632,7 +2727,8 @@
       "depends_on": [
         94
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 97,
@@ -2661,7 +2757,8 @@
       "depends_on": [
         96
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 98,
@@ -2688,7 +2785,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 99,
@@ -2717,7 +2815,8 @@
       "depends_on": [
         97
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 100,
@@ -2744,7 +2843,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 101,
@@ -2777,7 +2877,8 @@
         "test/run-tests.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 102,
@@ -2819,7 +2920,8 @@
           "from_verify": "timeout",
           "from_lot_number": 63
         }
-      ]
+      ],
+      "regression_of": null
     },
     {
       "id": 103,
@@ -2853,7 +2955,8 @@
         101,
         102
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 104,
@@ -2888,7 +2991,8 @@
         102,
         103
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 105,
@@ -2915,7 +3019,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 106,
@@ -2944,7 +3049,8 @@
       "depends_on": [
         105
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 107,
@@ -2973,7 +3079,8 @@
       "depends_on": [
         106
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 108,
@@ -3005,7 +3112,8 @@
         "ARCHITECTURE.md"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 109,
@@ -3047,7 +3155,8 @@
           "from_verify": null,
           "from_lot_number": 75
         }
-      ]
+      ],
+      "regression_of": null
     },
     {
       "id": 110,
@@ -3087,7 +3196,8 @@
           "from_verify": "timeout",
           "from_lot_number": 79
         }
-      ]
+      ],
+      "regression_of": null
     },
     {
       "id": 111,
@@ -3121,7 +3231,8 @@
       "depends_on": [
         110
       ],
-      "session_owner": "wave-111"
+      "session_owner": "wave-111",
+      "regression_of": null
     },
     {
       "id": 112,
@@ -3150,7 +3261,8 @@
       "depends_on": [
         111
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 113,
@@ -3179,7 +3291,8 @@
       "depends_on": [
         112
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 114,
@@ -3212,7 +3325,8 @@
       "depends_on": [
         110
       ],
-      "session_owner": "wave-114"
+      "session_owner": "wave-114",
+      "regression_of": null
     },
     {
       "id": 115,
@@ -3244,7 +3358,8 @@
       "depends_on": [
         118
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 116,
@@ -3275,7 +3390,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 117,
@@ -3310,7 +3426,8 @@
         114,
         118
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 118,
@@ -3351,7 +3468,8 @@
           "from_verify": null,
           "from_lot_number": 89
         }
-      ]
+      ],
+      "regression_of": null
     },
     {
       "id": 119,
@@ -3383,7 +3501,8 @@
         "promptimizer/lib/reintegrate.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 120,
@@ -3416,7 +3535,8 @@
         "test/run-tests.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 121,
@@ -3443,7 +3563,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 122,
@@ -3472,7 +3593,8 @@
       "depends_on": [
         121
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 123,
@@ -3501,7 +3623,8 @@
       "depends_on": [
         122
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 124,
@@ -3528,7 +3651,8 @@
       "session_touches": 2,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 125,
@@ -3557,7 +3681,8 @@
       "depends_on": [
         124
       ],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 126,
@@ -3584,7 +3709,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 127,
@@ -3611,7 +3737,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 128,
@@ -3641,7 +3768,8 @@
         "test/run-tests.js"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 129,
@@ -3672,7 +3800,8 @@
         "ARCHITECTURE.md"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 130,
@@ -3702,7 +3831,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 131,
@@ -3729,7 +3859,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 132,
@@ -3756,7 +3887,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 133,
@@ -3787,7 +3919,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 134,
@@ -3817,7 +3950,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 135,
@@ -3847,7 +3981,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": null
+      "session_owner": null,
+      "regression_of": null
     },
     {
       "id": 136,
@@ -3879,7 +4014,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-136"
+      "session_owner": "master/lot-136",
+      "regression_of": null
     },
     {
       "id": 137,
@@ -3910,7 +4046,8 @@
       "depends_on": [
         136
       ],
-      "session_owner": "master/lot-137"
+      "session_owner": "master/lot-137",
+      "regression_of": null
     },
     {
       "id": 138,
@@ -3945,7 +4082,8 @@
       "depends_on": [
         137
       ],
-      "session_owner": "master/lot-138"
+      "session_owner": "master/lot-138",
+      "regression_of": null
     },
     {
       "id": 139,
@@ -3979,7 +4117,8 @@
         ".gitignore"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-139"
+      "session_owner": "master/lot-139",
+      "regression_of": null
     },
     {
       "id": 140,
@@ -4013,7 +4152,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-140"
+      "session_owner": "master/lot-140",
+      "regression_of": null
     },
     {
       "id": 141,
@@ -4044,7 +4184,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-141"
+      "session_owner": "master/lot-141",
+      "regression_of": null
     },
     {
       "id": 142,
@@ -4081,7 +4222,8 @@
       "depends_on": [
         141
       ],
-      "session_owner": "master/lot-142"
+      "session_owner": "master/lot-142",
+      "regression_of": null
     },
     {
       "id": 143,
@@ -4111,7 +4253,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-143"
+      "session_owner": "master/lot-143",
+      "regression_of": null
     },
     {
       "id": 144,
@@ -4140,7 +4283,8 @@
       "depends_on": [
         143
       ],
-      "session_owner": "master/lot-144"
+      "session_owner": "master/lot-144",
+      "regression_of": null
     },
     {
       "id": 145,
@@ -4169,7 +4313,8 @@
       "depends_on": [
         143
       ],
-      "session_owner": "master/lot-145"
+      "session_owner": "master/lot-145",
+      "regression_of": null
     },
     {
       "id": 146,
@@ -4200,7 +4345,8 @@
         144,
         145
       ],
-      "session_owner": "master/lot-146"
+      "session_owner": "master/lot-146",
+      "regression_of": null
     },
     {
       "id": 147,
@@ -4233,7 +4379,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-147"
+      "session_owner": "master/lot-147",
+      "regression_of": null
     },
     {
       "id": 148,
@@ -4267,7 +4414,8 @@
       "depends_on": [
         147
       ],
-      "session_owner": "master/lot-148"
+      "session_owner": "master/lot-148",
+      "regression_of": null
     },
     {
       "id": 149,
@@ -4297,7 +4445,8 @@
         147,
         148
       ],
-      "session_owner": "master/lot-149"
+      "session_owner": "master/lot-149",
+      "regression_of": null
     },
     {
       "id": 150,
@@ -4324,7 +4473,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": "master/lot-150"
+      "session_owner": "master/lot-150",
+      "regression_of": null
     },
     {
       "id": 151,
@@ -4351,7 +4501,8 @@
       "session_touches": 0,
       "perimeter": [],
       "depends_on": [],
-      "session_owner": "master/lot-151"
+      "session_owner": "master/lot-151",
+      "regression_of": null
     },
     {
       "id": 152,
@@ -4386,7 +4537,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-152"
+      "session_owner": "master/lot-152",
+      "regression_of": null
     },
     {
       "id": 153,
@@ -4416,7 +4568,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-153"
+      "session_owner": "master/lot-153",
+      "regression_of": null
     },
     {
       "id": 154,
@@ -4447,7 +4600,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-154"
+      "session_owner": "master/lot-154",
+      "regression_of": null
     },
     {
       "id": 155,
@@ -4481,7 +4635,8 @@
       "depends_on": [
         152
       ],
-      "session_owner": "master/lot-155"
+      "session_owner": "master/lot-155",
+      "regression_of": null
     },
     {
       "id": 156,
@@ -4516,7 +4671,8 @@
       "depends_on": [
         155
       ],
-      "session_owner": "master/lot-156"
+      "session_owner": "master/lot-156",
+      "regression_of": null
     },
     {
       "id": 157,
@@ -4549,7 +4705,8 @@
         "promptimizer/commands/pickymaster.md"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-157"
+      "session_owner": "master/lot-157",
+      "regression_of": null
     },
     {
       "id": 158,
@@ -4581,7 +4738,8 @@
         "test/**"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-158"
+      "session_owner": "master/lot-158",
+      "regression_of": null
     },
     {
       "id": 159,
@@ -4614,7 +4772,8 @@
       "depends_on": [
         158
       ],
-      "session_owner": "master/lot-159"
+      "session_owner": "master/lot-159",
+      "regression_of": null
     },
     {
       "id": 160,
@@ -4637,7 +4796,7 @@
       "closed_avg_cost_per_turn": 420,
       "started_at": "2026-10-29T07:35:33.735Z",
       "lot_number": 643,
-      "note": "VALUE_FLAGS ids/unverified ajoutés au runtime par scripts/backlog.js : garder ou éditer lib/backlog.js (#161 touche la lib) ?",
+      "note": "tranché 2026-10-29 : ids/unverified déclarés dans VALUE_FLAGS de lib/backlog.js, patch runtime retiré",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/lib/epicmaster.js",
@@ -4647,7 +4806,8 @@
         "test/run-tests-relecture.js"
       ],
       "depends_on": [],
-      "session_owner": "master/lot-160"
+      "session_owner": "master/lot-160",
+      "regression_of": null
     },
     {
       "id": 161,
@@ -4670,7 +4830,7 @@
       "closed_avg_cost_per_turn": 28484,
       "started_at": "2026-10-29T07:39:23.989Z",
       "lot_number": 645,
-      "note": "taux qualité = (réouvertures + régressions)/closes : garder un taux combiné ou deux taux séparés ?",
+      "note": "tranché 2026-10-29 : taux qualité combiné (réouvertures + régressions)/closes conservé",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/lib/backlog.js",
@@ -4682,7 +4842,8 @@
       "depends_on": [
         160
       ],
-      "session_owner": "master/lot-161"
+      "session_owner": "master/lot-161",
+      "regression_of": null
     }
   ]
 }

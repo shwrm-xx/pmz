@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — Arbitrages US#160-#161
+
+- `ids` et `unverified` déclarés dans `VALUE_FLAGS` de `lib/backlog.js` ; le patch runtime de `scripts/backlog.js` est retiré.
+- Taux qualité de `show --quality` : le taux combiné (réouvertures + régressions) / closes est conservé.
+- Spec `docs/audits/2026-10-29-qualite-sonnet-opus.md` complétée (Récit, Critères d'acceptation, Hors périmètre, Preuve de clôture, Notes).
+- Dossier plugin local `~/.claude/pmz-plugin/build/marketplace` vidé pendant #161 : cause non reproduite en bac à sable (tests isolés par `CLAUDE_CONFIG_DIR` et CLI `claude` stubée), dossier reconstruit.
+
 ## 2026-10-29 — Release v2.11.0
 
 - Regroupe US#160 (relecture opus en consolidation) et US#161 (mesure des régressions post-clôture).

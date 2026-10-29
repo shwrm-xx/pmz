@@ -109,7 +109,8 @@ const CLOSED_VERIFY_VALUES = ['ok', 'failed', 'timeout', 'none'];
 const VALUE_FLAGS = ['cwd', 'id', 'epic', 'set', 'model', 'effort', 'title', 'scope',
   'verify', 'spec', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
   'gate', 'final-gate', 'branch', 'state', 'verify-verdict', 'tokens',
-  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why', 'regression-of'];
+  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why', 'regression-of',
+  'ids', 'unverified'];
 // Flags booléens (ne consomment aucune valeur) — listés pour documentation ;
 // tout flag hors VALUE_FLAGS est traité comme booléen (ne consomme rien).
 const BOOL_FLAGS = ['json', 'suggest', 'execute', 'allow-trunc', 'no-session', 'no-occupancy', 'allow-no-gate', 'new',
