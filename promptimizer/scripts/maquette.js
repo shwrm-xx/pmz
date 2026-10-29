@@ -14,6 +14,8 @@
 //   validate --id N --slug X        statut « validée » dans l'INDEX.md de l'US
 //   open     --id N --slug X        chemin + URL file:// ; ouvre l'aperçu (sauf PMZ_NO_OPEN=1)
 //   list     [--id N]               INDEX.md de l'US (sans --id : celui de chaque US)
+//   index    [--epic "Nom"]         docs/us/maquettes-index.html (autonome) + barre « ← Index » / menu dans
+//                                    chaque maquette ; appelé aussi par new et validate (US #162)
 //
 // Toujours exit 0 (fail-open) : un refus est un message « Refusé : … », jamais un crash.
 // stdlib seule. Commun : --cwd <dossier> (défaut : répertoire courant ; racine git si dispo).
@@ -120,6 +122,7 @@ function cmdNew(root) {
     }
   }
   out(`Créé : ${rel} (gabarit autonome, statut brouillon) · référencé dans ${dirRel(id)}/${INDEX_NAME}.`);
+  regenerate(root, arg('epic'));
 }
 
 // --- link -----------------------------------------------------------------------------------
@@ -203,6 +206,7 @@ function cmdValidate(root) {
     return;
   }
   out(`Validée : ${slug} (${dirRel(id)}/${INDEX_NAME}).`);
+  regenerate(root, arg('epic'));
 }
 
 // --- open -----------------------------------------------------------------------------------
@@ -225,6 +229,110 @@ function cmdOpen(root) {
     p.on('error', () => { /* pas d'ouvreur : l'URL affichée suffit */ });
     p.unref();
   } catch (_) { /* fail-open */ }
+}
+
+// --- index HTML + navigation (US #162) -------------------------------------------------------
+const INDEX_HTML = 'maquettes-index.html';
+const NAV_RE = /<!-- pmz:nav -->[\s\S]*?<!-- \/pmz:nav -->/;
+
+// Toutes les maquettes : [{ id, slug, title, statut }] triées par US puis slug (déterministe).
+function collectMaquettes(root) {
+  const res = [];
+  let dirs = [];
+  try { dirs = fs.readdirSync(path.join(root, US_ROOT)); } catch (_) { return res; }
+  const ids = dirs.map((d) => /^US-(\d+)$/.exec(d)).filter(Boolean).map((m) => Number(m[1])).sort((a, b) => a - b);
+  for (const id of ids) {
+    let files = [];
+    try { files = fs.readdirSync(dirOf(root, id)).filter((f) => /\.html$/.test(f)).sort(); } catch (_) { continue; }
+    const idx = readIndex(root, id) || '';
+    for (const f of files) {
+      const slug = f.replace(/\.html$/, '');
+      const m = lineRe(slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).exec(idx);
+      const t = m && /\[([^\]]*)\]\(/.exec(m[0]);
+      res.push({
+        id, slug,
+        title: (t && t[1].trim()) || slug,
+        statut: m && /statut : validée/.test(m[0]) ? 'validée' : 'brouillon',
+      });
+    }
+  }
+  return res;
+}
+
+const hrefFrom = (from, to) => (from.id === to.id
+  ? `${to.slug}.html` : `../../US-${to.id}/maquettes/${to.slug}.html`);
+
+function navBlock(cur, all) {
+  const others = all.filter((m) => !(m.id === cur.id && m.slug === cur.slug));
+  const opts = others.map((m) => `<option value="${escHtml(hrefFrom(cur, m))}">${escHtml(`US #${m.id} · ${m.title} (${m.statut})`)}</option>`).join('');
+  return '<!-- pmz:nav -->\n'
+    + '<nav style="font:14px system-ui,sans-serif;display:flex;gap:12px;align-items:center;padding:6px 12px;background:#f3f3f3;border-bottom:1px solid #ccc">'
+    + `<a href="../../${INDEX_HTML}">← Index</a>`
+    + (others.length ? `<select aria-label="Autres maquettes" onchange="if(this.value)location.href=this.value"><option value="">Autres maquettes…</option>${opts}</select>` : '')
+    + '</nav>\n<!-- /pmz:nav -->';
+}
+
+function indexHtml(all, epic) {
+  const title = epic ? `Maquettes — ${epic}` : 'Maquettes';
+  const rows = all.map((m) => `<tr><td>US #${m.id}</td><td><a href="US-${m.id}/maquettes/${escHtml(m.slug)}.html">${escHtml(m.title)}</a></td><td class="${m.statut === 'validée' ? 'ok' : 'br'}">${m.statut}</td></tr>`).join('\n');
+  return `<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escHtml(title)}</title>
+<style>
+body{font:15px/1.5 system-ui,sans-serif;margin:0;padding:24px;color:#222}
+table{border-collapse:collapse;width:100%;max-width:900px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #ddd}
+.ok{color:#0a7a2f;font-weight:600}.br{color:#8a6100}
+</style>
+</head>
+<body>
+<h1>${escHtml(title)}</h1>
+<p>${all.length} maquette${all.length > 1 ? 's' : ''}.</p>
+${all.length ? `<table>
+<thead><tr><th>US</th><th>Maquette</th><th>Statut</th></tr></thead>
+<tbody>
+${rows}
+</tbody>
+</table>` : '<p>Aucune maquette.</p>'}
+</body>
+</html>
+`;
+}
+
+// (Re)génère l'index et les barres de navigation. Retourne le chemin de l'index, ou null.
+function regenerate(root, epic) {
+  const all = collectMaquettes(root);
+  for (const m of all) {
+    const f = maquettePath(root, m.id, m.slug);
+    try {
+      const html = fs.readFileSync(f, 'utf8');
+      const nav = navBlock(m, all);
+      let next;
+      if (NAV_RE.test(html)) next = html.replace(NAV_RE, () => nav);
+      else if (/<body[^>]*>/i.test(html)) next = html.replace(/<body[^>]*>/i, (b) => b + '\n' + nav);
+      else continue;
+      if (next !== html) fs.writeFileSync(f, next);
+    } catch (_) { /* fail-open : une maquette illisible n'arrête pas les autres */ }
+  }
+  const abs = path.join(root, US_ROOT, INDEX_HTML);
+  try {
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    const html = indexHtml(all, epic);
+    let cur = null;
+    try { cur = fs.readFileSync(abs, 'utf8'); } catch (_) { /* absent */ }
+    if (cur !== html) fs.writeFileSync(abs, html);
+  } catch (_) { return null; }
+  return abs;
+}
+
+function cmdIndex(root) {
+  const abs = regenerate(root, arg('epic'));
+  if (!abs) { out(`Refusé : écriture de ${US_ROOT}/${INDEX_HTML} impossible.`); return; }
+  out(`Index : ${abs}`);
+  out(`URL : file://${process.platform === 'win32' ? '/' : ''}${abs.split(path.sep).join('/')}`);
 }
 
 function cmdList(root) {
@@ -257,8 +365,9 @@ function main() {
     case 'validate': return cmdValidate(root);
     case 'open': return cmdOpen(root);
     case 'list': return cmdList(root);
+    case 'index': return cmdIndex(root);
     default:
-      out('Usage : maquette.js new --id N --slug X --title "…" | link --id N --slug X | validate --id N --slug X | open --id N --slug X | list [--id N]  [--cwd dir]');
+      out('Usage : maquette.js new --id N --slug X --title "…" | link --id N --slug X | validate --id N --slug X | open --id N --slug X | list [--id N] | index [--epic "Nom"]  [--cwd dir]');
   }
 }
 
