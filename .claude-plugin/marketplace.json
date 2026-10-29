@@ -11,7 +11,7 @@
     {
       "name": "pmz",
       "displayName": "Promptimizer",
-      "description": "Promptimizer — gouvernance de session vibecoding (Claude Code) : réduit la relecture de contexte, force une clôture propre des lots, injecte les handoffs entre sessions.",
+      "description": "Claude Code plugin that keeps vibecoding sessions lean: alerts on context cost, enforces clean story closing, and injects handoffs between sessions. Local only, fail-open hooks.",
       "author": {
         "name": "Marwan"
       },
