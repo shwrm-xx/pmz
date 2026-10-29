@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — US#169 US#169 — Tag de release : détecter le tag local non poussé
+
+- publish-plugin.js --push pousse un tag vX.Y.Z local sur HEAD absent du remote (régression de #168)
+- tagPlan prend localSha et remoteSha et renvoie create, push, noop ou conflict
+- ls-remote interrogé seulement avec --push ; tag annoté déréférencé
+- run-tests-release-tag.js : 9 cas de tagPlan ; identité git locale au bac à sable
+
 ## 2026-10-29 — US#165 US#165 — Accueil public EN
 
 - README.en.md (pitch, prérequis Node >= 18, install, mise à jour, désinstallation, commandes, confidentialité, licence)
