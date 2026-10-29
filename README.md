@@ -1,3 +1,7 @@
+[![CI](https://github.com/shwrm-xx/pmz/actions/workflows/ci.yml/badge.svg)](https://github.com/shwrm-xx/pmz/actions/workflows/ci.yml)
+
+> English version: [README.en.md](README.en.md)
+
 # Promptimizer (PMZ)
 
 Système local de gouvernance pour sessions de **vibecoding**, conçu pour **Claude Code
