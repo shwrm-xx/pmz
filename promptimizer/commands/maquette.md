@@ -56,7 +56,13 @@ Pour chaque écran validé :
 3. Sur « Validée » : `node ~/.claude/promptimizer/scripts/maquette.js validate --id <N> --slug <slug>`
    (statut « validée » dans l'`INDEX.md` de l'US). Sur « À retoucher » : corrige, puis repose la question.
 
-Index des maquettes : `node ~/.claude/promptimizer/scripts/maquette.js list [--id <N>]`.
+4. **Fin de production — index obligatoire** : lance
+   `node ~/.claude/promptimizer/scripts/maquette.js index [--epic "Nom"]` (écrit
+   `docs/us/maquettes-index.html`, affiche `URL : file://…`), puis **restitue le lien cliquable de
+   l'index** : chemin relatif en lien markdown `[maquettes-index.html](docs/us/maquettes-index.html)`
+   + l'URL `file://`. La formule « maquettes prêtes » seule est **interdite**.
+
+Index des maquettes (texte) : `node ~/.claude/promptimizer/scripts/maquette.js list [--id <N>]`.
 
 Hors périmètre : export Figma, design system client (formino/molinetta s'en chargent),
 diff visuel maquette ↔ implémentation.

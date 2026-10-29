@@ -58,7 +58,9 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    **Maquettes** : dans le prompt du sous-agent de l'US « Maquettes », ajoute : « produis les
    maquettes (`/maquette`) et lie-les aux specs (`maquette.js link`), mais **ne les valide pas**
    (`maquette.js validate` interdit) : liste-les dans « À trancher » sous l'intitulé **maquettes
-   à valider** (slug + chemin). » Dans le prompt de chaque US à écrans (spec avec section
+   à valider** (slug + chemin). Termine en lançant `maquette.js index` et restitue le lien cliquable
+   de l'index (chemin relatif + URL `file://`) : « maquettes prêtes » seul est interdit. » À la
+   consolidation, l'index (lien cliquable) figure **en tête** de la liste « maquettes à valider ». Dans le prompt de chaque US à écrans (spec avec section
    « Maquettes »), ajoute : « lis les maquettes liées à ta spec et suis-les ; signale tout écart
    (maquette ↔ implémentation) dans « À trancher », sans trancher toi-même. »
 2. **Pipeline glissant** : ne fais pas de barrière de vague. Chaque sous-agent en arrière-plan

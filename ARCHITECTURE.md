@@ -1658,6 +1658,10 @@ lot #150 ; `new`/`validate`/`open` prennent `--id`) ;
 dépendent les US à écrans ; `/epicmaster` remonte les « maquettes à valider » en à-trancher, impose
 aux sous-agents de suivre les maquettes liées et renomme la session maître dès la confirmation du
 plan (`set_session_title` self).
+Restitution du lien d'index (US#163) : `maquette.md` (étape 3), `epicmaster.md` et `pickymaster.md`
+(prompt du sous-agent « Maquettes » + consolidation) imposent `maquette.js index` puis le lien
+cliquable de `docs/us/maquettes-index.html` (chemin relatif + `file://`), en tête de « maquettes à
+valider » ; « maquettes prêtes » seul est interdit. Garde-fou : test `run-tests.js`.
 
 ### Install sans couture (lots #143–#146)
 
