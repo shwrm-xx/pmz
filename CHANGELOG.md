@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — US#170 — Docs publiques : PRIVACY et liens README
+
+- PRIVACY.md : « eight events » avec la liste des huit événements
+- PRIVACY.md : lancement des hooks précisé par canal (plugin pmz-hook, manuel merge-settings)
+- PRIVACY.md : repli node introuvable attribué au seul canal plugin
+- README FR : section Confidentialité et sécurité (PRIVACY.md, SECURITY.md)
+
 ## 2026-10-29 — US#169 US#169 — Tag de release : détecter le tag local non poussé
 
 - publish-plugin.js --push pousse un tag vX.Y.Z local sur HEAD absent du remote (régression de #168)
