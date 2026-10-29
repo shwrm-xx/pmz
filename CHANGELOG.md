@@ -2,6 +2,34 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — US#165 US#165 — Accueil public EN
+
+- README.en.md (pitch, prérequis Node >= 18, install, mise à jour, désinstallation, commandes, confidentialité, licence)
+- README.md : badge CI et lien vers la version anglaise
+- description anglaise identique dans plugin.json et marketplace.json, sans bump de version
+- Kit de soumission docs/distribution/submission.md (descriptions EN, catégorie workflow, checklist)
+
+## 2026-10-29 — US#166 US#166 — Transparence : SECURITY et PRIVACY
+
+- SECURITY.md : versions supportées, signalement par GitHub Security Advisories, pas de bug bounty
+- docs/PRIVACY.md : tableau par hook (lit, écrit, bloque), fichiers écrits, zéro réseau, fail-open, désactivation
+- Documentation vérifiée dans hooks.json et les scripts, sans modification de code
+
+## 2026-10-29 — US#167 US#167 — CI GitHub Actions
+
+- Ajout de .github/workflows/ci.yml sur push main et PR
+- Job test : run-tests sur ubuntu, macos et windows avec Node 20
+- Job validate : build du plugin puis claude plugin validate, CLI installée en CI uniquement
+- Aucune dépendance runtime ni secret ajouté
+
+## 2026-10-29 — US#168 US#168 — Releases traçables (tags + GitHub Release)
+
+- publish-plugin.js --push crée et pousse le tag annoté vX.Y.Z sur le commit main
+- Décision pure tagPlan (create, noop, conflict) ; conflit en exit 1 avant tout push, jamais forcé
+- Sans --push, affichage seul du tag prévu
+- release.yml publie la GitHub Release depuis la section CHANGELOG du tag
+- Test run-tests-release-tag.js ; CLAUDE.md et ARCHITECTURE.md mis à jour
+
 ## 2026-10-29 — Release v2.12.1 — Garde-fou maquettes
 
 Cause : une US à écrans (#237 côté projet) est partie en parallèle de l'US « Maquettes » (#236),
