@@ -167,5 +167,9 @@
 #0162 | 2026-10-29 | 4ac99cd | epic:Maquettes : index et navigation | verify:inconnu | fiche:non | Index HTML et navigation des maquettes
 #0163 | 2026-10-29 | f87063f | epic:Maquettes : index et navigation | verify:inconnu | fiche:non | Restitution systématique du lien d'index
 #0164 | 2026-10-29 | b054b32 | epic:Maquettes : index et navigation | verify:inconnu | fiche:non | Liaison maquettes validées vers US suivantes
+#0165 | 2026-10-29 | 26eaf7e | epic:Distribution publique | verify:inconnu | fiche:non | Accueil public EN
+#0166 | 2026-10-29 | 28b713a | epic:Distribution publique | verify:inconnu | fiche:non | Transparence : SECURITY et PRIVACY
+#0167 | 2026-10-29 | bf92b14 | epic:Distribution publique | verify:inconnu | fiche:non | CI GitHub Actions
+#0168 | 2026-10-29 | ad4ddf4 | epic:Distribution publique | verify:inconnu | fiche:non | Releases traçables (tags + GitHub Release)
 
 # Archive PMZ — index des lots clos
