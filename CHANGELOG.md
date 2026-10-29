@@ -10,6 +10,11 @@ Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changel
 - `scope`, `epicmaster` et `pickymaster` : consignes de liaison alignées.
 - Nouveau test `test/run-tests-maquettes-liaison.js`.
 
+## 2026-10-29 — Release v2.12.0
+
+- Maquettes : index HTML et navigation (US#162), restitution du lien d'index (US#163), liaison des maquettes validées aux US suivantes (US#164).
+- `VERSION` et `plugin.json` en 2.12.0.
+
 ## 2026-10-29 — US#162 — Index HTML et navigation des maquettes
 
 - `maquette.js index` génère `docs/us/maquettes-index.html`, autonome, liens relatifs et statut par maquette.
