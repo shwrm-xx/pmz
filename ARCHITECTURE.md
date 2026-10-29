@@ -1663,6 +1663,15 @@ Restitution du lien d'index (US#163) : `maquette.md` (étape 3), `epicmaster.md`
 cliquable de `docs/us/maquettes-index.html` (chemin relatif + `file://`), en tête de « maquettes à
 valider » ; « maquettes prêtes » seul est interdit. Garde-fou : test `run-tests.js`.
 
+Garde-fou maquettes (v2.12.1) : dans `lib/epicmaster.js`, `effectiveDeps` ajoute à toute US d'une
+epic une dépendance **implicite** sur l'US « Maquettes » de cette epic (titre `^Maquettes`, hors
+`dropped`) — `planMasterWaves` ne la place jamais dans la même vague, et la bloque si l'US
+Maquettes est ouverte mais non embarquée. `renderBrief` n'est plus silencieux : spec sans section
+« Maquettes » dans une epic à maquettes → « ⚠ Maquettes non validées » en tête ; le maître ne lance
+pas une US dont le brief porte ⚠ avant validation humaine. `renderReviewBrief` impose au relecteur
+opus la comparaison maquettes validées ↔ UI livrée. Tests : `test/run-tests-maquettes-garde.js`
+(appelé par `run-tests.js`, avec `-index`, `-liaison` et `-relecture`).
+
 ### Install sans couture (lots #143–#146)
 
 Canal recommandé pour un nouveau poste : `install/install-plugin.{command,sh,ps1}` (lanceurs fins) →

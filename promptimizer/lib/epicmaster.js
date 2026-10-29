@@ -55,6 +55,18 @@ const MAX_HANDOFF_LOT_LINES = 24;     // lignes de lots dans le handoff maître 
 
 function lotsOf(b) { return (b && Array.isArray(b.lots)) ? b.lots : []; }
 function isOpen(l) { return l && (l.status === 'todo' || l.status === 'in_progress'); }
+// US « Maquettes — <epic> » (titre posé par /scope et maquette.js). Dans son epic, toute autre US
+// en dépend implicitement : une US à écrans ne part jamais en parallèle de ses maquettes.
+function isMaquettesLot(l) { return !!l && /^Maquettes\b/i.test(String(l.title || '')); }
+function maquettesLotsOf(b, l) {
+  if (!l || !l.epic || isMaquettesLot(l)) return [];
+  return lotsOf(b).filter((m) => m.id !== l.id && m.epic === l.epic && isMaquettesLot(m) && m.status !== 'dropped');
+}
+function effectiveDeps(b, l) {
+  const deps = Array.isArray(l.depends_on) ? l.depends_on.slice() : [];
+  for (const m of maquettesLotsOf(b, l)) if (!deps.includes(m.id)) deps.push(m.id);
+  return deps;
+}
 function idList(v) {
   if (v == null) return [];
   const raw = Array.isArray(v) ? v : String(v).split(',');
@@ -101,14 +113,13 @@ function planMasterWaves(b, selected) {
   const placed = new Set(all.filter((l) => l.status === 'done').map((l) => l.id));
   const blocked = [];
   let remaining = selected.filter((l) => {
-    const deps = Array.isArray(l.depends_on) ? l.depends_on : [];
-    const bad = deps.filter((d) => openNotSelected.has(d));
+    const bad = effectiveDeps(b, l).filter((d) => openNotSelected.has(d));
     if (bad.length) { blocked.push({ lot: l, reason: `dépend de ${bad.map((d) => '#' + d).join(', ')} (ouvert mais non embarqué)` }); return false; }
     return true;
   });
   // Dépendance satisfaite : lot fait, lot embarqué déjà placé, ou référence hors-plan (abandonné /
   // inconnu — tolérée, comme planWaves). Un lot ouvert non embarqué a déjà bloqué ci-dessus.
-  const depsOk = (l) => (Array.isArray(l.depends_on) ? l.depends_on : [])
+  const depsOk = (l) => effectiveDeps(b, l)
     .every((d) => placed.has(d) || !selIds.has(d));
   const waves = [];
   while (remaining.length) {
@@ -241,7 +252,8 @@ function lotLine(l, b, waveOf, checked) {
   const det = [];
   if (l.verify) det.push(`verify : ${l.verify}`);
   det.push(hasPerimeter(l) ? `périmètre : ${l.perimeter.join(', ')}` : 'sans périmètre → série');
-  if (l.depends_on && l.depends_on.length) det.push(`dépend de : ${l.depends_on.map((d) => '#' + d).join(', ')}`);
+  const deps = b ? effectiveDeps(b, l) : (l.depends_on || []);
+  if (deps.length) det.push(`dépend de : ${deps.map((d) => '#' + d).join(', ')}`);
   if (l.spec) det.push(`Spec : ${l.spec}`);
   const est = b ? estimateCost(b, l) : null;
   if (est) det.push(`~${Math.round(est.avg / 1000)}k tokens`);
@@ -349,7 +361,10 @@ function renderBrief(l, b, pmzBase, root) {
   const base = pmzBase || '~/.claude/promptimizer';
   const L = [];
   const mqs = maquettesSection(l, root);
+  const epicMq = b ? maquettesLotsOf(b, l) : [];
   if (mqs && !mqs.validated) L.push('⚠ Maquettes non validées : ne pas coder l\'UI, signale-le dans « À trancher ».');
+  // Sans section « Maquettes » dans la spec alors que l'epic a une US Maquettes : jamais de silence.
+  else if (!mqs && epicMq.length) L.push(`⚠ Maquettes non validées : l'epic a une US Maquettes (${epicMq.map((m) => '#' + m.id).join(', ')}) mais la spec n'en cite aucune. Si cette US touche l'UI, ne la code pas et signale-le dans « À trancher ».`);
   L.push(`# US#${l.id} « ${l.title} » — brief de sous-agent (session maître Promptimizer)`);
   L.push(`Modèle : ${l.model_hint || '?'} · effort ${l.effort_hint || '?'} — à passer à l'outil Agent (model=${l.model_hint || '?'}${l.effort_hint ? `, effort=${l.effort_hint}` : ''}).`);
   if (l.epic) L.push(`Epic : ${l.epic}`);
@@ -359,8 +374,9 @@ function renderBrief(l, b, pmzBase, root) {
   L.push(hasPerimeter(l)
     ? `Périmètre EXCLUSIF — n'écris NULLE PART ailleurs (d'autres sous-agents travaillent en parallèle) : ${l.perimeter.join(', ')}`
     : 'Périmètre : aucun — tu es seul en vol, mais reste strictement dans le sujet de l\'US.');
-  if (l.depends_on && l.depends_on.length) {
-    const st = l.depends_on.map((d) => { const x = b && lotsOf(b).find((y) => y.id === d); return `#${d}${x ? ` (${x.status === 'done' ? 'clos' : x.status})` : ''}`; });
+  const deps = b ? effectiveDeps(b, l) : (l.depends_on || []);
+  if (deps.length) {
+    const st = deps.map((d) => { const x = b && lotsOf(b).find((y) => y.id === d); return `#${d}${x ? ` (${x.status === 'done' ? 'clos' : x.status})` : ''}`; });
     L.push(`Dépend de : ${st.join(', ')} — déjà livré(s) dans l'arbre de travail.`);
   }
   const est = b ? estimateCost(b, l) : null;
@@ -421,6 +437,7 @@ function renderReviewBrief(b, ids, opts) {
   L.push('- LECTURE SEULE : n\'écris aucun fichier, ne commite jamais, ne touche ni à .vibe-agent/ ni à CHANGELOG.md.');
   L.push('- Ne lance aucun script Promptimizer (backlog.js, close-batch.js…) ; tu peux rejouer les verify (lecture) et utiliser git/grep.');
   L.push('- Lecture ciblée (git grep, lecture partielle) ; pas de scan large du dépôt.');
+  L.push('- Maquettes : pour chaque US relue dont la spec a une section « Maquettes », compare les maquettes validées (`maquette.js brief --id <US citée>`, HTML lu) à l\'UI livrée ; tout écart (écran, état, libellé, structure) ou UI codée sans maquette validée = Problème confirmé.');
   L.push('- Ne corrige rien : signale. Le maître classe tes constats en Dette ou À trancher.');
   L.push(`- Rapport final ≤ ${REPORT_MAX_WORDS} mots, EXACTEMENT ces sections, rien d'autre :`);
   L.push(`  ${REVIEW_SECTIONS.join(' / ')}.`);
@@ -493,7 +510,7 @@ function writeMasterHandoff(root, text, file) {
 }
 
 module.exports = {
-  selectLots, groupByEpic, planMasterWaves, chunkWaves, masterModel, contextBudget, splitSessions,
+  selectLots, groupByEpic, planMasterWaves, isMaquettesLot, effectiveDeps, chunkWaves, masterModel, contextBudget, splitSessions,
   planMaster, renderPlan, renderBrief, renderReviewBrief,
   REVIEW_MIN_LOTS, REVIEW_MODEL, REVIEW_EFFORT, REVIEW_SECTIONS, launchCommand, closeCommands, renderMasterHandoff, writeMasterHandoff,
   MAX_PARALLEL_DEFAULT, MAX_PARALLEL_CAP, MASTER_BASELINE_TOKENS, MASTER_COST_PER_LOT, SUBAGENT_BASE_TOKENS,

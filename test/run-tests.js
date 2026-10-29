@@ -10610,6 +10610,17 @@ section('US#159 — arbitrages epicmaster (test/run-tests-arbitrages.js)');
   ok(rar.status === 0, 'arbitrages : ' + ((rar.stdout || '') + (rar.stderr || '')).trim().split('\n').slice(-3).join(' | '));
 }
 
+for (const [title, file] of [
+  ['US#160 — relecture opus', 'run-tests-relecture.js'],
+  ['US#162 — index des maquettes', 'run-tests-maquettes-index.js'],
+  ['US#164 — liaison des maquettes', 'run-tests-maquettes-liaison.js'],
+  ['v2.12.1 — garde-fou maquettes', 'run-tests-maquettes-garde.js'],
+]) {
+  section(`${title} (test/${file})`);
+  const r = spawnSync(process.execPath, [path.join(__dirname, file)], { encoding: 'utf8' });
+  ok(r.status === 0, `${file} : ` + ((r.stdout || '') + (r.stderr || '')).trim().split('\n').slice(-3).join(' | '));
+}
+
 // ============================ RÉSUMÉ ============================
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Résultat : ${pass} OK · ${fail} échec(s)`);

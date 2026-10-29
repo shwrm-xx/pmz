@@ -82,7 +82,7 @@ plus que son socle.
    et effort préconisés, « fait quand : maquettes produites et liées aux specs des US à écrans »,
    déroulant `/maquette`), qui compte alors dans les 2 à 5 US. Le **contrat d'écran** (écrans
    listés, états, données affichées, interface du composant) est figé dans la spec de chaque US
-   à écrans dès cette étape : c'est lui que l'exécution consomme, pas le rendu des maquettes.
+   à écrans dès cette étape ; l'exécution le consomme **avec** les maquettes validées, jamais sans.
    Aucune US à écrans : rien à proposer, ne pas en parler.
    **Statuer aussi sur la spec** pour **chaque** US : soit un chemin de fichier de spec existant,
    soit « pas de spec » assumé, soit une spec **à créer** — dans ce dernier cas, **rédiger tout de
@@ -115,11 +115,12 @@ plus que son socle.
    preuve » — à réserver aux US réellement non vérifiables par commande (doc, choix visuel).
    Elle est éditable après coup : `backlog.js verify --set "…" --id <id>`.
    **Maquettes** : sur **oui**, persister d'abord l'US « Maquettes — <epic> » **en vague 1**
-   (sans `--depends`, périmètre `docs/us/**`). Les US à écrans dépendent du **contrat d'écran**
-   figé dans leur spec, pas du rendu : ne poser `--depends <id Maquettes>` que sur une US dont
-   le contrat **ne peut pas** être figé sans voir les maquettes (choix visuel ouvert, à dire en
-   une ligne) : elle reçoit alors `--depends <id Maquettes>` et son « fait quand » **cite les
-   maquettes validées** (slug) ; les autres partent en parallèle des maquettes et s'y alignent à la livraison ; les écrans validés à l'étape 2
+   (sans `--depends`, périmètre `docs/us/**`). Toutes les autres US de l'epic en dépendent
+   **implicitement** (imposé par `epicmaster` : une US à écrans ne part jamais en parallèle de ses
+   maquettes) ; poser en plus `--depends <id Maquettes>` sur les US à écrans rend la dépendance
+   lisible hors session maître. Le « fait quand » d'une US à écrans **cite les
+   maquettes validées** (slug) et sa spec porte une section `## Maquettes` (liens posés par
+   `maquette.js link`) ; les écrans validés à l'étape 2
    figurent dans le « fait quand » ou la spec de l'US Maquettes. `epicmaster --brief` injecte les maquettes validées de la spec (ou l'alerte). Sur **non** : n'ajouter aucune
    US ni dépendance, et **noter le choix** (« maquettes écartées ») dans le handoff écrit à
    l'étape 5.
