@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — US#160 Relecture opus en consolidation
+
+- Nouveau `backlog.js epicmaster --review-brief --ids …` : brief du relecteur opus·medium en lecture seule, avec le diff cumulé de la session et les « Non vérifié » agrégés.
+- Rapport du relecteur ≤ 250 mots à sections fixes : Problèmes confirmés / Non vérifié levé / Non vérifié confirmé / RAS.
+- Garde : pas de relecture sous 2 US closes.
+- `epicmaster.md` / `pickymaster.md` §4 : relecteur lancé 1× par session maître, constats en Dette ou À trancher, maître toujours sonnet.
+- Test `test/run-tests-relecture.js` (25 vérifications).
+
 ## 2026-10-28 — Release v2.10.4
 
 - Regroupe US#157 (doc et désinstallation), US#158 (robustesse CLI epicmaster) et US#159 (arbitrages epicmaster).
