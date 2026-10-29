@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — US#164 US#164 — Liaison maquettes validées vers US suivantes
+
+- `maquette.js brief --id N` : maquettes validées (chemin, états, lien d'index), brouillons à part.
+- `epicmaster --brief` injecte ce brief pour toute US dont la spec a « Maquettes » ; sans maquette validée, avertissement en tête de brief.
+- `maquette.js validate` marque « (validée) » dans les specs (idempotent).
+- `scope`, `epicmaster` et `pickymaster` : consignes de liaison alignées.
+- Nouveau test `test/run-tests-maquettes-liaison.js`.
+
+## 2026-10-29 — US#162 — Index HTML et navigation des maquettes
+
+- `maquette.js index` génère `docs/us/maquettes-index.html`, autonome, liens relatifs et statut par maquette.
+- Barre `pmz:nav` (« ← Index » + menu des autres maquettes) posée par le gabarit et insérée dans les maquettes existantes.
+- `new` et `validate` régénèrent l'index et les barres ; génération idempotente ; `--epic` intitule la page.
+- Nouveau test `test/run-tests-maquettes-index.js`.
+
 ## 2026-10-29 — US#163 US#163 — Restitution systématique du lien d'index
 
 - `maquette.md` (étape 3) impose `maquette.js index` puis la restitution du lien cliquable (chemin relatif et URL `file://`).
