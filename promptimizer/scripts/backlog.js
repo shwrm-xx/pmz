@@ -707,6 +707,16 @@ function main() {
   const json = process.argv.includes('--json');
   const id = flag('id');
 
+  if (cmd === 'show' && process.argv.includes('--quality')) {
+    // US#161 : lecture seule, par modèle puis par modèle · effort.
+    const rows = backlog.qualityStats(backlog.loadBacklog(root));
+    if (json) return out(JSON.stringify(rows, null, 2));
+    if (!rows.length) return out('Qualité : aucune US close.');
+    out('## Qualité par modèle / effort');
+    out('(taux = (réouvertures + régressions) / closes)');
+    for (const g of rows) out(`- ${g.key} : ${g.closed} closes, ${g.reopened} réouvertures, ${g.regressions} régressions, taux ${(g.rate * 100).toFixed(0)} %`);
+    return;
+  }
   if (cmd === 'show') return show(root, json, flag('epic'));
 
   if (cmd === 'epic') {
@@ -750,6 +760,13 @@ function main() {
     ])) return;
     const dep = parseDepends();
     if (!dep.ok) return;
+    let regOf = null;
+    if (process.argv.includes('--regression-of')) {
+      regOf = Number(flag('regression-of'));
+      const src = Number.isFinite(regOf) ? backlog.loadBacklog(root).lots.find((x) => x.id === regOf) : null;
+      if (!src) return out(`Refusé : --regression-of pointe vers une US inexistante (« ${flag('regression-of') || ''} »).`);
+      if (src.status !== 'done') return out(`Refusé : --regression-of exige une US close ; l'US#${src.id} est ${LABELS_F[src.status]}.`);
+    }
     // Garde d'existence (fait quand du lot « Pointeur US vérifié ») : un chemin --spec (ex --us,
     // alias déprécié) qui ne pointe vers rien est REFUSÉ, jamais avalé — un pointeur mort serait
     // pire qu'aucune spec.
@@ -760,7 +777,7 @@ function main() {
       return out(`Refusé : ${specFlagName()} pointe vers un chemin inexistant (« ${specPath} », relatif à la racine du dépôt « ${root} »). `
         + `Crée le fichier d'abord (cf. templates/spec-template.md, ex. docs/us/US-42/spec.md), ou omets ${specFlagName()} si la spec n'est pas encore rédigée.`);
     }
-    const newLot = backlog.addLot(root, flag('title'), flag('scope'), model, flag('epic'), flag('verify'), effort, flagList('perimeter'), dep.ids, specPath);
+    const newLot = backlog.addLot(root, flag('title'), flag('scope'), model, flag('epic'), flag('verify'), effort, flagList('perimeter'), dep.ids, specPath, regOf);
     if (!newLot) {
       const b = backlog.loadBacklog(root);
       if (b.lots.filter((l) => l.status === 'todo' || l.status === 'in_progress').length >= backlog.MAX_LOTS_OPEN) {
@@ -772,7 +789,7 @@ function main() {
     // Se poser un lot avant de le traiter est le geste ORDINAIRE d'une session de travail (et le
     // marquer « Plan » la décrivait à faux) ; l'acte de conception tracé est `epic --set`, que
     // /pmz:scope exécute pour le plan qu'il découpe.
-    let addMsg =`US#${newLot.id} « ${newLot.title} » ajoutée (à faire)${backlog.modelEffortTag(newLot)}${newLot.epic ? ` [epic : ${newLot.epic}]` : ''}${newLot.verify ? ` [verify : ${newLot.verify}]` : ''}${newLot.spec ? ` [Spec : ${newLot.spec}]` : ''}${newLot.perimeter.length ? ` [périmètre : ${newLot.perimeter.join(', ')}]` : ''}${newLot.depends_on.length ? ` [dépend de : ${newLot.depends_on.map((d) => '#' + d).join(', ')}]` : ''}.`;
+    let addMsg =`US#${newLot.id} « ${newLot.title} » ajoutée (à faire)${backlog.modelEffortTag(newLot)}${newLot.epic ? ` [epic : ${newLot.epic}]` : ''}${newLot.verify ? ` [verify : ${newLot.verify}]` : ''}${newLot.spec ? ` [Spec : ${newLot.spec}]` : ''}${newLot.perimeter.length ? ` [périmètre : ${newLot.perimeter.join(', ')}]` : ''}${newLot.depends_on.length ? ` [dépend de : ${newLot.depends_on.map((d) => '#' + d).join(', ')}]` : ''}${newLot.regression_of ? ` [régression de : #${newLot.regression_of}]` : ''}.`;
     addMsg += estimateSuffix(backlog.loadBacklog(root), newLot);
     addMsg += backlog.costlyChoiceWarning(model, effort, flag('why'));
     return out(addMsg);

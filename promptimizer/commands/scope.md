@@ -107,6 +107,9 @@ plus que son socle.
    (`--model` est **obligatoire** — l'ajout est refusé sans lui ; `--effort` doit valoir
    `low`/`medium`/`high`/`xhigh` sinon l'ajout est refusé ; `--epic` reste optionnel ;
    `--perimeter`/`--depends` répétables, optionnels, omis si aucun périmètre net).
+   **`--regression-of <id>`** : à poser quand l'US corrige un bug trouvé dans un livrable
+   **déjà clos** (id de l'US close fautive ; refusé sinon). Alimente `show --quality`
+   (régressions par modèle/effort) — ne pas le poser pour une évolution ou un bug d'une US encore ouverte.
    **`--verify` dès que l'US est vérifiable par une commande** (test, typecheck, build,
    lint…) : c'est la preuve rejouée à l'auto-clôture. Une US posée sans elle sera « close sans
    preuve » — à réserver aux US réellement non vérifiables par commande (doc, choix visuel).
