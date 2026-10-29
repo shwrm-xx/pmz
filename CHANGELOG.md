@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — Release v2.11.0
+
+- Regroupe US#160 (relecture opus en consolidation) et US#161 (mesure des régressions post-clôture).
+- `VERSION` et `plugin.json` en 2.11.0 ; README et ARCHITECTURE à jour (section « Qualité epicmaster »).
+
 ## 2026-10-29 — US#161 Mesure des régressions post-clôture
 
 - `add --regression-of <id>` : persiste `regression_of` (US close obligatoire, refus lisible sinon).

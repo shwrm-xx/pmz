@@ -816,6 +816,15 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   vagues restant toujours visible. Coût par US non imputé au maître quand plusieurs US sont en
   vol (`costLotFor` : owners `master/lot-N` ≠ session) — trou de mesure visible, assumé, jamais une
   imputation au hasard.
+- **Relecture opus et mesure des régressions** (epic « Qualité epicmaster », US#160-#161) :
+  `lib/epicmaster.js` construit le brief du relecteur (`epicmaster --review-brief --ids a,b
+  [--unverified …] [--json]`) : diff `git diff <closed_commit 1re US>^..HEAD`, « Non vérifié » des
+  fiches d'archive, lecture seule, sections Problèmes confirmés / Non vérifié levé / Non vérifié
+  confirmé / RAS ; refus sous 2 US closes. `epicmaster.md`/`pickymaster.md` §4 le lancent 1×/session
+  maître (pas par vague). `lib/backlog.js` : champ `regression_of` (`add --regression-of`, US close
+  exigée, refus lib et CLI), `show --quality` (taux = (réouvertures + régressions) / closes, legacy
+  → 0), colonne `regression_of` à l'export. Tests dédiés : `test/run-tests-relecture.js`,
+  `test/run-tests-regressions.js` (hors `run-tests.js`).
 - **`/pickymaster`, maître sonnet, pipeline glissant, `close-wave`** (epic « Dette Epicmaster ») :
   `commands/pickymaster.md` est la variante **sélective** de `/epicmaster` (même moteur
   `backlog.js epicmaster`, plan proposé en UNE question à cases précochées décochables avant
