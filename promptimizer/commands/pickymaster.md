@@ -149,13 +149,20 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
 1. Fiche d'archive par US close (déjà écrite par `close-wave` si `fiche` y figurait) : `node ~/.claude/promptimizer/scripts/archive.js write --id N
    --stdin` — les sections du rapport (Fait, Non vérifié, Dette, À trancher) se reportent telles
    quelles ; aucun diff ni contenu de fichier.
-2. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
+2. **Relecture opus (1× par session maître, jamais par vague)** — seulement si **≥ 2 US closes**
+   dans la session (sinon passe) : `node ~/.claude/promptimizer/scripts/backlog.js epicmaster
+   --review-brief --ids <ids des US closes> [--unverified "<Non vérifié>" …]` imprime le brief ;
+   colle-le dans UN sous-agent (outil Agent, `model=opus`, `effort=medium`, lecture seule, rapport
+   ≤ 250 mots : Problèmes confirmés / Non vérifié levé / Non vérifié confirmé / RAS). Le maître
+   reste sonnet. Ses « Problèmes confirmés » et « Non vérifié confirmé » vont en **Dette** ou
+   **À trancher** du handoff — jamais corrigés d'office.
+3. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
    `.vibe-agent/handoff.md` (écrase ; garde la première ligne `<!-- pmz:handoff:manual -->`) :
    US livrées (id + commit), US restées ouvertes et pourquoi, **Non vérifié** agrégé, **Dette
    consolidée** (une puce par item, US d'origine entre parenthèses), **À trancher** (décisions
    qui attendent l'humain — jamais tranchées à sa place), prochaine action (US restantes →
    `/epicmaster` ; sinon « plan terminé »). Moins de 800 tokens.
-3. Résume en 5 lignes à l'utilisateur : livrés / ouverts / à trancher / session fraîche
+4. Résume en 5 lignes à l'utilisateur : livrés / ouverts / à trancher / session fraîche
    recommandée (oui si des US restent ou si le hook l'a prescrit).
 
 Ne déclare jamais une US « faite » sans verify verte rapportée **et** persistée.
