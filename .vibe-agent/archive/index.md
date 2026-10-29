@@ -163,5 +163,6 @@
 #0158 | 2026-10-28 | fa65ae8 | epic:Dette Epicmaster | verify:inconnu | fiche:oui | Robustesse CLI epicmaster
 #0159 | 2026-10-28 | 9a89956 | epic:Dette Epicmaster | verify:inconnu | fiche:oui | Arbitrages epicmaster
 #0160 | 2026-10-29 | 871b32c | epic:Qualité epicmaster | verify:inconnu | fiche:oui | Relecture opus en consolidation
+#0161 | 2026-10-29 | c7cd5d0 | epic:Qualité epicmaster | verify:inconnu | fiche:oui | Mesure des régressions post-clôture
 
 # Archive PMZ — index des lots clos
