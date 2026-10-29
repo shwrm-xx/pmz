@@ -346,6 +346,13 @@ suivantes (dépendances closes, périmètre libre, parallélisme borné). **`clo
 fiche d'archive, CHANGELOG ; `--dry-run` pour prévisualiser ; verify rouge = pas de commit, US
 rouverte). Désinstallation : `uninstall.js` retire aussi `commands/pickymaster.md`.
 
+**Qualité epicmaster** (US#160-#161) : en consolidation, si ≥ 2 US sont closes, le maître lance
+**une seule** relecture `opus · medium` par session (`backlog.js epicmaster --review-brief --ids …` :
+diff cumulé + « Non vérifié » agrégés, lecture seule, rapport ≤ 250 mots) ; ses constats vont en
+Dette / À trancher, jamais corrigés d'office. Mesure : `add --regression-of <id>` marque une US
+ouverte pour un bug d'une US close ; `show --quality` donne par modèle et modèle · effort les closes,
+réouvertures, régressions et le taux ; `export` porte la colonne `regression_of`.
+
 **Bande epicmaster** (US#136-#138) : pendant la session maître, une bande live affiche les
 sous-agents en vol / terminés (`EM ▶n ✔n ⚙n` dans la statusline ; `backlog.js epicmaster --live`
 en CLI). Le mod `promptimizer/mods/epicmaster-band/` (panneau Claude Code) est déployé par
