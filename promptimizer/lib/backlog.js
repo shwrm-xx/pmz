@@ -109,7 +109,7 @@ const CLOSED_VERIFY_VALUES = ['ok', 'failed', 'timeout', 'none'];
 const VALUE_FLAGS = ['cwd', 'id', 'epic', 'set', 'model', 'effort', 'title', 'scope',
   'verify', 'spec', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
   'gate', 'final-gate', 'branch', 'state', 'verify-verdict', 'tokens',
-  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why'];
+  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why', 'regression-of'];
 // Flags booléens (ne consomment aucune valeur) — listés pour documentation ;
 // tout flag hors VALUE_FLAGS est traité comme booléen (ne consomme rien).
 const BOOL_FLAGS = ['json', 'suggest', 'execute', 'allow-trunc', 'no-session', 'no-occupancy', 'allow-no-gate', 'new',
@@ -264,6 +264,8 @@ function loadBacklog(root) {
       integrations: normalizeIntegrations(l.integrations),
       // Historique de réouverture (lot #98) — optionnel, clé droppée si le lot n'a jamais été rouvert.
       reopened: normalizeReopened(l.reopened),
+      // US#161 : id de l'US close dont celle-ci corrige une régression (absent des lots legacy).
+      regression_of: Number.isFinite(l.regression_of) && l.regression_of > 0 ? l.regression_of : null,
     }));
   const maxId = lots.reduce((m, l) => Math.max(m, l.id), 0);
   return {
@@ -328,13 +330,17 @@ function openCount(b) {
 // séquentiel classique. spec (optionnel, trailing) : chemin relatif au dépôt vers une spec
 // détaillée — VÉRIFIÉ ici (garde défensive, doublée du refus explicite côté CLI) : un
 // pointeur mort serait pire qu'aucune spec, jamais accepté en silence.
-function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimeter, dependsOn, spec) {
+function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimeter, dependsOn, spec, regressionOf) {
   const t = trunc(title, MAX_TITLE);
   if (!t) return null;
   if (effortHint && !EFFORT_LEVELS.includes(effortHint)) return null;
   if (spec && !fs.existsSync(path.join(root, spec))) return null;
   const b = loadBacklog(root);
   if (openCount(b) >= MAX_LOTS_OPEN) return null;
+  if (regressionOf != null) {
+    const src = findLot(b, Number(regressionOf));
+    if (!src || src.status !== 'done') return null;
+  }
   const lot = {
     id: b.next_id,
     title: t,
@@ -361,6 +367,7 @@ function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimet
     perimeter: perimeterLib.normalize(perimeter),
     depends_on: normalizeDepends(dependsOn, b.next_id),
     session_owner: null,
+    regression_of: regressionOf != null ? Number(regressionOf) : null,
   };
   b.lots.push(lot);
   b.next_id += 1;
@@ -1070,13 +1077,14 @@ function reconcile(root) {
 // ferait mentir l'export par omission — le lot #111 vient précisément de rendre l'accrétion
 // mesurable, et c'est elle qui dit si un lot s'est alourdi ou non à prix égal.
 const EXPORT_COLUMNS = ['id', 'title', 'status', 'epic', 'spec', 'model_hint', 'effort_hint', 'verify', 'closed_verify', 'cost_tokens', 'closed_commit', 'closed_at',
-  'closed_session_id', 'closed_occupancy', 'cost_turns', 'closed_avg_cost_per_turn', 'reopened',
+  'closed_session_id', 'closed_occupancy', 'cost_turns', 'closed_avg_cost_per_turn', 'reopened', 'regression_of',
   'command_optimizer_provider', 'command_tokens_saved', 'command_saving_ratio', 'command_evidence'];
 
 // Valeur d'une colonne d'export pour un lot : colonnes dérivées RTK d'abord, sinon champ brut.
 function exportCell(l, col) {
   const co = l.integrations && l.integrations.command_optimizer;
   switch (col) {
+    case 'regression_of': return Number.isFinite(l.regression_of) && l.regression_of > 0 ? l.regression_of : '';
     case 'reopened': return Array.isArray(l.reopened) && l.reopened.length ? l.reopened.length : '';
     case 'command_optimizer_provider': return co && co.evidence ? (co.provider || '') : '';
     case 'command_tokens_saved': return co && co.evidence === 'measured' ? co.tokens_saved_estimated : '';
@@ -1084,6 +1092,33 @@ function exportCell(l, col) {
     case 'command_evidence': return co && co.evidence ? co.evidence : '';
     default: return l[col];
   }
+}
+
+// US#161 — qualité par modèle/effort : closes, réouvertures (cardinal de `reopened`), régressions
+// rattachées (US dont regression_of pointe une close du groupe), taux = (réouvertures + régressions)
+// / closes. Lecture seule ; champs absents (legacy) comptent 0.
+function qualityStats(b) {
+  const lots = (b && Array.isArray(b.lots)) ? b.lots : [];
+  const byId = new Map(lots.map((l) => [l.id, l]));
+  const groups = new Map();
+  const get = (k) => { if (!groups.has(k)) groups.set(k, { key: k, closed: 0, reopened: 0, regressions: 0 }); return groups.get(k); };
+  const keysOf = (l) => {
+    const m = l.model_hint || '(sans modèle)';
+    return [`modèle ${m}`, `modèle ${m} · effort ${l.effort_hint || '(aucun)'}`];
+  };
+  for (const l of lots) {
+    if (l.status !== 'done') continue;
+    const re = Array.isArray(l.reopened) ? l.reopened.length : 0;
+    for (const k of keysOf(l)) { const g = get(k); g.closed += 1; g.reopened += re; }
+  }
+  for (const l of lots) {
+    const src = Number.isFinite(l.regression_of) ? byId.get(l.regression_of) : null;
+    if (!src || src.status !== 'done') continue;
+    for (const k of keysOf(src)) get(k).regressions += 1;
+  }
+  const rows = [...groups.values()].map((g) => ({ ...g, rate: g.closed ? (g.reopened + g.regressions) / g.closed : 0 }));
+  rows.sort((a, c) => (a.key < c.key ? -1 : 1));
+  return rows;
 }
 
 function csvField(v) {
@@ -1157,7 +1192,7 @@ module.exports = {
   touchLot, addCost, currentLot, costLotFor, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, progress, summaryLines, reconcile,
   epicBilan, estimateCost, canCoexist, pairwiseCoexist, planWaves, waveBranch,
   todoSnapshotFile, writeTodoSnapshot, readTodoSnapshot, modelEffortTag, costlyChoiceWarning,
-  exportCsv, exportMarkdown, orphanArgs, overflowFields, isTruncated, VALUE_FLAGS, BOOL_FLAGS,
+  exportCsv, exportMarkdown, qualityStats, orphanArgs, overflowFields, isTruncated, VALUE_FLAGS, BOOL_FLAGS,
   MAX_LOTS_OPEN, MAX_TITLE, MAX_SCOPE, MAX_MODEL_HINT, MAX_EPIC, MAX_VERIFY, MAX_SPEC, MAX_OWNER, MAX_DEPENDS, MAX_NOTE, MAX_REOPEN, MAX_TODOS, EFFORT_LEVELS,
   COST_BUDGET_TOKENS, COST_WARN_TOKENS, CLOSED_VERIFY_VALUES,
 };

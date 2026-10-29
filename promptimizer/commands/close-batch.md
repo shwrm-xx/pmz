@@ -13,6 +13,9 @@ Point de départ : `node ~/.claude/promptimizer/scripts/close-batch.js`
 3. Vérifier seulement ce qui a changé. Verify lourde (suite de tests complète, build long) :
    la déléguer à un subagent isolé (outil Agent/Task) qui l'exécute et ne renvoie QUE le
    verdict (OK / ÉCHEC + dernières lignes) — zéro sortie de tests dans le contexte principal.
+3bis. Si la vérif révèle un bug dans un livrable **déjà clos** (une autre US `done`) : le
+   noter en Dette ou l'ouvrir comme nouvelle US avec `backlog.js add … --regression-of <id de
+   l'US close fautive>` — c'est ce qui rend la régression mesurable (`show --quality`).
 4. Mettre à jour `CHANGELOG.md` si ce n'est pas fait.
 5. Proposer ou créer un commit français court.
 5bis. Si un plan d'US existe (bloc « Plan des US » de la checklist) : marquer l'US faite
