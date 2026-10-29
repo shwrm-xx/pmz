@@ -118,8 +118,9 @@ plus que son socle.
    (sans `--depends`, périmètre `docs/us/**`). Les US à écrans dépendent du **contrat d'écran**
    figé dans leur spec, pas du rendu : ne poser `--depends <id Maquettes>` que sur une US dont
    le contrat **ne peut pas** être figé sans voir les maquettes (choix visuel ouvert, à dire en
-   une ligne) ; les autres partent en parallèle des maquettes et s'y alignent à la livraison ; les écrans validés à l'étape 2
-   figurent dans le « fait quand » ou la spec de l'US Maquettes. Sur **non** : n'ajouter aucune
+   une ligne) : elle reçoit alors `--depends <id Maquettes>` et son « fait quand » **cite les
+   maquettes validées** (slug) ; les autres partent en parallèle des maquettes et s'y alignent à la livraison ; les écrans validés à l'étape 2
+   figurent dans le « fait quand » ou la spec de l'US Maquettes. `epicmaster --brief` injecte les maquettes validées de la spec (ou l'alerte). Sur **non** : n'ajouter aucune
    US ni dépendance, et **noter le choix** (« maquettes écartées ») dans le handoff écrit à
    l'étape 5.
    **`--spec` uniquement si le fichier existe déjà** (`--us` : alias déprécié) : l'ajout est

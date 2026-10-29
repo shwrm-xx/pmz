@@ -14,8 +14,11 @@
 //   validate --id N --slug X        statut « validée » dans l'INDEX.md de l'US
 //   open     --id N --slug X        chemin + URL file:// ; ouvre l'aperçu (sauf PMZ_NO_OPEN=1)
 //   list     [--id N]               INDEX.md de l'US (sans --id : celui de chaque US)
+//   brief    --id N                 maquettes validées (chemin, états, lien d'index) + brouillons à part ;
+//                                    consommé par `epicmaster --brief` (US #164)
 //   index    [--epic "Nom"]         docs/us/maquettes-index.html (autonome) + barre « ← Index » / menu dans
 //                                    chaque maquette ; appelé aussi par new et validate (US #162)
+//   validate marque aussi « (validée) » sur la ligne de la maquette dans la section « Maquettes » des specs
 //
 // Toujours exit 0 (fail-open) : un refus est un message « Refusé : … », jamais un crash.
 // stdlib seule. Commun : --cwd <dossier> (défaut : répertoire courant ; racine git si dispo).
@@ -199,14 +202,86 @@ function cmdValidate(root) {
   const idx = readIndex(root, id);
   const m = idx && lineRe(slug).exec(idx);
   if (!m) { out(`Refusé : ${slug} absent de ${dirRel(id)}/${INDEX_NAME} (crée-la avec maquette.js new).`); return; }
-  if (/statut : validée/.test(m[0])) { out(`Déjà validée : ${slug} (aucun changement).`); return; }
+  if (/statut : validée/.test(m[0])) { out(`Déjà validée : ${slug} (aucun changement).`); markSpecs(root, id, slug); return; }
   const line = m[0].replace(/statut : [^·]+?( ·|$)/, 'statut : validée$1').replace(/ · \d{4}-\d{2}-\d{2}\s*$/, ' · ' + today());
   try { fs.writeFileSync(indexPath(root, id), idx.replace(m[0], line)); } catch (_) {
     out(`Refusé : écriture de ${dirRel(id)}/${INDEX_NAME} impossible.`);
     return;
   }
   out(`Validée : ${slug} (${dirRel(id)}/${INDEX_NAME}).`);
+  markSpecs(root, id, slug);
   regenerate(root, arg('epic'));
+}
+
+// Marque « (validée) » sur la ligne de la maquette dans la section « ## Maquettes » de la spec de
+// l'US et de toute autre spec qui la lie (US à écrans). Idempotent ; sans spec : message, pas d'échec.
+function markSpecs(root, id, slug) {
+  const target = maquettePath(root, id, slug);
+  const specs = new Set();
+  const own = specFor(root, id);
+  if (own) specs.add(own);
+  try {
+    for (const d of fs.readdirSync(path.join(root, US_ROOT))) {
+      const f = path.join(root, US_ROOT, d, 'spec.md');
+      if (/^US-\d+$/.test(d) && fs.existsSync(f)) specs.add(f);
+    }
+  } catch (_) { /* pas de docs/us */ }
+  if (!specs.size) { out(`Aucune spec à marquer pour l'US#${id} (rien à faire).`); return; }
+  for (const spec of specs) {
+    try {
+      const lines = fs.readFileSync(spec, 'utf8').split('\n');
+      const h = lines.findIndex((l) => /^##\s+Maquettes\s*$/.test(l));
+      if (h === -1) continue;
+      let changed = false;
+      for (let i = h + 1; i < lines.length && !/^#{1,2}\s/.test(lines[i]); i++) {
+        const mm = /\]\(([^)\s]+\.html)\)/.exec(lines[i]);
+        if (!mm || path.resolve(path.dirname(spec), mm[1]) !== target) continue;
+        if (/\(validée\)/.test(lines[i])) continue;
+        lines[i] = lines[i].replace(/\s*$/, ' (validée)');
+        changed = true;
+      }
+      if (changed) {
+        fs.writeFileSync(spec, lines.join('\n'));
+        out(`Spec marquée : ${path.relative(root, spec).split(path.sep).join('/')} § Maquettes → ${slug} (validée).`);
+      }
+    } catch (_) { /* fail-open */ }
+  }
+}
+
+// --- brief (US #164) -------------------------------------------------------------------------
+function etatsOf(abs) {
+  try {
+    const html = fs.readFileSync(abs, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+    const set = [];
+    for (const m of html.matchAll(/<(?!body\b)[a-z][^>]*?\sdata-etat="([^"]+)"/gi)) if (!set.includes(m[1])) set.push(m[1]);
+    return set;
+  } catch (_) { return []; }
+}
+function cmdBrief(root) {
+  const id = wantedId();
+  if (!id) { out('Refusé : --id <n° d\'US> requis.'); return; }
+  const idx = readIndex(root, id);
+  const valid = [];
+  const drafts = [];
+  for (const m of (idx || '').matchAll(/^- `([^`]+)` ·.*$/gm)) {
+    const slug = m[1];
+    const t = /\[([^\]]*)\]\(/.exec(m[0]);
+    (/statut : validée/.test(m[0]) ? valid : drafts).push({ slug, title: t ? t[1].trim() : slug });
+  }
+  if (!valid.length && !drafts.length) { out(`Aucune maquette pour l'US ${id}.`); return; }
+  if (valid.length) {
+    out(`Maquettes validées (US #${id}) — à suivre, tout écart se signale dans « À trancher » :`);
+    for (const m of valid) {
+      const et = etatsOf(maquettePath(root, id, m.slug));
+      out(`- ${m.slug} · ${dirRel(id)}/${m.slug}.html · états : ${et.length ? et.join(', ') : '(aucun data-etat)'} · index : ../../${INDEX_HTML}`);
+    }
+  } else {
+    out(`Aucune maquette validée pour l'US ${id}.`);
+  }
+  if (drafts.length) {
+    out('Non validées (ne pas suivre) :');
+    for (const m of drafts) out(`- ${m.slug} · ${dirRel(id)}/${m.slug}.html`);
+  }
 }
 
 // --- open -----------------------------------------------------------------------------------
@@ -366,8 +441,9 @@ function main() {
     case 'open': return cmdOpen(root);
     case 'list': return cmdList(root);
     case 'index': return cmdIndex(root);
+    case 'brief': return cmdBrief(root);
     default:
-      out('Usage : maquette.js new --id N --slug X --title "…" | link --id N --slug X | validate --id N --slug X | open --id N --slug X | list [--id N] | index [--epic "Nom"]  [--cwd dir]');
+      out('Usage : maquette.js new --id N --slug X --title "…" | link --id N --slug X | validate --id N --slug X | open --id N --slug X | list [--id N] | brief --id N | index [--epic "Nom"]  [--cwd dir]');
   }
 }
 
