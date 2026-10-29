@@ -62,7 +62,10 @@ attendre qu'on le demande — sinon les postes ne voient pas la mise à jour :
 3. `node test/run-tests.js` vert (lire le résultat, ne pas le supposer), puis commit
    `chore(release): vX.Y.Z` (working tree propre).
 4. Publier : `git push origin main`, puis `node promptimizer/install/publish-plugin.js --push`
-   (régénère et pousse la branche orpheline `plugin-release`, force-push attendu).
+   (régénère et pousse la branche orpheline `plugin-release`, force-push attendu). Le même
+   `--push` crée et pousse le tag annoté `vX.Y.Z` (= `VERSION`) sur le commit `main` de la release
+   (no-op si déjà sur ce commit ; `exit 1` s'il pointe ailleurs, jamais forcé) ; le workflow
+   `.github/workflows/release.yml` publie alors la GitHub Release avec la section CHANGELOG.
 5. Dire à l'utilisateur la commande côté poste collègue :
    `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`
    (ne **pas** relancer `marketplace add` : refusé si la source déclarée diffère), puis redémarrage.

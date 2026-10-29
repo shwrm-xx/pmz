@@ -1719,6 +1719,14 @@ manuelle (miroir plat vers `~/.claude/`) reste le canal de **secours**, document
   `dist/marketplace/` (via `build-plugin.js`) et le pousse **seul** sur la branche orpheline
   `plugin-release` (aucun historique partagé avec `main` ; push uniquement si `--push` explicite).
   Même mécanique `extraKnownMarketplaces` (source `github`) pour éviter le `marketplace add` par poste.
+- **Releases traçables (US#168)** : `publish-plugin.js --push` crée aussi le tag annoté `vX.Y.Z`
+  (`promptimizer/VERSION`) sur le HEAD de `main` (le commit source `chore(release)`, pas
+  `plugin-release`) et le pousse. Décision pure exportée `tagPlan({version, headSha, existingSha})`
+  → `create` | `noop` (même commit) | `conflict` (autre commit : `exit 1` avant tout push, sans
+  écraser ni forcer). Sans `--push`, seul le tag prévu est affiché. `.github/workflows/release.yml`
+  (`on: push: tags: v*`, `contents: write`, `GITHUB_TOKEN` seul) extrait la section
+  « Release vX.Y.Z » de `CHANGELOG.md` et exécute `gh release create`. Le `ref` du catalogue reste
+  `plugin-release` : les tags servent à la traçabilité, pas à la distribution.
 - **Catalogue committé à la racine de `main` (lot #127)** : `.claude-plugin/marketplace.json` —
   seul fichier du canal plugin versionné sur `main`, et **jamais** un artefact de build : il ne
   contient que des métadonnées + une source `git-subdir`

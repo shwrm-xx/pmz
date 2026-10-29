@@ -1,0 +1,30 @@
+name: release
+
+# US#168 — un tag vX.Y.Z (poussé par publish-plugin.js --push) publie la GitHub Release
+# avec la section « Release vX.Y.Z » du CHANGELOG. Aucun secret autre que GITHUB_TOKEN.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extraire la section du CHANGELOG
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          awk -v tag="Release ${TAG}" '
+            /^## / { if (found) exit; i = index($0, tag); if (i && substr($0, i + length(tag), 1) !~ /[0-9.]/) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "Release ${TAG}" > notes.md; fi
+      - name: Créer la GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --title "$TAG" --notes-file notes.md
