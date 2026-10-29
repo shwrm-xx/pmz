@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-29 — US#163 US#163 — Restitution systématique du lien d'index
+
+- `maquette.md` (étape 3) impose `maquette.js index` puis la restitution du lien cliquable (chemin relatif et URL `file://`).
+- « Maquettes prêtes » seul est désormais interdit.
+- `epicmaster.md` et `pickymaster.md` : le sous-agent « Maquettes » exige le lien d'index ; à la consolidation il ouvre la liste « maquettes à valider ».
+- README et ARCHITECTURE documentent la restitution du lien d'index.
+- Test de garde dans `run-tests.js` sur les trois commandes.
+
 ## 2026-10-29 — Release v2.11.1
 
 - Diffuse les arbitrages US#160-#161 : `ids`/`unverified` déclarés dans `VALUE_FLAGS` de la lib, taux qualité combiné conservé, spec qualité complétée.

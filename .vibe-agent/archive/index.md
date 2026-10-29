@@ -164,5 +164,7 @@
 #0159 | 2026-10-28 | 9a89956 | epic:Dette Epicmaster | verify:inconnu | fiche:oui | Arbitrages epicmaster
 #0160 | 2026-10-29 | 871b32c | epic:Qualité epicmaster | verify:inconnu | fiche:oui | Relecture opus en consolidation
 #0161 | 2026-10-29 | c7cd5d0 | epic:Qualité epicmaster | verify:inconnu | fiche:oui | Mesure des régressions post-clôture
+#0162 | 2026-10-29 | 4ac99cd | epic:Maquettes : index et navigation | verify:inconnu | fiche:non | Index HTML et navigation des maquettes
+#0163 | 2026-10-29 | f87063f | epic:Maquettes : index et navigation | verify:inconnu | fiche:non | Restitution systématique du lien d'index
 
 # Archive PMZ — index des lots clos
