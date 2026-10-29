@@ -10571,6 +10571,11 @@ section('scope / epicmaster / gabarit de spec — consignes maquettes');
   ok(/suis-les/.test(em) && /signale tout écart/.test(em), 'epicmaster.md : sous-agents des US à écrans suivent les maquettes liées');
   ok(/set_session_title/.test(em) && /session_id: "self"/.test(em) && em.indexOf('set_session_title') < em.indexOf('--live-seed` avec'),
     'epicmaster.md : renommage auto de la session maître (set_session_title self) avant --live-seed');
+  for (const c of ['maquette', 'epicmaster', 'pickymaster']) {
+    const t = rd(path.join(PKG, 'commands', c + '.md'));
+    ok(/maquette\.js index/.test(t) && /lien cliquable/.test(t) && /maquettes prêtes/.test(t),
+      c + '.md : impose `maquette.js index` + restitution du lien cliquable de l\'index (US#163)');
+  }
   const tp = rd(path.join(PKG, 'templates', 'spec-template.md'));
   ok(/^## Maquettes\s*$/m.test(tp) && /Optionnelle/.test(tp), 'spec-template.md : section « Maquettes » optionnelle');
 }
