@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 165,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-29T09:55:29.336Z",
+  "updated_at": "2026-10-29T10:03:33.751Z",
   "lots": [
     {
       "id": 1,
@@ -4917,23 +4917,23 @@
       "id": 164,
       "title": "Liaison maquettes validées vers US suivantes",
       "scope": "fait quand : `maquette.js brief --id N` liste les maquettes validées (brouillons à part) ; `epicmaster --brief` injecte cette section dans toute US dont la spec a « Maquettes » ; sans maquette validée l'US est signalée en tête de brief et dans « À trancher » ; `validate` marque la spec ; test vert",
-      "status": "todo",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Maquettes : index et navigation",
       "verify": "node test/run-tests.js && node test/run-tests-maquettes-liaison.js",
       "spec": "docs/us/US-164/spec.md",
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
-      "cost_tokens": 0,
-      "cost_turns": 0,
-      "cost_subagent_tokens": 0,
-      "closed_avg_cost_per_turn": null,
-      "started_at": null,
-      "lot_number": null,
+      "closed_commit": "b054b32",
+      "closed_at": "2026-10-29T10:03:33.661Z",
+      "closed_session_id": "535e5ca2-70ae-41c2-b68d-3322b091a76c",
+      "closed_occupancy": 129436,
+      "closed_verify": "ok",
+      "cost_tokens": 22983,
+      "cost_turns": 2,
+      "cost_subagent_tokens": 17622,
+      "closed_avg_cost_per_turn": 11492,
+      "started_at": "2026-10-29T09:55:34.735Z",
+      "lot_number": 651,
       "note": null,
       "session_touches": 0,
       "perimeter": [
@@ -4948,7 +4948,7 @@
         162,
         163
       ],
-      "session_owner": null,
+      "session_owner": "master/lot-164",
       "regression_of": null
     }
   ]
