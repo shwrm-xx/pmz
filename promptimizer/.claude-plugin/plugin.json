@@ -1,0 +1,20 @@
+{
+  "name": "pmz",
+  "version": "2.12.2",
+  "description": "Claude Code plugin that keeps vibecoding sessions lean: alerts on context cost, enforces clean story closing, and injects handoffs between sessions. Local only, fail-open hooks.",
+  "author": {
+    "name": "Marwan"
+  },
+  "homepage": "https://github.com/shwrm-xx/pmz",
+  "repository": "https://github.com/shwrm-xx/pmz",
+  "license": "MIT",
+  "keywords": [
+    "session",
+    "contexte",
+    "tokens",
+    "handoff",
+    "gouvernance",
+    "vibecoding"
+  ],
+  "types": "./types/index.d.ts"
+}
