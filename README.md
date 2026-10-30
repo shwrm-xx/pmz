@@ -120,6 +120,15 @@ embarque tout (hooks, commandes, skill **et** bande epicmaster ; aucun `CLAUDE_C
 aucun second plugin). Forme équivalente depuis la commande interactive :
 `/plugin install pmz --marketplace shwrm-xx/pmz`.
 
+**Mise à jour (poste collègue).** À chaque nouvelle version publiée :
+
+```
+claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace
+```
+
+Puis redémarrer Claude Code. Ne **pas** relancer `marketplace add` pour mettre à jour : la commande
+est refusée quand la source déclarée diffère.
+
 Prérequis : le dépôt doit être **public** (`marketplace add owner/repo` lit le dépôt sans
 authentification). Côté mainteneur, publier l'artefact de build à chaque release :
 
