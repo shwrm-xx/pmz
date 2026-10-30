@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-10-30 — Release v2.12.2 — Distribution publique
+
+- publish-plugin.js --push pousse un tag vX.Y.Z local non poussé (US#169, régression de #168)
+- docs/PRIVACY.md : huit événements, lancement par canal ; README FR lie PRIVACY.md et SECURITY.md (US#170)
+- Accueil public EN, SECURITY/PRIVACY, CI GitHub Actions, releases traçables (US#165 à #168)
+
 ## 2026-10-29 — US#170 — Docs publiques : PRIVACY et liens README
 
 - PRIVACY.md : « eight events » avec la liste des huit événements
