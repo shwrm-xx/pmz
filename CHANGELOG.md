@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#171 US#171 — Rapport, arbitre et US d'arbitrages
+
+- Rapport sous-agent : section « Décidé », « À trancher » réservé à l'UX et aux contrats visibles.
+- `backlog.js add --kind arbitrages` : brief sans « À trancher », autre valeur refusée.
+- `epicmaster --arbiter-brief --stdin` : brief d'arbitre opus·medium, fail-open.
+- Spec : section « Décisions » obligatoire, ajoutée au gabarit.
+- Tests : plafond du gabarit passé à 70 lignes.
+
 ## 2026-10-30 — Release v2.12.2 — Distribution publique
 
 - publish-plugin.js --push pousse un tag vX.Y.Z local non poussé (US#169, régression de #168)
