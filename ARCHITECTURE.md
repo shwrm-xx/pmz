@@ -1130,7 +1130,10 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   aussi planifié la suite. **Titre de la session COURANTE** (2026-10-12, v2.8.3) : plus aucune
   session ne renomme la **précédente** — chaque session se titre **elle-même** (`session_id: "self"`),
   injecté par `user-prompt-submit.js` au 1er prompt puis seulement quand le titre change (`self_title`).
-  `lot.currentSessionTitle` : session de conception (`plan_session`) → « [XXX · Plan] epic » ; US en
+  `lot.currentSessionTitle` : prompt `/pmz:scope` (marque `scope_session`, prioritaire) →
+  « [XXX · Scope] <objet> » ; mode plan **courant** (`permission_mode: "plan"` du prompt) →
+  « [XXX · Plan] <objet> » — objet composé d'après la demande, jamais l'epic du backlog (périmé au
+  1er prompt, retour 2026-11-04) ; US en
   cours attribuable (la sienne, ou l'unique en cours) → titre de l'US ; sinon « [XXX · HS] … »
   que l'assistant complète d'après la demande. Silence si une US `master/lot-*` est en cours ou si le
   prompt est `/epicmaster` (le maître a son propre titre). Nomenclature posée → en silence ; trigramme

@@ -136,6 +136,8 @@ function titleForLot(trigram, l, touches) {
 // de plan ne livre pas de lot, elle en découpe (la titrer par le lot #1 qu'elle vient de démarrer
 // décrirait un travail qui n'a pas encore commencé).
 const PLAN_TAG = 'Plan';
+// Session lancée par /pmz:scope (retour utilisateur 2026-11-04) : « [XXX · Scope] <objet> ».
+const SCOPE_TAG = 'Scope';
 
 function titleForPlanSession(trigram, epic) {
   return `[${trigram} · ${PLAN_TAG}] ${truncateTitle(epic)}`;
@@ -300,7 +302,8 @@ function suggestedTitle(root) {
 //   - (US#151) une vague master/lot-* en cours N'exclut PLUS la session : seule la session maître
 //     elle-même est écartée (côté hook, marquée sur /epicmaster) ; les lots master/lot-* sont
 //     ignorés pour l'attribution (ils appartiennent aux sous-agents, pas à cette session) ;
-//   - session de CONCEPTION (opts.plan : mode plan / /pmz:scope) : « [XXX · Plan] <epic> » ;
+//   - lancée par /pmz:scope (opts.scope) : « [XXX · Scope] <objet> » (prime sur le mode plan) ;
+//   - en mode plan (opts.plan) : « [XXX · Plan] <objet> » ;
 //   - lot en cours attribuable à cette session (le sien, ou l'unique en cours) : titre du lot ;
 //   - sinon « [XXX · HS] » avec compose: true — l'assistant complète d'après la demande.
 function currentSessionTitle(root, sid, opts) {
@@ -309,10 +312,11 @@ function currentSessionTitle(root, sid, opts) {
     const trigram = trigramLib.readTrigram(root);
     const b = backlog.loadBacklog(root);
     const inProg = b.lots.filter((l) => l.status === 'in_progress' && !/^master\//.test(String(l.session_owner || '')));
-    if (opts && opts.plan) {
-      const epic = planSessionEpic(root, b);
-      if (epic) return { title: titleForPlanSession(trigram, epic), compose: false };
-    }
+    // Session COURANTE en conception (retour utilisateur 2026-11-04) : « [XXX · Scope] » si lancée
+    // par /pmz:scope, sinon « [XXX · Plan] » en mode plan — l'objet est composé d'après la demande,
+    // jamais l'epic du backlog (au 1er prompt c'est celui du plan PRÉCÉDENT : titre périmé).
+    if (opts && opts.scope) return { title: `[${trigram} · ${SCOPE_TAG}]`, compose: true };
+    if (opts && opts.plan) return { title: `[${trigram} · ${PLAN_TAG}]`, compose: true };
     const mine = sid ? inProg.filter((l) => l.session_owner === sid) : [];
     const l = mine.length === 1 ? mine[0] : (inProg.length === 1 ? inProg[0] : null);
     if (l) return { title: titleForLot(trigram, l, 0), compose: false };

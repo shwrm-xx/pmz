@@ -9554,7 +9554,7 @@ section('B130 — titre de session : jamais nu quand un plan existe, sessions de
     && /Découpe du plan : /.test(scopeMd178) && /résumé du plan en\s+3 lignes/.test(scopeMd178),
     'US#178-6 : scope.md documente --plan et l\'affichage de la source');
   ok(/mcp__ccd_session__start_session/.test(scopeMd178) && /initiation: "user_asked"/.test(scopeMd178)
-    && /permission_mode: "default"/.test(scopeMd178) && /title: "Scope — <titre du plan>"/.test(scopeMd178)
+    && /permission_mode: "bypassPermissions"/.test(scopeMd178) && /title: "Scope — <titre du plan>"/.test(scopeMd178)
     && /\/pmz:scope --plan <chemin absolu du fichier plan>/.test(scopeMd178) && /mode plan/i.test(scopeMd178),
     'US#178-7 : scope.md documente la branche mode plan -> sous-session');
 
@@ -9569,6 +9569,22 @@ section('B130 — titre de session : jamais nu quand un plan existe, sessions de
   runHook('user-prompt-submit.js', { session_id: 'sess-def', cwd: repo11, transcript_path: empty, prompt: 'on code', permission_mode: 'default' });
   ok(stateLib.previousSessionMeta(repo11).plan === false,
     'B130-11 : hors mode plan, aucune marque (pas de faux positif)');
+
+  // Titre de la session COURANTE (retour utilisateur 2026-11-04) : « [XXX · Plan] » en mode plan,
+  // « [XXX · Scope] » sur /pmz:scope (prioritaire), objet composé — jamais l'epic périmé du backlog.
+  const repoT = mk('repo-title-planscope', 'chore: titres', 'sess-oldT');
+  const trgT = trigram.deriveTrigram(repoT);
+  runNode(BKLG, ['epic', '--set', 'Epic perime', '--cwd', repoT]);
+  const tPlan = lot.currentSessionTitle(repoT, 'sx', { plan: true });
+  ok(tPlan && tPlan.title === `[${trgT} · Plan]` && tPlan.compose === true,
+    'TITRE-1 : mode plan -> « [XXX · Plan] <objet> », sans epic du backlog');
+  const tScope = lot.currentSessionTitle(repoT, 'sx', { plan: true, scope: true });
+  ok(tScope && tScope.title === `[${trgT} · Scope]` && tScope.compose === true,
+    'TITRE-2 : /pmz:scope -> « [XXX · Scope] <objet> », prioritaire sur le mode plan');
+  runHook('session-start.js', { source: 'startup', session_id: 'sess-sc', cwd: repoT, transcript_path: empty });
+  const outSc = runHook('user-prompt-submit.js', { session_id: 'sess-sc', cwd: repoT, transcript_path: empty, prompt: '/pmz:scope --plan /tmp/p.md', permission_mode: 'plan' });
+  ok(new RegExp(`\\[${trgT} · Scope\\]`).test(JSON.stringify(outSc)),
+    'TITRE-3 : prompt /pmz:scope en mode plan -> consigne de titre « Scope »');
 
   // B130-12. Une session de plan QUI A AUSSI CLOS un lot est décrite par son lot (l'attribution
   // par closed_session_id reste le signal le plus fort).
