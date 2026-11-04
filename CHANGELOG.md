@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#174 + US#175 — Solde d'epic
+
+- Garde `backlog.js epicmaster --settle-check --stdin` : 0 À trancher hors maquette, dette ≤ 1 (importance haute|critique + raison), Non vérifié sans geste humain refusé, 2 tours max (US#174)
+- Briefs : défaut jamais en Dette ; relecteur : Problèmes confirmés = Défaut (US#174)
+- `/epicmaster` et `/pickymaster` : tri Défaut / Finition / Dette, garde avant le handoff ; handoff « item (US#N) — importance — raison » ; README/ARCHITECTURE (US#175)
+
 ## 2026-11-04 — US#176 US#176 — Arbitrages — Solde d'epic
 
 - settleCheck ne bloque plus à arbitrage_rounds ≥ 2 : les points restants passent en avertissement (Dette « non résolu après arbitrage »)
