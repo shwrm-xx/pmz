@@ -7390,7 +7390,7 @@ section('backlog — commande `spec` (alias `us`) : lecture, --new (gabarit), --
   for (const s of ['## Récit', '## Critères d\'acceptation', '## Hors périmètre', '## Preuve de clôture', '## Notes']) {
     ok(body.includes(s), `N3 : gabarit — section « ${s} » présente`);
   }
-  ok(body.split('\n').length < 60, 'N3 : gabarit sobre — sous 60 lignes (au-delà, le lot est à redécouper)');
+  ok(body.split('\n').length < 70, 'N3 : gabarit sobre — sous 70 lignes (au-delà, le lot est à redécouper)');
   ok(/- epic : —/.test(backlogLib.renderSpecTemplate({ id: 5, title: 'T', epic: null })),
     'N3 : lot sans epic -> tiret cadratin, jamais « null »');
 
@@ -7474,8 +7474,8 @@ section('backlog — validation de structure de la spec à la clôture (epic « 
   const usAbs2 = path.join(repo, 'docs', 'us', 'US-2', 'spec.md');
   fs.writeFileSync(usAbs2, '# US 2\n\n## Récit\n\nEn tant que designer, je veux X, afin de Y.\n');
   ok(backlogLib.checkSpecStructure(repo, 'docs/us/US-2/spec.md').missing.join(', ')
-    === 'Critères d\'acceptation, Hors périmètre, Preuve de clôture, Notes',
-    'O3 : checkSpecStructure -> liste exacte des 4 sections manquantes');
+    === 'Décisions, Critères d\'acceptation, Hors périmètre, Preuve de clôture, Notes',
+    'O3 : checkSpecStructure -> liste exacte des 5 sections manquantes');
   backlogLib.startLot(repo, 2);
   const rDoneRefused = runNode(BKLG, ['done', '--cwd', repo, '--id', '2', '--no-session', '--no-occupancy']);
   ok(/Refusé/.test(rDoneRefused.out) && /sections obligatoires/.test(rDoneRefused.out),

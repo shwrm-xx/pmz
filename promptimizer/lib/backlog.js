@@ -109,7 +109,7 @@ const CLOSED_VERIFY_VALUES = ['ok', 'failed', 'timeout', 'none'];
 const VALUE_FLAGS = ['cwd', 'id', 'epic', 'set', 'model', 'effort', 'title', 'scope',
   'verify', 'spec', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
   'gate', 'final-gate', 'branch', 'state', 'verify-verdict', 'tokens',
-  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why', 'regression-of',
+  'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why', 'regression-of', 'kind',
   'ids', 'unverified'];
 // Flags booléens (ne consomment aucune valeur) — listés pour documentation ;
 // tout flag hors VALUE_FLAGS est traité comme booléen (ne consomme rien).
@@ -267,6 +267,8 @@ function loadBacklog(root) {
       reopened: normalizeReopened(l.reopened),
       // US#161 : id de l'US close dont celle-ci corrige une régression (absent des lots legacy).
       regression_of: Number.isFinite(l.regression_of) && l.regression_of > 0 ? l.regression_of : null,
+      // US#171 : nature de l'US (seule valeur : « arbitrages ») ; absente = US ordinaire (clé droppée).
+      kind: l.kind === 'arbitrages' ? 'arbitrages' : undefined,
     }));
   const maxId = lots.reduce((m, l) => Math.max(m, l.id), 0);
   return {
@@ -331,9 +333,10 @@ function openCount(b) {
 // séquentiel classique. spec (optionnel, trailing) : chemin relatif au dépôt vers une spec
 // détaillée — VÉRIFIÉ ici (garde défensive, doublée du refus explicite côté CLI) : un
 // pointeur mort serait pire qu'aucune spec, jamais accepté en silence.
-function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimeter, dependsOn, spec, regressionOf) {
+function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimeter, dependsOn, spec, regressionOf, kind) {
   const t = trunc(title, MAX_TITLE);
   if (!t) return null;
+  if (kind != null && !LOT_KINDS.includes(kind)) return null;
   if (effortHint && !EFFORT_LEVELS.includes(effortHint)) return null;
   if (spec && !fs.existsSync(path.join(root, spec))) return null;
   const b = loadBacklog(root);
@@ -370,6 +373,7 @@ function addLot(root, title, scope, modelHint, epic, verify, effortHint, perimet
     session_owner: null,
     regression_of: regressionOf != null ? Number(regressionOf) : null,
   };
+  if (kind) lot.kind = kind;
   b.lots.push(lot);
   b.next_id += 1;
   return saveBacklog(root, b) ? lot : null;
@@ -476,7 +480,8 @@ function createSpecFile(root, id) {
 // Titres de section obligatoires du gabarit (lot #107) — figés ici plutôt que dérivés du
 // gabarit courant : une spec déjà rédigée reste jugée sur les titres qu'elle porte, pas sur une
 // version future de templates/spec-template.md qui pourrait renommer une section.
-const SPEC_REQUIRED_SECTIONS = ['Récit', 'Critères d\'acceptation', 'Hors périmètre', 'Preuve de clôture', 'Notes'];
+const LOT_KINDS = ['arbitrages']; // US#171
+const SPEC_REQUIRED_SECTIONS = ['Récit', 'Décisions', 'Critères d\'acceptation', 'Hors périmètre', 'Preuve de clôture', 'Notes'];
 
 // Vérifie la STRUCTURE (présence des titres de section obligatoires) du fichier de spec pointé par
 // un lot — jamais le contenu d'un critère (un « ... » resté en l'état est un problème de
@@ -1188,7 +1193,7 @@ function insertChangelog(text, entries) {
 module.exports = {
   planCloseWave, renderChangelogEntry, insertChangelog,
   backlogFile, loadBacklog, saveBacklog, addLot, setVerify, setClosedVerify, setPerimeter, setDepends, setSpec,
-  specPathFor, renderSpecTemplate, createSpecFile, checkSpecStructure, SPEC_REQUIRED_SECTIONS, SPEC_DIR,
+  specPathFor, renderSpecTemplate, createSpecFile, checkSpecStructure, SPEC_REQUIRED_SECTIONS, SPEC_DIR, LOT_KINDS,
   startLot, doneLot, dropLot, noteLot, reopenLot,
   touchLot, addCost, currentLot, costLotFor, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, progress, summaryLines, reconcile,
   epicBilan, estimateCost, canCoexist, pairwiseCoexist, planWaves, waveBranch,

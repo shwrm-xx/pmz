@@ -546,6 +546,16 @@ function epicmaster(root, json) {
     const r = em.renderReviewBrief(b, ids, { unverified });
     return out(json ? JSON.stringify({ ok: r.ok, ids: r.ids, base: r.base, reason: r.reason, model: em.REVIEW_MODEL, effort: em.REVIEW_EFFORT, brief: r.text }, null, 2) : (r.ok ? r.text : r.reason));
   }
+  // --arbiter-brief --stdin (US#171) : brief de l'arbitre opus pour les « À trancher » techniques.
+  // Fail-open : entrée vide / JSON invalide -> message, exit 0.
+  if (process.argv.includes('--arbiter-brief')) {
+    let raw = '';
+    try { raw = process.argv.includes('--stdin') ? fs.readFileSync(0, 'utf8') : ''; } catch (_) { raw = ''; }
+    let input = null;
+    try { input = raw.trim() ? JSON.parse(raw) : { items: [] }; } catch (_) { input = null; }
+    if (!input || typeof input !== 'object') return out('Usage : epicmaster --arbiter-brief --stdin  (JSON : {"items":[{"id":"#171","point":"…","options":["…","…"],"recommended":0}]}). Entrée illisible : rien fait.');
+    return out(em.renderArbiterBrief(input.items));
+  }
   if (process.argv.includes('--brief')) {
     const rawId = flag('id');
     const l = b.lots.find((x) => x.id === Number(rawId));
@@ -755,6 +765,10 @@ function main() {
       { name: '--verify', value: flag('verify'), max: backlog.MAX_VERIFY },
       { name: specFlagName(), value: specFlag(), max: backlog.MAX_SPEC },
     ])) return;
+    const kind = flag('kind');
+    if (process.argv.includes('--kind') && !backlog.LOT_KINDS.includes(kind)) {
+      return out(`Refusé : --kind invalide (« ${kind || ''} »). Valeur acceptée : ${backlog.LOT_KINDS.join(' | ')}.`);
+    }
     const dep = parseDepends();
     if (!dep.ok) return;
     let regOf = null;
@@ -774,7 +788,7 @@ function main() {
       return out(`Refusé : ${specFlagName()} pointe vers un chemin inexistant (« ${specPath} », relatif à la racine du dépôt « ${root} »). `
         + `Crée le fichier d'abord (cf. templates/spec-template.md, ex. docs/us/US-42/spec.md), ou omets ${specFlagName()} si la spec n'est pas encore rédigée.`);
     }
-    const newLot = backlog.addLot(root, flag('title'), flag('scope'), model, flag('epic'), flag('verify'), effort, flagList('perimeter'), dep.ids, specPath, regOf);
+    const newLot = backlog.addLot(root, flag('title'), flag('scope'), model, flag('epic'), flag('verify'), effort, flagList('perimeter'), dep.ids, specPath, regOf, kind || undefined);
     if (!newLot) {
       const b = backlog.loadBacklog(root);
       if (b.lots.filter((l) => l.status === 'todo' || l.status === 'in_progress').length >= backlog.MAX_LOTS_OPEN) {
@@ -786,7 +800,7 @@ function main() {
     // Se poser un lot avant de le traiter est le geste ORDINAIRE d'une session de travail (et le
     // marquer « Plan » la décrivait à faux) ; l'acte de conception tracé est `epic --set`, que
     // /pmz:scope exécute pour le plan qu'il découpe.
-    let addMsg =`US#${newLot.id} « ${newLot.title} » ajoutée (à faire)${backlog.modelEffortTag(newLot)}${newLot.epic ? ` [epic : ${newLot.epic}]` : ''}${newLot.verify ? ` [verify : ${newLot.verify}]` : ''}${newLot.spec ? ` [Spec : ${newLot.spec}]` : ''}${newLot.perimeter.length ? ` [périmètre : ${newLot.perimeter.join(', ')}]` : ''}${newLot.depends_on.length ? ` [dépend de : ${newLot.depends_on.map((d) => '#' + d).join(', ')}]` : ''}${newLot.regression_of ? ` [régression de : #${newLot.regression_of}]` : ''}.`;
+    let addMsg =`US#${newLot.id} « ${newLot.title} » ajoutée (à faire)${backlog.modelEffortTag(newLot)}${newLot.epic ? ` [epic : ${newLot.epic}]` : ''}${newLot.verify ? ` [verify : ${newLot.verify}]` : ''}${newLot.spec ? ` [Spec : ${newLot.spec}]` : ''}${newLot.perimeter.length ? ` [périmètre : ${newLot.perimeter.join(', ')}]` : ''}${newLot.depends_on.length ? ` [dépend de : ${newLot.depends_on.map((d) => '#' + d).join(', ')}]` : ''}${newLot.regression_of ? ` [régression de : #${newLot.regression_of}]` : ''}${newLot.kind ? ` [kind : ${newLot.kind}]` : ''}.`;
     addMsg += estimateSuffix(backlog.loadBacklog(root), newLot);
     addMsg += backlog.costlyChoiceWarning(model, effort, flag('why'));
     return out(addMsg);

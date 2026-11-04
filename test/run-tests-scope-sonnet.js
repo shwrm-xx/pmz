@@ -60,7 +60,7 @@ try {
   const backlogLib = require(path.join(PKG, 'lib', 'backlog'));
   const body = backlogLib.renderSpecTemplate({ id: 9, title: 'Essai', epic: 'Epic' });
   ok(/^## Cadrage d'exécution$/m.test(body) && !/\{\{/.test(body), 'rendu gabarit : cadrage présent, aucun jeton résiduel');
-  ok(body.split('\n').length < 60, 'rendu gabarit : sous 60 lignes');
+  ok(body.split('\n').length < 70, 'rendu gabarit : sous 70 lignes');
   fs.rmSync(sbx, { recursive: true, force: true });
 } catch (e) { ok(false, 'rendu gabarit : ' + e.message); }
 
