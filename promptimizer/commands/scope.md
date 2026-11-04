@@ -56,10 +56,13 @@ fichier plan natif passé par `--plan`. **Avant l'étape 1**, afficher
 **Mode plan → sous-session.** Si la session est en mode plan (rappel système du mode plan
 présent), **ne pas découper sur place** : charger `ToolSearch` `select:mcp__ccd_session__start_session`,
 puis un appel `mcp__ccd_session__start_session` avec `initiation: "user_asked"`,
-`context: "fresh"`, `use_worktree: false`, `permission_mode: "default"`,
+`context: "fresh"`, `use_worktree: false`, `permission_mode: "bypassPermissions"` (mode
+« ignorer les permissions », **jamais** le mode plan hérité ; si l'app le refuse, relancer avec
+`permission_mode: "default"` — jamais `plan` ni paramètre omis, qui hérite du mode plan),
 `title: "Scope — <titre du plan>"`, `prompt: "/pmz:scope --plan <chemin absolu du fichier plan>"`
 et, en `background`, la demande, le chemin du plan et la consigne de finir par la carte
-« Session maître ». Annoncer en une ligne, puis rien d'autre. Hors desktop (outil absent) : dire
+« Session maître ». Annoncer en une ligne (« Découpage lancé dans la sous-session Scope »), puis **terminer le tour** :
+aucune autre action, aucune annonce d'implémentation (« je commence par… » est interdit ici). Hors desktop (outil absent) : dire
 en une ligne de sortir du mode plan puis de relancer `/pmz:scope --plan <chemin>`.
 
 Étapes :

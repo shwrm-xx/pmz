@@ -73,6 +73,9 @@ function main() {
   // hook, coût nul — pour que la session SUIVANTE titre celle-ci « [XXX · Plan] <epic> ».
   // Champ optionnel côté Claude Code : absent => rien, jamais d'erreur.
   if (input.permission_mode === 'plan') st.plan_session = true;
+  // Session lancée par /pmz:scope (sous-session Scope de fin de plan comprise) : titrée
+  // « [XXX · Scope] », prioritaire sur le mode plan (retour utilisateur 2026-11-04).
+  if (/^\s*\/(pmz:)?scope\b/.test(prompt)) st.scope_session = true;
 
   st.prompt_reminders = st.prompt_reminders || {};
   const parts = [];
@@ -85,7 +88,7 @@ function main() {
   if (isMasterPrompt) st.master_session = true; // seule exclue : la session maître se titre elle-même
   if (initialized && !st.master_session) {
     const nomenclature = !lotLib.nomenclatureSet(root);
-    const t = lotLib.currentSessionTitle(root, sid, { plan: st.plan_session === true });
+    const t = lotLib.currentSessionTitle(root, sid, { plan: input.permission_mode === 'plan', scope: st.scope_session === true });
     if (t) {
       if (nomenclature && st.prompt_reminders.nomenclature) {
         // Question déjà posée, toujours sans trigramme : sans réponse on renomme quand même

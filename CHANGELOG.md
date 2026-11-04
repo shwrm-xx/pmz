@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.16.2 (fin de plan → Scope : titres, sous-session, refus)
+
+- Titre de la session courante : « [XXX · Plan] <objet> » si mode plan, « [XXX · Scope] <objet> » si lancée par `/pmz:scope` (prioritaire) ; l'objet est composé d'après la demande — fini l'epic périmé du backlog (« [CLE · Plan] Mise à jour dev » sur une sous-session Scope).
+- Sous-session Scope lancée depuis le mode plan : `permission_mode: "bypassPermissions"` (repli `default`, jamais le mode plan hérité) ; la session parente termine son tour sans annoncer d'implémentation.
+- Refus d'ExitPlanMode sur « Scope » : texte court lisible par l'utilisateur (« Pas une erreur : Scope choisi… »). Le libellé « Échec » reste : c'est le rendu d'un `deny` par l'app ; substituer un résultat ferait lire au modèle « plan approuvé ».
+
 ## 2026-11-04 — Release v2.16.1
 
 - Fix bouton Scope en fin de plan : la question n'apparaissait pas (carte native seule). Cause : un autre plugin (`cc-plugin-sec-default`) consomme le rappel `prompt.attachment` du mode plan avant le mod, donc `planFile` restait vide et la garde renvoyait `next`. Le chemin du plan n'est plus une garde (entrée d'ExitPlanMode, puis atom, sinon indice résolu par le modèle) ; garde `.vibe-agent/backlog.json` retirée (la fin de plan précède souvent le 1er `/scope`).

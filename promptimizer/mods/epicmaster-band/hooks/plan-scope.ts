@@ -15,8 +15,11 @@ export const APPROVE = 'Approuver le plan'
 // Chemin inconnu (rappel du mode plan intercepté par un autre plugin) : le modèle connaît son fichier
 // plan par le rappel système du mode plan — on le lui fait nommer.
 export const PLAN_HINT = '<chemin absolu du fichier plan indiqué par le rappel du mode plan>'
+// Le refus est le seul canal sûr : l'app l'affiche « Échec » (rendu d'un deny, non réglable), mais
+// substituer un résultat ferait lire au modèle « plan approuvé, commence à coder ». Texte court, lisible
+// par l'utilisateur d'abord : ce n'est pas une erreur, c'est son choix.
 export const denyScope = (p: string | null): string =>
-  `Scope choisi par l'utilisateur en fin de plan. N'implémente rien et ne rappelle pas ExitPlanMode. Invoque maintenant le skill pmz:scope avec l'argument « --plan ${p || PLAN_HINT} », puis termine ton tour.`
+  `Pas une erreur : Scope choisi, le plan sera découpé en US (rien n'est implémenté). Consigne : invoque le skill pmz:scope avec « --plan ${p || PLAN_HINT} », sans rappeler ExitPlanMode ni rien implémenter, puis termine ton tour.`
 export const denyRevise = (t: string): string =>
   `L'utilisateur demande une révision du plan : ${t}. Reste en mode plan, révise le plan, puis rappelle ExitPlanMode.`
 
