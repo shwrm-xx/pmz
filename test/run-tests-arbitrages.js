@@ -88,7 +88,10 @@ ok(badJson.code === 0 && /Usage/.test(badJson.out), 'arbiter-brief : JSON invali
 ok(bl.SPEC_REQUIRED_SECTIONS.includes('Décisions'), 'spec : Décisions requise');
 fs.mkdirSync(path.join(sbx, 'docs'), { recursive: true });
 fs.writeFileSync(path.join(sbx, 'docs', 's.md'), '## Récit\n## Critères d\'acceptation\n## Hors périmètre\n## Preuve de clôture\n## Notes\n');
-ok(bl.checkSpecStructure(sbx, 'docs/s.md').missing.includes('Décisions'), 'spec sans Décisions : refus cite Décisions');
+ok(!bl.checkSpecStructure(sbx, 'docs/s.md').missing.includes('Décisions'), 'spec ancienne (sans marqueur v2) : Décisions non exigée');
+fs.writeFileSync(path.join(sbx, 'docs', 's2.md'), bl.SPEC_V2_MARKER + '\n## Récit\n## Critères d\'acceptation\n## Hors périmètre\n## Preuve de clôture\n## Notes\n');
+ok(bl.checkSpecStructure(sbx, 'docs/s2.md').missing.includes('Décisions'), 'spec v2 sans Décisions : refus cite Décisions');
+ok(fs.readFileSync(path.join(PKG, 'templates', 'spec-template.md'), 'utf8').includes(bl.SPEC_V2_MARKER), 'gabarit : marqueur spec-v2');
 ok(/^## Décisions/m.test(fs.readFileSync(path.join(PKG, 'templates', 'spec-template.md'), 'utf8')), 'gabarit : section ## Décisions');
 
 fs.rmSync(sbx, { recursive: true, force: true });

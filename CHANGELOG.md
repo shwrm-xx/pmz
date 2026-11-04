@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Spec : section « Décisions » versionnée (suite US#171)
+
+- Le gabarit de spec porte le marqueur `<!-- spec-v2 -->` ; « Décisions » n'est exigée que des specs qui le portent.
+- Une spec antérieure sans marqueur reste jugée sur la liste historique : `done`/`close-batch`/`close-wave` ne la refusent plus.
+- Tests ajustés (spec ancienne, spec v2, marqueur du gabarit).
+
 ## 2026-11-04 — US#172 US#172 — Procédure maître : tri, arbitrage, exécution immédiate
 
 - Étape « Arbitrages » dans `/epicmaster` et `/pickymaster` (tri, arbitre opus, AskUserQuestion, US d'arbitrages exécutée en session).

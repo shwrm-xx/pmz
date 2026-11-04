@@ -7474,8 +7474,8 @@ section('backlog — validation de structure de la spec à la clôture (epic « 
   const usAbs2 = path.join(repo, 'docs', 'us', 'US-2', 'spec.md');
   fs.writeFileSync(usAbs2, '# US 2\n\n## Récit\n\nEn tant que designer, je veux X, afin de Y.\n');
   ok(backlogLib.checkSpecStructure(repo, 'docs/us/US-2/spec.md').missing.join(', ')
-    === 'Décisions, Critères d\'acceptation, Hors périmètre, Preuve de clôture, Notes',
-    'O3 : checkSpecStructure -> liste exacte des 5 sections manquantes');
+    === 'Critères d\'acceptation, Hors périmètre, Preuve de clôture, Notes',
+    'O3 : checkSpecStructure (spec sans marqueur v2) -> liste exacte des 4 sections manquantes');
   backlogLib.startLot(repo, 2);
   const rDoneRefused = runNode(BKLG, ['done', '--cwd', repo, '--id', '2', '--no-session', '--no-occupancy']);
   ok(/Refusé/.test(rDoneRefused.out) && /sections obligatoires/.test(rDoneRefused.out),
