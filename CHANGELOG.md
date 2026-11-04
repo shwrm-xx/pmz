@@ -2,6 +2,10 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.15.1
+
+- Bande epicmaster ouverte à la fois sur la session parente (qui lance la session maître par `start_session`) et sur la session maître (skill `pmz:epicmaster`/`pickymaster` invoqué) ; `/pickymaster` arme la bande ; pas de réarmement d'une bande qui affiche déjà un plan.
+
 ## 2026-11-04 — Bande epicmaster sur session parente et session maître
 
 - La bande s'arme dans la session maître lancée en sous-session (skill `pmz:epicmaster`/`pickymaster` invoqué, prompt sans slash) et dans la session parente qui la lance par `start_session`.
