@@ -2,6 +2,25 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.17.1 (avis de mise à jour + chaîne Plan → Scope → maître)
+
+Compilation des évolutions depuis la v2.16.3 (la v2.17.0 les contenait déjà, mais ses notes étaient incomplètes).
+
+**Avis de mise à jour (epic #181–#183)**
+- Au démarrage de session, un avis annonce qu'une nouvelle version de PMZ est publiée (une fois par jour et par version, au startup seulement).
+- La statusline affiche un badge `↑ v<dernière>` ; `/pmz:doctor` ajoute une ligne « Mise à jour » (vert, orange ou opt-out, jamais rouge).
+- La version publiée est lue sur la branche `plugin-release`, avec un cache de 24 h et un fetch détaché : aucun hook n'attend le réseau. Fail-open ; opt-out `PMZ_NO_UPDATE_CHECK=1`.
+
+**Chaîne Plan → Scope → session maître**
+- Une seule session réagit : la Plan et la Scope deviennent « relais » dès qu'elles ont lancé la suivante, et ne répondent plus aux tours de leur sous-session. Seule la session maître porte les événements des US.
+- Titres stables : un rôle par session (`.vibe-agent/session-roles.json`), donc la Scope n'est plus retitrée « Plan » et la Plan validée garde son titre.
+- `/scope` depuis le mode plan : la session Plan passe en « ignorer les permissions » (un clic), puis la Scope démarre dans ce mode. Une Scope née en mode plan change de mode elle-même et ne relance plus de sous-session (fin de la boucle).
+
+**Bande epicmaster**
+- Détail déplié : couleurs de statut sur les puces des US (bleu en cours, vert fait, rouge verify rouge, jaune en attente d'une action utilisateur) ; une US qui attend seulement la précédente reste neutre.
+
+**Mise à jour d'un poste** : `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`, puis redémarrage.
+
 ## 2026-11-04 — Chaîne Plan → Scope → maître : une seule session réagit
 
 - Sessions relais : une session Plan ou Scope qui a lancé la suivante ne réagit plus aux tours de sa sous-session (`<side-sessions-event>` écarté par `user-prompt-submit.js`) ; seule la session maître porte les événements.
