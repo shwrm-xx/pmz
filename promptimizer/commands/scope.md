@@ -45,6 +45,21 @@ consigne de doc, un test isolé) se **fusionne** avec une US voisine de même p�
 même epic plutôt que d'exister seule. Borne haute ~300k, borne basse : une US doit valoir
 plus que son socle.
 
+**Source du plan (`--plan`).** `/pmz:scope --plan <fichier>` : la source à découper est ce
+fichier. Sans argument, `.vibe-agent/plan.md` (écrit par le hook `ExitPlanMode`) sert de source
+s'il existe et si la demande est vide. **Avant l'étape 1**, afficher
+« Découpe du plan : <1er titre H1 ou 1re ligne> ([fichier](chemin)) » puis un **résumé du plan en
+3 lignes**, pour que l'utilisateur voie ce qui est découpé.
+
+**Mode plan → sous-session.** Si la session est en mode plan (rappel système du mode plan
+présent), **ne pas découper sur place** : charger `ToolSearch` `select:mcp__ccd_session__start_session`,
+puis un appel `mcp__ccd_session__start_session` avec `initiation: "user_asked"`,
+`context: "fresh"`, `use_worktree: false`, `permission_mode: "default"`,
+`title: "Scope — <titre du plan>"`, `prompt: "/pmz:scope --plan <chemin absolu du fichier plan>"`
+et, en `background`, la demande, le chemin du plan et la consigne de finir par la carte
+« Session maître ». Annoncer en une ligne, puis rien d'autre. Hors desktop (outil absent) : dire
+en une ligne de sortir du mode plan puis de relancer `/pmz:scope --plan <chemin>`.
+
 Étapes :
 1. Reformuler la demande en **2 à 5 US** : un titre court + un critère « fait quand : … »
    par US. Une US = une **unité livrable** (1 commit cohérent), pas une étape d'exécution
