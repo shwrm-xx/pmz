@@ -47,7 +47,9 @@ plus que son socle.
 
 **Source du plan (`--plan`).** `/pmz:scope --plan <fichier>` : la source à découper est ce
 fichier. Sans argument, `.vibe-agent/plan.md` (écrit par le hook `ExitPlanMode`) sert de source
-s'il existe et si la demande est vide. **Avant l'étape 1**, afficher
+s'il existe et si la demande est vide. Ce fichier n'est qu'un **repli hors mod** : en réel,
+`tool_input.plan` peut être vide (cf. docs/us/US-177/preuve.md) ; la source principale est le
+fichier plan natif passé par `--plan`. **Avant l'étape 1**, afficher
 « Découpe du plan : <1er titre H1 ou 1re ligne> ([fichier](chemin)) » puis un **résumé du plan en
 3 lignes**, pour que l'utilisateur voie ce qui est découpé.
 
