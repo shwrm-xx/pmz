@@ -54,6 +54,8 @@ ok(rv.ok && /compare les maquettes validées/.test(rv.text), 'renderReviewBrief 
 // Consignes.
 const cmd = (n) => fs.readFileSync(path.join(REPO, 'promptimizer', 'commands', n + '.md'), 'utf8');
 for (const n of ['epicmaster', 'pickymaster']) ok(/Garde-fou maquettes/.test(cmd(n)) && /ne lance pas\*\* l'US/.test(cmd(n)), `${n}.md : garde-fou maquettes`);
+// v2.16.3 : boutons « Lancer » (= valide + lance) / « J'ajuste d'abord », jamais « lance sans valider ».
+for (const n of ['epicmaster', 'pickymaster']) ok(/\*\*« Lancer »\*\* \(principal ; vaut validation humaine/.test(cmd(n)) && /\*\*« J'ajuste d'abord »\*\*/.test(cmd(n)) && /maquette\.js validate --id N --slug X/.test(cmd(n)) && /Jamais de bouton « lance sans valider »/.test(cmd(n)), `${n}.md : boutons Lancer / J'ajuste d'abord`);
 ok(/en dépendent\s+\*\*implicitement\*\*/.test(cmd('scope')) && !/s'y alignent à la livraison/.test(cmd('scope')), 'scope.md : plus de parallèle maquettes ↔ écrans');
 
 console.log(`\n${pass} ok, ${failures.length} échec(s)`);

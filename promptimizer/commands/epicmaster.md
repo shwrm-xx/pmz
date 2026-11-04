@@ -66,10 +66,13 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    (avertissement en tête de brief), ne code pas l'UI et signale-le dans « À trancher ». »
    **Garde-fou maquettes (non négociable)** : dans une epic qui a une US « Maquettes », toutes les
    autres US de l'epic en dépendent (le script l'impose : jamais en parallèle des maquettes). Un
-   brief qui commence par « ⚠ Maquettes non validées » : **ne lance pas** l'US — demande à
-   l'humain de valider les maquettes (lien de l'index, `maquette.js validate`), donne la place à
-   une autre US éligible, et ne la lance qu'après validation (brief régénéré sans ⚠) ou sur
-   « lance sans maquettes » explicite de l'humain.
+   brief qui commence par « ⚠ Maquettes non validées » : **ne lance pas** l'US — donne le lien de
+   l'index et pose une **question à choix** (boîte de fin de tour ou AskUserQuestion) avec
+   exactement deux boutons, dans cet ordre : **« Lancer »** (principal ; vaut validation humaine des
+   maquettes : lance `maquette.js validate --id N --slug X` pour chaque maquette à valider,
+   régénère le brief — sans ⚠ — puis lance l'US) et **« J'ajuste d'abord »** (l'US attend le retour
+   de l'humain). Jamais de bouton « lance sans valider » : « lance sans maquettes » reste possible
+   en texte libre, explicite. En attendant la réponse, donne la place à une autre US éligible.
 2. **Pipeline glissant** : ne fais pas de barrière de vague. Chaque sous-agent en arrière-plan
    te notifie à sa fin ; dès qu'un rapport arrive, traite-le (étapes 3 et 4) puis, **sans attendre les
    autres**, lance dans le même message (groupé s'il y en a plusieurs) la ou les US **éligibles**

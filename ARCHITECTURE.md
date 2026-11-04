@@ -1707,7 +1707,8 @@ epic une dépendance **implicite** sur l'US « Maquettes » de cette epic (titre
 `dropped`) — `planMasterWaves` ne la place jamais dans la même vague, et la bloque si l'US
 Maquettes est ouverte mais non embarquée. `renderBrief` n'est plus silencieux : spec sans section
 « Maquettes » dans une epic à maquettes → « ⚠ Maquettes non validées » en tête ; le maître ne lance
-pas une US dont le brief porte ⚠ avant validation humaine. `renderReviewBrief` impose au relecteur
+pas une US dont le brief porte ⚠ avant validation humaine. Depuis v2.16.3, cette validation se donne par une question à
+choix « Lancer » (= `maquette.js validate` + brief régénéré + lancement) / « J'ajuste d'abord ». `renderReviewBrief` impose au relecteur
 opus la comparaison maquettes validées ↔ UI livrée. Tests : `test/run-tests-maquettes-garde.js`
 (appelé par `run-tests.js`, avec `-index`, `-liaison` et `-relecture`).
 
