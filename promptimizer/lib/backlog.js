@@ -480,7 +480,11 @@ function createSpecFile(root, id) {
 // Titres de section obligatoires du gabarit (lot #107) — figés ici plutôt que dérivés du
 // gabarit courant : une spec déjà rédigée reste jugée sur les titres qu'elle porte, pas sur une
 // version future de templates/spec-template.md qui pourrait renommer une section.
+// Versionnage (US#171) : « Décisions » n'est exigée que des specs portant le marqueur SPEC_V2
+// (posé par le gabarit) ; une spec antérieure sans marqueur reste jugée sur la liste historique.
 const LOT_KINDS = ['arbitrages']; // US#171
+const SPEC_V2_MARKER = '<!-- spec-v2 -->';
+const SPEC_LEGACY_SECTIONS = ['Récit', 'Critères d\'acceptation', 'Hors périmètre', 'Preuve de clôture', 'Notes'];
 const SPEC_REQUIRED_SECTIONS = ['Récit', 'Décisions', 'Critères d\'acceptation', 'Hors périmètre', 'Preuve de clôture', 'Notes'];
 
 // Vérifie la STRUCTURE (présence des titres de section obligatoires) du fichier de spec pointé par
@@ -494,7 +498,8 @@ function checkSpecStructure(root, spec) {
   try {
     content = fs.readFileSync(path.join(root, spec), 'utf8');
   } catch (_) { return null; }
-  return { missing: SPEC_REQUIRED_SECTIONS.filter((s) => !content.includes(`## ${s}`)) };
+  const required = content.includes(SPEC_V2_MARKER) ? SPEC_REQUIRED_SECTIONS : SPEC_LEGACY_SECTIONS;
+  return { missing: required.filter((s) => !content.includes(`## ${s}`)) };
 }
 
 // Persiste le VERDICT de la commande verify exécutée à la clôture (lot #96), distinct de
@@ -1193,7 +1198,7 @@ function insertChangelog(text, entries) {
 module.exports = {
   planCloseWave, renderChangelogEntry, insertChangelog,
   backlogFile, loadBacklog, saveBacklog, addLot, setVerify, setClosedVerify, setPerimeter, setDepends, setSpec,
-  specPathFor, renderSpecTemplate, createSpecFile, checkSpecStructure, SPEC_REQUIRED_SECTIONS, SPEC_DIR, LOT_KINDS,
+  specPathFor, renderSpecTemplate, createSpecFile, checkSpecStructure, SPEC_REQUIRED_SECTIONS, SPEC_V2_MARKER, SPEC_DIR, LOT_KINDS,
   startLot, doneLot, dropLot, noteLot, reopenLot,
   touchLot, addCost, currentLot, costLotFor, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, progress, summaryLines, reconcile,
   epicBilan, estimateCost, canCoexist, pairwiseCoexist, planWaves, waveBranch,

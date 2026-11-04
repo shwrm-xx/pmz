@@ -1,6 +1,6 @@
 # Spec US#{{ID}} — {{TITRE}}
 
-<!-- Gabarit Promptimizer. Posé par `backlog.js spec --id {{ID}} --new`, à remplir à la main :
+<!-- spec-v2 --><!-- Gabarit Promptimizer. Posé par `backlog.js spec --id {{ID}} --new`, à remplir à la main :
      tout ce qui reste entre <…> est à ta charge.
      Ce fichier est le CONTRAT de l'US : ce qui n'y est pas écrit n'est pas dû. Garde-le sous
      ~60 lignes — au-delà, ce n'est pas une spec mal rédigée, c'est une US à redécouper. -->
