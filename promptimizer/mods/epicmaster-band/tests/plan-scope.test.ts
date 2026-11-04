@@ -12,15 +12,19 @@ function setup(on: On, box: Box) {
     if (!box.pmz) throw new Error('ENOENT')
     return { value: '{}' } as never
   })
-  on('ui.ask', () => {
+  // $.ui.ask lève un appel d'outil AskUserQuestion : on l'intercepte au niveau tool.call.
+  on('tool.call', { tool: 'AskUserQuestion' }, () => {
     box.asked++
     if (box.answer instanceof Error) throw box.answer
-    return { value: box.answer } as never
+    return { result: { answers: { [QUESTION]: box.answer } } } as never
   })
+  // Ce que le moteur ferait sous le mod : la pièce passe telle quelle, ExitPlanMode s'exécute.
+  on('prompt.attachment', (_$, e) => ({ text: (e as { text: string }).text }) as never)
+  on('tool.call', { tool: 'ExitPlanMode' }, () => ({ result: {} }) as never)
   mock.env(on, { HOME: '/home/u' })
 }
 const attach = ($: any, planFilePath: string) =>
-  $.prompt.attach?.({ type: 'plan_mode', detail: { planFilePath } })
+  $.prompt.attachment({ type: 'plan_mode', text: 'Plan mode is active.', origin: { kind: 'engine' }, detail: { planFilePath } } as never)
 
 describe('fin de plan', () => {
   test('libellés exacts', () => {
@@ -36,7 +40,7 @@ describe('fin de plan', () => {
       const out = await $.tool.call({ tool: 'ExitPlanMode' } as never)
       expect(box.asked).toBe(0)
       expect((out as { deny?: string }).deny).toBeUndefined()
-    }, { surface })
+    })
     test(`${surface} : Scope -> deny avec --plan, Approuver -> next, rejet -> next`, async ($, on) => {
       const box: Box = { pmz: true, asked: 0, answer: SCOPE, nexted: 0 }
       setup(on, box)
@@ -49,6 +53,7 @@ describe('fin de plan', () => {
       expect((await $.tool.call({ tool: 'ExitPlanMode' } as never) as { deny?: string }).deny).toBeUndefined()
       box.answer = 'plus court'
       expect((await $.tool.call({ tool: 'ExitPlanMode' } as never) as { deny?: string }).deny).toContain('plus court')
-    }, { surface })
+      expect(box.asked).toBe(4)
+    })
   }
 })
