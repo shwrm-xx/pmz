@@ -1691,7 +1691,7 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   `CLAUDE_CONFIG_DIR` bac à sable (`marketplace add` + `plugin install`) avant tout
   `publish-plugin.js --push`.
 
-### Avis de mise à jour (update-check, v2.17.0, lots #181–#183)
+### Avis de mise à jour (update-check, v2.17.0–v2.17.1, lots #181–#183)
 
 - **Source** : `promptimizer/VERSION` sur la branche `plugin-release`
   (`https://raw.githubusercontent.com/shwrm-xx/pmz/plugin-release/promptimizer/VERSION`),
