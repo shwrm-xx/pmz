@@ -389,6 +389,7 @@ plugin à installer) — `build-plugin.js` fusionne le module dans le `hooks/hoo
 L'install manuelle enregistre aussi
 `SubagentStart`/`SubagentStop` (tagué, réversible) ; retrait : `uninstall` (hooks + entrée
 `CLAUDE_CODE_PLUGIN_DIRS`, seule la nôtre) puis suppression de `~/.claude/promptimizer/`.
+La bande s'ouvre à la fois dans la session parente (celle qui lance la session maître par sa carte) et dans la session maître.
 Bande absente ? **`/epicband`** l'affiche à la demande (plan le plus récent du projet, sans appel au
 modèle) ; `/epicband plan` ouvre aussi le panneau du plan, `/epicband off` la retire.
 Fichier live (US#141-#142) : `backlog.js epicmaster --live-seed` sème le **plan complet**

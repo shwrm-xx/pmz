@@ -885,6 +885,14 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   copie unique partagée `promptimizer/epicmaster-live.json` (dernier écrivain gagnant : la bande d'un
   projet affichait le plan d'un autre) est supprimée à la première écriture. Best-effort ;
   `PMZ_NO_LIVE_MIRROR=1` coupe la copie (tests).
+- **Armement parente + maître** (v2.15.1) : une session maître lancée en sous-session (US#173) ne
+  tape pas `/epicmaster` — son prompt fait invoquer le skill. La bande s'arme donc aussi sur
+  `tool.call` `Skill` (`pmz:epicmaster|pickymaster`, session maître), sur `tool.call`
+  `mcp__ccd_session__start_session` dont le `prompt`/`title` nomme epicmaster (session **parente** :
+  sa bande suit le plan que la maître sème dans le même checkout), et sur un prompt qui le nomme sans
+  slash ; `/pickymaster` arme comme `/epicmaster`. Armement **doux** (`armSoft`) : une bande déjà liée
+  à un plan visible n'est pas réarmée (la maître qui propose la suivante garde le sien). Fail-open :
+  hooks après `next`, `.catch` → `next(e)`, jamais de refus.
 - **Affichage manuel `/epicband`** (v2.9.1) : commande **locale** du mod (`$.command.register` dans
   `session.start`, réponse `command.run` sans `next` → aucun appel au modèle). Arme la session avec
   l'atom `manual` : `readLive` lève alors le filtre `seeded_at` (fichier local pris tel quel ; copie

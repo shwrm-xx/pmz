@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Bande epicmaster sur session parente et session maître
+
+- La bande s'arme dans la session maître lancée en sous-session (skill `pmz:epicmaster`/`pickymaster` invoqué, prompt sans slash) et dans la session parente qui la lance par `start_session`.
+- `/pickymaster` arme la bande comme `/epicmaster` ; armement doux : une bande déjà liée à un plan visible n'est pas réarmée.
+- 5 tests ajoutés (`mods/epicmaster-band/tests/band.test.ts`).
+
 ## 2026-11-04 — Release v2.15.0
 
 - Solde d'epic : une epic se solde entièrement par l'US d'arbitrages. Défauts (critère raté, problème confirmé par la relecture) et finitions sont toujours corrigés ; la Dette est l'exception (au plus 1, hors périmètre, importance haute|critique, avec la raison du report) (US#174, #175).
