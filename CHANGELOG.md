@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#172 US#172 — Procédure maître : tri, arbitrage, exécution immédiate
+
+- Étape « Arbitrages » dans `/epicmaster` et `/pickymaster` (tri, arbitre opus, AskUserQuestion, US d'arbitrages exécutée en session).
+- Handoff maître : « Décidé cette session », « À trancher » réservé aux maquettes à valider.
+- `/scope` : décisions UX/contrat posées au découpage, section « Décisions », redécoupage au-delà de 2 questions ouvertes.
+- `close-batch` et `handoff-template` : point technique décidé par l'agent, point UX en question à choix.
+- README et ARCHITECTURE mis à jour ; tests de doc ajoutés.
+
 ## 2026-11-04 — US#171 US#171 — Rapport, arbitre et US d'arbitrages
 
 - Rapport sous-agent : section « Décidé », « À trancher » réservé à l'UX et aux contrats visibles.
