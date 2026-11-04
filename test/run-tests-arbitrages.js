@@ -51,6 +51,46 @@ ok(/Plafond : ~\d+ tours d'outils ou contexte à ~\d+ %/.test(brief), 'brief : p
 ok(/rapport PARTIEL/.test(brief), 'brief : rapport partiel au plafond');
 ok(/itère en sonnet/.test(brief) && /jugement final/.test(brief) && /en opus/.test(brief), 'brief : itérer en sonnet, juger en opus');
 
+// 5. US#171 — rapport (Décidé / À trancher), kind arbitrages, brief de l'arbitre, spec « Décisions ».
+ok(/Dette \/ Décidé \/ À trancher \/ Bloc CHANGELOG/.test(brief), 'brief : sections Décidé et À trancher');
+ok(/expérience utilisateur ou un contrat visible/.test(brief) && /choix — raison — comment revenir/.test(brief), 'brief : règle d\'éligibilité À trancher + format Décidé');
+ok(/jamais « Aucun »/.test(brief) && /Non vérifié/.test(brief), 'brief : section vide omise, doute -> Non vérifié');
+const briefArb = em.renderBrief({ id: 2, kind: 'arbitrages', title: 'A', model_hint: 'sonnet', effort_hint: 'medium', scope: 's', verify: 'v', perimeter: [], depends_on: [] }, null, '/x');
+ok(/^Arbitrages : toutes les décisions sont prises — pas d'À trancher/.test(briefArb), 'brief arbitrages : 1re ligne = consigne');
+ok(/Dette \/ Décidé \/ Bloc CHANGELOG/.test(briefArb) && !/Dette \/ Décidé \/ À trancher/.test(briefArb), 'brief arbitrages : « À trancher » retiré des sections');
+ok(!/^- À trancher : SEULEMENT/m.test(briefArb), 'brief arbitrages : pas de règle d\'éligibilité À trancher');
+
+const rk = add(['--model', 'sonnet', '--kind', 'arbitrages']);
+ok(rk.code === 0 && /ajoutée/.test(rk.out), 'add --kind arbitrages : accepté');
+const bk = JSON.parse(fs.readFileSync(path.join(sbx, '.vibe-agent', 'backlog.json'), 'utf8'));
+ok(bk.lots.some((l) => l.kind === 'arbitrages'), 'add --kind arbitrages : kind écrit dans le backlog');
+ok(bk.lots.every((l) => l.kind === undefined || l.kind === 'arbitrages'), 'US ordinaires : pas de kind');
+const rbad = add(['--model', 'sonnet', '--kind', 'autre']);
+ok(/^Refusé/m.test(rbad.out) && !/ajoutée/.test(rbad.out), 'add --kind autre : refusé');
+
+function arbiter(input) {
+  const r = spawnSync(process.execPath, [CLI, 'epicmaster', '--arbiter-brief', '--stdin', '--cwd', sbx], { encoding: 'utf8', env, input });
+  return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
+}
+const two = arbiter(JSON.stringify({ items: [
+  { id: '#171', point: 'point Alpha', options: ['opt un', 'opt deux'], recommended: 1 },
+  { id: '#172', point: 'point Beta', options: ['opt trois', 'opt quatre'], recommended: 0 },
+] }));
+ok(two.code === 0 && /#171/.test(two.out) && /#172/.test(two.out) && /opt un/.test(two.out) && /opt quatre/.test(two.out), 'arbiter-brief : 2 ids et options citées');
+ok(/Décisions/.test(two.out) && /Actions/.test(two.out) && /opus/.test(two.out) && /Aucune escalade/.test(two.out), 'arbiter-brief : sections Décisions/Actions, opus, sans escalade');
+const none = arbiter('{"items":[]}');
+ok(none.code === 0 && /Aucun item technique : pas d'arbitre\./.test(none.out), 'arbiter-brief : items vides -> pas d\'arbitre, exit 0');
+const emptyIn = arbiter('');
+ok(emptyIn.code === 0 && /Aucun item technique/.test(emptyIn.out), 'arbiter-brief : entrée vide -> pas d\'arbitre, exit 0');
+const badJson = arbiter('{pas du json');
+ok(badJson.code === 0 && /Usage/.test(badJson.out), 'arbiter-brief : JSON invalide -> usage, exit 0');
+
+ok(bl.SPEC_REQUIRED_SECTIONS.includes('Décisions'), 'spec : Décisions requise');
+fs.mkdirSync(path.join(sbx, 'docs'), { recursive: true });
+fs.writeFileSync(path.join(sbx, 'docs', 's.md'), '## Récit\n## Critères d\'acceptation\n## Hors périmètre\n## Preuve de clôture\n## Notes\n');
+ok(bl.checkSpecStructure(sbx, 'docs/s.md').missing.includes('Décisions'), 'spec sans Décisions : refus cite Décisions');
+ok(/^## Décisions/m.test(fs.readFileSync(path.join(PKG, 'templates', 'spec-template.md'), 'utf8')), 'gabarit : section ## Décisions');
+
 fs.rmSync(sbx, { recursive: true, force: true });
 console.log(`arbitrages : ${fail ? fail + ' échec(s)' : 'OK'}`);
 process.exit(fail ? 1 : 0);

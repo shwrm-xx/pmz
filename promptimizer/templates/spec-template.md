@@ -23,6 +23,12 @@ Ce qu'un exécutant **sonnet** doit savoir pour livrer sans concevoir (un trou =
 - Dépend de : <US qui fige le contrat consommé, ou « aucune »>
 - Modèle · effort : sonnet · medium <sinon : justification d'une ligne — qu'est-ce qui empêche sonnet ?>
 
+## Décisions
+
+Choix UX et de contrat pris au découpage (« aucune question ouverte » attendu : tout ce qui touche l'expérience ou un contrat visible est tranché ici, pas laissé à l'exécutant).
+
+- <décision — raison> (ou « aucune question ouverte »)
+
 ## Critères d'acceptation
 
 Un critère est **testable** (état observable, sortie de commande) ou ce n'est pas un critère.

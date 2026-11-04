@@ -365,6 +365,7 @@ function renderBrief(l, b, pmzBase, root) {
   if (mqs && !mqs.validated) L.push('⚠ Maquettes non validées : ne pas coder l\'UI, signale-le dans « À trancher ».');
   // Sans section « Maquettes » dans la spec alors que l'epic a une US Maquettes : jamais de silence.
   else if (!mqs && epicMq.length) L.push(`⚠ Maquettes non validées : l'epic a une US Maquettes (${epicMq.map((m) => '#' + m.id).join(', ')}) mais la spec n'en cite aucune. Si cette US touche l'UI, ne la code pas et signale-le dans « À trancher ».`);
+  if (l.kind === 'arbitrages') L.push('Arbitrages : toutes les décisions sont prises — pas d\'À trancher ; un point bloquant → Dette, avec la cause.');
   L.push(`# US#${l.id} « ${l.title} » — brief de sous-agent (session maître Promptimizer)`);
   L.push(`Modèle : ${l.model_hint || '?'} · effort ${l.effort_hint || '?'} — à passer à l'outil Agent (model=${l.model_hint || '?'}${l.effort_hint ? `, effort=${l.effort_hint}` : ''}).`);
   if (l.epic) L.push(`Epic : ${l.epic}`);
@@ -391,7 +392,11 @@ function renderBrief(l, b, pmzBase, root) {
   L.push(`- Plafond : ~${MAX_TURNS_HINT} tours d'outils ou contexte à ~60 % de ta fenêtre. Au plafond, STOPPE et rends un rapport PARTIEL (Fait / Non vérifié / reste à faire) plutôt que de dériver : le maître relancera ou re-découpera.`);
   L.push('- Boucles visuelles (render → look → retouche) : itère en sonnet ; ne rends le jugement final (conformité, qualité) qu\'en opus, une seule fois, hors boucle.');
   L.push(`- Rapport final ≤ ${REPORT_MAX_WORDS} mots, EXACTEMENT ces sections, rien d'autre :`);
-  L.push('  Fait / Fichiers modifiés / Verify (verdict ok|failed|none + 5 dernières lignes si rouge) / Non vérifié / Dette / À trancher / Bloc CHANGELOG (3 à 6 puces).');
+  const arb = l.kind === 'arbitrages';
+  L.push(`  Fait / Fichiers modifiés / Verify (verdict ok|failed|none + 5 dernières lignes si rouge) / Non vérifié / Dette / Décidé${arb ? '' : ' / À trancher'} / Bloc CHANGELOG (3 à 6 puces).`);
+  L.push('- Décidé : les choix techniques que tu fais seul, une ligne chacun « choix — raison — comment revenir ». Tranche seul le technique, ne le remonte pas.');
+  if (!arb) L.push('- À trancher : SEULEMENT un point qui touche l\'expérience utilisateur ou un contrat visible (CLI, format de fichier, périmètre) et que la spec ne tranche pas, avec 2 à 3 options dont une recommandée. Jamais un choix purement technique.');
+  L.push('- Test instable ou doute de vérification → « Non vérifié ». Une section vide est omise, jamais « Aucun ».');
   L.push('- Interdits dans le rapport : diff, contenu de fichier, listing de code, sortie complète de tests.');
   L.push(`(Référence : node ${base}/scripts/backlog.js show --json pour le maître uniquement.)`);
   return L.join('\n');
@@ -438,11 +443,42 @@ function renderReviewBrief(b, ids, opts) {
   L.push('- Ne lance aucun script Promptimizer (backlog.js, close-batch.js…) ; tu peux rejouer les verify (lecture) et utiliser git/grep.');
   L.push('- Lecture ciblée (git grep, lecture partielle) ; pas de scan large du dépôt.');
   L.push('- Maquettes : pour chaque US relue dont la spec a une section « Maquettes », compare les maquettes validées (`maquette.js brief --id <US citée>`, HTML lu) à l\'UI livrée ; tout écart (écran, état, libellé, structure) ou UI codée sans maquette validée = Problème confirmé.');
-  L.push('- Ne corrige rien : signale. Le maître classe tes constats en Dette ou À trancher.');
+  L.push('- Ne corrige rien : signale. Le maître classe tes constats en Dette, Décidé ou À trancher.');
   L.push(`- Rapport final ≤ ${REPORT_MAX_WORDS} mots, EXACTEMENT ces sections, rien d'autre :`);
   L.push(`  ${REVIEW_SECTIONS.join(' / ')}.`);
   L.push('- Interdits dans le rapport : diff, contenu de fichier, listing de code, sortie complète de tests.');
   return { ok: true, text: L.join('\n'), reason: null, base, ids: lots.map((l) => l.id) };
+}
+
+// BRIEF DE L'ARBITRE (US#171) — un sous-agent opus·medium tranche les « À trancher » techniques.
+// Fonction pure. items = [{id, point, options[], recommended}] ; vide -> pas d'arbitre.
+const ARBITER_MODEL = 'opus';
+const ARBITER_EFFORT = 'medium';
+function renderArbiterBrief(items) {
+  const its = (Array.isArray(items) ? items : []).filter((x) => x && typeof x === 'object' && (x.point || x.id != null));
+  if (!its.length) return 'Aucun item technique : pas d\'arbitre.';
+  const L = [];
+  L.push(`# Arbitre — ${its.length} point${its.length > 1 ? 's' : ''} technique${its.length > 1 ? 's' : ''} à trancher (brief de sous-agent)`);
+  L.push(`Modèle : ${ARBITER_MODEL} · effort ${ARBITER_EFFORT} — à passer à l'outil Agent (model=${ARBITER_MODEL}, effort=${ARBITER_EFFORT}).`);
+  L.push('Mission : trancher chaque item ci-dessous, un par un, à la place de l\'humain.');
+  L.push('');
+  L.push('Items :');
+  for (const it of its) {
+    const opts = Array.isArray(it.options) ? it.options.map((o) => String(o)) : [];
+    const rec = Number.isInteger(it.recommended) && it.recommended >= 0 && it.recommended < opts.length ? it.recommended : null;
+    L.push(`- ${it.id != null ? String(it.id) : '?'} — ${it.point ? String(it.point) : '(point non précisé)'}`);
+    opts.forEach((o, i) => L.push(`    ${i + 1}. ${o}${rec === i ? ' (recommandée)' : ''}`));
+  }
+  L.push('');
+  L.push('Règles :');
+  L.push('- LECTURE SEULE : n\'écris aucun fichier, ne commite jamais, ne touche ni à .vibe-agent/ ni à CHANGELOG.md.');
+  L.push('- Ne lance aucun script Promptimizer de suivi ; lecture ciblée (git grep, lecture partielle).');
+  L.push('- Aucune escalade vers l\'humain : tu décides, une décision par item, même si le choix est serré.');
+  L.push(`- Rapport final ≤ ${REPORT_MAX_WORDS} mots, EXACTEMENT ces sections, rien d'autre :`);
+  L.push('  Décisions : une ligne par item « <id> — <option retenue> — <raison> ».');
+  L.push('  Actions : une action concrète par décision qui change quelque chose (action, fichiers, critère de fin) ; une décision « ne rien changer » n\'a pas d\'action.');
+  L.push('- Interdits dans le rapport : diff, contenu de fichier, listing de code.');
+  return L.join('\n');
 }
 
 // Commandes côté maître (texte, rien d'exécuté). `launchCommand` AVANT de lancer le sous-agent :
@@ -511,7 +547,7 @@ function writeMasterHandoff(root, text, file) {
 
 module.exports = {
   selectLots, groupByEpic, planMasterWaves, isMaquettesLot, effectiveDeps, chunkWaves, masterModel, contextBudget, splitSessions,
-  planMaster, renderPlan, renderBrief, renderReviewBrief,
+  planMaster, renderPlan, renderBrief, renderReviewBrief, renderArbiterBrief, ARBITER_MODEL, ARBITER_EFFORT,
   REVIEW_MIN_LOTS, REVIEW_MODEL, REVIEW_EFFORT, REVIEW_SECTIONS, launchCommand, closeCommands, renderMasterHandoff, writeMasterHandoff,
   MAX_PARALLEL_DEFAULT, MAX_PARALLEL_CAP, MASTER_BASELINE_TOKENS, MASTER_COST_PER_LOT, SUBAGENT_BASE_TOKENS,
   REPORT_MAX_WORDS, DEFAULT_MASTER_MODEL, DEFAULT_MASTER_EFFORT, NO_EPIC, OWNER_PREFIX,
