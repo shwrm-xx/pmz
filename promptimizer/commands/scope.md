@@ -1,6 +1,6 @@
 ---
 description: Découpe une grosse demande en 2-5 US persistées (.vibe-agent/backlog.json)
-allowed-tools: Bash(node *), Bash(git *), ToolSearch, mcp__ccd_session__start_session
+allowed-tools: Bash(node *), Bash(git *), ToolSearch, mcp__ccd_session__start_session, mcp__ccd_session_mgmt__set_session_permission_mode
 ---
 
 Découpe la demande courante en un plan d'US persistant.
@@ -53,17 +53,31 @@ fichier plan natif passé par `--plan`. **Avant l'étape 1**, afficher
 « Découpe du plan : <1er titre H1 ou 1re ligne> ([fichier](chemin)) » puis un **résumé du plan en
 3 lignes**, pour que l'utilisateur voie ce qui est découpé.
 
-**Mode plan → sous-session.** Si la session est en mode plan (rappel système du mode plan
-présent), **ne pas découper sur place** : charger `ToolSearch` `select:mcp__ccd_session__start_session`,
-puis un appel `mcp__ccd_session__start_session` avec `initiation: "user_asked"`,
-`context: "fresh"`, `use_worktree: false`, `permission_mode: "bypassPermissions"` (mode
-« ignorer les permissions », **jamais** le mode plan hérité ; si l'app le refuse, relancer avec
-`permission_mode: "default"` — jamais `plan` ni paramètre omis, qui hérite du mode plan),
-`title: "Scope — <titre du plan>"`, `prompt: "/pmz:scope --plan <chemin absolu du fichier plan>"`
-et, en `background`, la demande, le chemin du plan et la consigne de finir par la carte
-« Session maître ». Annoncer en une ligne (« Découpage lancé dans la sous-session Scope »), puis **terminer le tour** :
-aucune autre action, aucune annonce d'implémentation (« je commence par… » est interdit ici). Hors desktop (outil absent) : dire
-en une ligne de sortir du mode plan puis de relancer `/pmz:scope --plan <chemin>`.
+**Sous-session Scope (anti-récursion).** Si cette session **a été lancée** comme sous-session
+Scope (premier message `/pmz:scope --plan …`, background « sous-session Scope »), elle découpe
+**ici**, **jamais** de nouvelle sous-session — même en mode plan. Encore en mode plan (rappel système
+présent) : charger `ToolSearch` `select:mcp__ccd_session_mgmt__set_session_permission_mode`, appeler
+`session_id: "self"`, `mode: "bypassPermissions"` (carte d'approbation, un clic) puis enchaîner le
+découpage ; refusé : une ligne « passe cette session en mode « ignorer les permissions » puis
+relance `/pmz:scope --plan <chemin>` », et terminer le tour.
+
+**Mode plan → sous-session.** Sinon, si la session est en mode plan (rappel système du mode plan
+présent), **ne pas découper sur place**. L'app refuse à une sous-session un mode supérieur à celui
+de sa parente (plan = le plus bas) : d'abord **sortir cette session du mode plan au clic** —
+`ToolSearch` `select:mcp__ccd_session_mgmt__set_session_permission_mode,mcp__ccd_session__start_session`,
+puis `set_session_permission_mode` `session_id: "self"`, `mode: "bypassPermissions"` (carte
+d'approbation : c'est le clic de l'utilisateur). Ensuite **un seul** appel
+`mcp__ccd_session__start_session` avec `initiation: "user_asked"`, `context: "fresh"`,
+`use_worktree: false`, `permission_mode: "bypassPermissions"` (mode « ignorer les permissions » ;
+bascule refusée ou déclinée : **omettre** `permission_mode` — la sous-session se basculera elle-même,
+cf. anti-récursion ci-dessus), `title: "Scope — <titre du plan>"`,
+`prompt: "/pmz:scope --plan <chemin absolu du fichier plan>"` et, en `background`, « sous-session
+Scope », la demande, le chemin du plan et la consigne de finir par la carte « Session maître ».
+Annoncer en une ligne (« Découpage lancé dans la sous-session Scope »), puis **terminer le tour** :
+aucune autre action, aucune annonce d'implémentation (« je commence par… » est interdit ici). Cette
+session Plan est désormais **relais** : titre figé, elle ne réagit plus aux tours de la Scope (le
+hook écarte ses `<side-sessions-event>`). Hors desktop (outil absent) : dire en une ligne de sortir
+du mode plan puis de relancer `/pmz:scope --plan <chemin>`.
 
 Étapes :
 1. Reformuler la demande en **2 à 5 US** : un titre court + un critère « fait quand : … »
@@ -181,7 +195,9 @@ en une ligne de sortir du mode plan puis de relancer `/pmz:scope --plan <chemin>
    maître est plus cher que celui de cette session, l'app l'ignore (hérite) : le dire en une ligne.
    **Règle « sous-session systématique »** : depuis la session de plan, toute session associée
    (session maître, session maître suivante) part par cette carte, jamais par « ouvre une session
-   fraîche » à la main. À la réception d'un `<side-sessions-event>` : rapport en une ligne, rien
+   fraîche » à la main. Une fois la carte posée, cette session Scope est **relais** : elle ne
+   bouge plus, c'est la session maître qui porte les événements des US. Le hook écarte les
+   `<side-sessions-event>` qu'elle reçoit ; si l'un passe quand même : **aucune réponse**, rien
    relancé.
    **Repli (outil absent hors desktop, ou appel refusé)** : conclure en **trois lignes** :
    (1) « ouvre une session fraîche avec `/model <modèle maître>` » ; (2) « le handoff maître y sera

@@ -134,7 +134,9 @@ function doctor(extra) {
   const down = doctor({});
   const off = doctor({ PMZ_NO_UPDATE_CHECK: '1' });
   ok(uptodate.code === 0 && /vert — à jour/.test(uptodate.line), 'doctor : à jour (vert)');
-  ok(/orange — .*disponible/.test(behind.line) && behind.line.includes('claude plugin update pmz@pmz-marketplace'), 'doctor : en retard (orange + commande)');
+  const behindPlugin = doctor({ PMZ_TEST_LATEST: newer, CLAUDE_PLUGIN_ROOT: path.join(__dirname, '..', 'promptimizer') });
+  ok(/orange — .*disponible/.test(behind.line) && behind.line.includes('install.command'), 'doctor : en retard, canal manuel (orange + installateur)');
+  ok(/orange — .*disponible/.test(behindPlugin.line) && behindPlugin.line.includes('claude plugin update pmz@pmz-marketplace'), 'doctor : en retard, canal plugin (orange + commande)');
   ok(/orange — vérification impossible/.test(down.line), 'doctor : injoignable (orange)');
   ok(off.line.includes('vérification désactivée (PMZ_NO_UPDATE_CHECK)') && !/orange|rouge/.test(off.line), 'doctor : opt-out');
   const all = [uptodate, behind, down, off];

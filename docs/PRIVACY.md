@@ -50,7 +50,7 @@ stdout. In the tables, "project" means the git root found with `git rev-parse --
 When the opt-in RTK bridge is enabled, the Bash command may be rewritten by the local `rtk`
 binary (`rtk rewrite <command>`), after the command was judged safe. It is off by default.
 
-### PostToolUse (`Read|Edit|Write|TodoWrite|Bash`) — `post-tool-use.js`
+### PostToolUse (`Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session`) — `post-tool-use.js`
 
 | Event | Script | Reads | Writes | Blocks? |
 |---|---|---|---|---|

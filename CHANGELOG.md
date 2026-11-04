@@ -2,11 +2,19 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Chaîne Plan → Scope → maître : une seule session réagit
+
+- Sessions relais : une session Plan ou Scope qui a lancé la suivante ne réagit plus aux tours de sa sous-session (`<side-sessions-event>` écarté par `user-prompt-submit.js`) ; seule la session maître porte les événements.
+- Rôle par session (`.vibe-agent/session-roles.json`, `lib/roles.js`) : la Scope n'est plus retitrée « Plan » quand une autre session écrase l'état partagé ; la Plan validée garde son titre.
+- `/scope` depuis le mode plan : bascule de la session Plan en « ignorer les permissions » (un clic) puis Scope lancée dans ce mode ; une Scope née en mode plan se bascule elle-même et ne relance plus de sous-session (fin de la récursion).
+- `post-tool-use.js` écoute `mcp__ccd_session__start_session` (matcher élargi, plugin + install manuelle) ; nouvelle sous-suite `run-tests-relais.js` (21 assertions).
+
 ## 2026-11-04 — Release v2.17.0 (avis de mise à jour)
 
 - Avis automatique de nouvelle version au démarrage de session, badge `↑` dans la statusline, ligne « Mise à jour » dans `/pmz:doctor` (epic #181–#183).
 - Version publiée lue sur la branche `plugin-release`, cache 24 h, fetch détaché, fail-open ; opt-out `PMZ_NO_UPDATE_CHECK=1`.
 - Doc : README (avis, opt-out, auto-update natif `/plugin`, `Watch → Custom → Releases`), ARCHITECTURE (section update-check), CLAUDE.md (étape 5 de la Release).
+- Chaîne Plan → Scope → maître : les sessions relais ne réagissent plus aux tours de leurs sous-sessions, titres stables, Scope lancée en mode ignorer les permissions.
 
 ## 2026-11-04 — US#182 US#182 — Avis de mise à jour : session, statusline, doctor
 

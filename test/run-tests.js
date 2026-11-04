@@ -231,7 +231,7 @@ function pmzEntry(s2, ev) {
   return (s2.hooks[ev] || []).find((e) => (e.hooks || []).some((h) => h.command.includes('promptimizer/hooks/')));
 }
 ok(pmzEntry(s, 'SessionStart').matcher === 'startup|resume|clear|compact', 'matcher SessionStart couvre clear et compact');
-ok(pmzEntry(s, 'PostToolUse').matcher === 'Read|Edit|Write|TodoWrite|Bash', 'matcher PostToolUse couvre TodoWrite + Bash');
+ok(pmzEntry(s, 'PostToolUse').matcher === 'Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session', 'matcher PostToolUse couvre TodoWrite + Bash');
 ok(pmzEntry(s, 'PreCompact') && pmzEntry(s, 'PreCompact').matcher === 'manual|auto', 'PreCompact enregistré (manual|auto)');
 
 // D3ter. Anti-régression : les tool_names réellement gérés par pre-tool-use.js (Bash + le
@@ -10665,6 +10665,7 @@ for (const [title, file] of [
   ['US#174 — garde de solde et briefs', 'run-tests-solde.js'],
   ['US#181 — module update-check', 'run-tests-update-check.js'],
   ['US#182 — avis session/statusline/doctor', 'run-tests-update-notice.js'],
+  ['Chaîne Plan → Scope → maître : sessions relais', 'run-tests-relais.js'],
 ]) {
   section(`${title} (test/${file})`);
   const r = spawnSync(process.execPath, [path.join(__dirname, file)], { encoding: 'utf8' });

@@ -404,6 +404,12 @@ modèle) ; `/epicband plan` ouvre aussi le panneau du plan, `/epicband off` la r
 **Fin de plan (US#179)** : en session PMZ en mode plan, le mod pose avant la carte native d'`ExitPlanMode`
 une question « Scope (recommandé) » / « Approuver le plan ». Scope refuse la sortie du mode plan (rien
 n'est implémenté) et lance `/pmz:scope --plan <fichier plan>` ; Approuver ouvre la carte native intacte.
+
+**Chaîne Plan → Scope → session maître** : Plan (facultative) → sous-session Scope au clic (la session
+Plan passe en « ignorer les permissions », la Scope y démarre) → session maître au clic depuis la carte
+de Scope. Chaque session se renomme seule (« [XXX · Plan] », « [XXX · Scope] », « [XXX · EP#a–#b] »).
+Une session qui a lancé la suivante devient **relais** : titre figé, elle ne réagit plus aux tours de
+sa sous-session — seule la session maître porte les événements des US.
 Fichier live (US#141-#142) : `backlog.js epicmaster --live-seed` sème le **plan complet**
 (epic, vagues, US en attente) ; `note --id N --note "…" --decide` ajoute la décision à
 `to_decide` (« N à trancher » dans la bande) ; `done --id N --tokens <réels>` remplace l'estimation

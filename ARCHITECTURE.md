@@ -1112,6 +1112,23 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   principal), et le renommage était devenu inutilisable (retour utilisateur 2026-07-30 : « oublié
   du numéro de l'US », « systématiquement Session libre »). Un titre **positionnel** + le dernier
   travail enregistré vaut mieux qu'un titre juste-mais-vide.
+  **Chaîne Plan → Scope → session maître (2026-11-04)** : chaque session porte un **rôle par
+  `session_id`** dans `.vibe-agent/session-roles.json` (`lib/roles.js` : `plan` | `scope` | `master`,
+  plus `relay`), distinct de `session-state.json` — fichier unique que chaque session vivante écrase,
+  ce qui faisait perdre le drapeau « scope » (Scope retitrée « Plan »). Rôle posé par
+  `user-prompt-submit.js` (`permission_mode: "plan"`, prompt `/pmz:scope`, prompt `/pmz:epicmaster`) ;
+  `scope`/`master` ne sont jamais rétrogradés en `plan`. Une session devient **relais** quand elle
+  lance ou propose la suivante de la chaîne (`post-tool-use.js`, matcher
+  `mcp__ccd_session__start_session`, titre/prompt Scope ou maître) : elle « ne bouge plus ». L'app la
+  réveille pourtant à chaque tour de son enfant par un prompt synthétique `<side-sessions-event>` —
+  `user-prompt-submit.js` l'**écarte** (`decision: "block"`, `suppressOutput`) ; un prompt humain
+  n'est jamais bloqué, `session-roles.json` illisible → rien bloqué (fail-open). Seule la session
+  maître porte donc les événements (les US y tournent en sous-agents). Une Plan relais garde son titre
+  « [XXX · Plan] » hors mode plan. Mode : une sous-session ne peut naître dans un mode supérieur à
+  celui de sa parente (plan = le plus bas) — `/scope` bascule d'abord la session Plan en
+  `bypassPermissions` (`set_session_permission_mode` self, carte = le clic), puis lance la Scope en
+  `bypassPermissions` ; une Scope née en mode plan se bascule elle-même et **ne relance jamais** de
+  sous-session (anti-récursion).
   **Sessions de CONCEPTION (lot #130)** : une session qui **planifie** au lieu de livrer est titrée
   **« [XXX · Plan] Thème du plan »** (nomenclature validée utilisateur 2026-07-30 ; thème = nom de
   l'**epic**, jamais une US — une session de plan ne livre pas d'US, elle en découpe). Le thème
@@ -1674,6 +1691,20 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   `CLAUDE_CONFIG_DIR` bac à sable (`marketplace add` + `plugin install`) avant tout
   `publish-plugin.js --push`.
 
+### Avis de mise à jour (update-check, v2.17.0, lots #181–#183)
+
+- **Source** : `promptimizer/VERSION` sur la branche `plugin-release`
+  (`https://raw.githubusercontent.com/shwrm-xx/pmz/plugin-release/promptimizer/VERSION`),
+  surchargeable par `PMZ_UPDATE_URL`.
+- **Cache et TTL** : `update-check.json` dans le dossier d'état, TTL 24 h.
+- **Fetch détaché** : `node lib/update-check.js --fetch` lancé en process détaché ; aucun hook
+  n'attend le réseau.
+- **Fail-open** : aucune fonction ne lève ; erreur, réseau absent ou JSON invalide → pas d'avis.
+- **Opt-out** : `PMZ_NO_UPDATE_CHECK=1`.
+- **Consommateurs** : `hooks/session-start.js` (avis au startup, une fois par jour et par version via
+  `shouldNotify`/`markNotified`), `scripts/statusline.js` (badge `↑ v<latest>` lu depuis le cache),
+  `install/doctor.js` (ligne « Mise à jour » : vert / orange / opt-out, jamais rouge).
+
 ### Maquettes d'écrans (v2.10.0, lots #147–#149)
 
 Commande `maquette.md` (`REQUIRED_COMMANDS`, embarquée par le plugin) → `scripts/maquette.js`
@@ -1691,20 +1722,6 @@ question → US d'arbitrages → exécution → clôture ». Le maître agrège 
 en Décidé / Dette / Non vérifié, sépare « expérience utilisateur » et « technique » (cible < 6
 points). Technique : UN sous-agent `opus`·`medium` (brief `epicmaster --arbiter-brief --stdin`),
 sans escalade humaine. Expérience utilisateur : `AskUserQuestion` (≤ 4 questions par appel). Si une
-### Avis de mise à jour (update-check, v2.17.0, lots #181–#183)
-
-- **Source** : `promptimizer/VERSION` sur la branche `plugin-release`
-  (`https://raw.githubusercontent.com/shwrm-xx/pmz/plugin-release/promptimizer/VERSION`),
-  surchargeable par `PMZ_UPDATE_URL`.
-- **Cache et TTL** : `update-check.json` dans le dossier d'état, TTL 24 h.
-- **Fetch détaché** : `node lib/update-check.js --fetch` lancé en process détaché ; aucun hook
-  n'attend le réseau.
-- **Fail-open** : aucune fonction ne lève ; erreur, réseau absent ou JSON invalide → pas d'avis.
-- **Opt-out** : `PMZ_NO_UPDATE_CHECK=1`.
-- **Consommateurs** : `hooks/session-start.js` (avis au startup, une fois par jour et par version via
-  `shouldNotify`/`markNotified`), `scripts/statusline.js` (badge `↑ v<latest>` lu depuis le cache),
-  `install/doctor.js` (ligne « Mise à jour » : vert / orange / opt-out, jamais rouge).
-
 action en découle : `backlog.js add --kind arbitrages` + `spec --new` (section « Décisions »), US
 lancée aussitôt (`--brief`), attendue, close par `close-wave` ; un point bloquant passe en Dette
 (« non résolu après arbitrage »). Le handoff maître porte « Décidé cette session », « Dette » ; « À
