@@ -10664,6 +10664,7 @@ for (const [title, file] of [
   ['US#173 — sessions maîtres en sous-sessions', 'run-tests-sous-session.js'],
   ['US#174 — garde de solde et briefs', 'run-tests-solde.js'],
   ['US#181 — module update-check', 'run-tests-update-check.js'],
+  ['US#182 — avis session/statusline/doctor', 'run-tests-update-notice.js'],
 ]) {
   section(`${title} (test/${file})`);
   const r = spawnSync(process.execPath, [path.join(__dirname, file)], { encoding: 'utf8' });
