@@ -903,11 +903,16 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
 - **Bande par vagues + panneau Plan** : `seedFromPlan` sème `wave_plan` (`index`, `ids`, `parallel`,
   `label` — `--wave-labels "1=…;2=…"` du maître, sinon titre de l'US seul ou « N US en parallèle ») et
   le « fait quand » (`scope`) de chaque US. La bande groupe les segments par vague (une espace entre
-  deux) ; dépliée, une ligne par vague `✓|⟳|⧗|✗ Vague N (#a, #b) · libellé` (état agrégé), les US en
-  vol et rouges de la vague en cours indentés dessous ; sans `wave_plan` ni `wave` : lignes par US
+  deux) ; dépliée, une ligne par vague `✅|👉|⏳|☠️ Vague N (#a, #b) · libellé` (état agrégé), les US en
+  vol, interrompues et rouges de la vague en cours indentées dessous ; sans `wave_plan` ni `wave` : lignes par US
   (rétrocompatible). Bouton **Plan** (à gauche de Détails/Masquer, et sur le récap terminé) :
   `$.ui.open({ id: 'epicmaster-plan' })`, panneau rendu en `Markdown` par `planMarkdown` (une section
   par vague, une puce par US), suivi en direct par le même sondage.
+- **Légende des statuts** : vert `success` ✅ terminé · bleu `suggestion` 👉 en cours · jaune `warning` ⏳
+  en attente (□) ou interrompu (■) · rouge `error` ☠️ verify rouge. « Interrompu » est **dérivé** par
+  `live.ts` (jamais écrit) : lot `running` dont tous les sous-agents rattachés (`agents[].lot`) sont
+  arrêtés depuis plus de `STOP_GRACE_MS` (2 min) sans clôture, ou sans signe de vie depuis `STALE_MS`
+  (6 h, auparavant masqué). Un lot interrompu empêche le plan d'être « terminé ».
 - **Titre de session maître** : `lot.titleForMasterSession` → « [XXX · EP#a–#b] <nom de l'epic> » (plages
   compressées par `idRanges`). Le maître se renomme lui-même (`epicmaster --session-title`, outil de titre
   `session_id: "self"`) ; `suggestedTitle` rend ce format pour une session précédente ayant clos ≥ 2 US.

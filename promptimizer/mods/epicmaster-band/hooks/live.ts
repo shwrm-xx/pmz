@@ -8,13 +8,16 @@
 //            to_decide (nombre ou liste), finished (booléen)
 //   lot    : status pending|queued|waiting|failed, verify ('failed'|'red'|false), model, effort,
 //            tokens (nombre), depends_on (liste d'ids)
+// « interrompu » (dérivé, jamais écrit) : lot `running` dont tous les sous-agents rattachés
+// (agents[].lot) sont arrêtés depuis plus de STOP_GRACE_MS sans clôture, ou « en cours » périmé.
 // Fail-open : toute entrée inattendue -> null (la bande n'affiche rien), jamais d'exception.
 
 export const LIVE_PATH = '.vibe-agent/epicmaster-live.json'
 export const STALE_MS = 6 * 3600 * 1000 // même péremption que lib/epicmaster-live.js
 const MAX_TEXT = 512 * 1024
+export const STOP_GRACE_MS = 2 * 60 * 1000 // délai laissé au maître pour clôturer après l'arrêt de l'agent
 
-export type LotStatus = 'done' | 'running' | 'pending' | 'failed'
+export type LotStatus = 'done' | 'running' | 'interrupted' | 'pending' | 'failed'
 
 export type LiveLot = {
   id: string
@@ -46,6 +49,7 @@ export type LiveView = {
   done: number
   running: number
   pending: number
+  interrupted: number
   failed: LiveLot[]
   finished: boolean
   toDecide: number
@@ -68,14 +72,24 @@ const time = (v: unknown): number | null => {
   return Number.isFinite(t) ? t : null
 }
 
-function lotStatus(l: Rec, now: number): LotStatus | null {
+// Arrêt du dernier sous-agent du lot si TOUS ses agents sont arrêtés ; null sinon (aucun, ou un actif).
+function agentsStoppedAt(agents: Rec[], id: unknown): number | null {
+  const mine = agents.filter((a) => a.lot !== undefined && a.lot !== null && String(a.lot) === String(id))
+  if (!mine.length) return null
+  const stops = mine.map((a) => time(a.stopped_at))
+  return stops.some((t) => t === null) ? null : Math.max(...(stops as number[]))
+}
+
+function lotStatus(l: Rec, now: number, agents: Rec[]): LotStatus | null {
   const s = typeof l.status === 'string' ? l.status.toLowerCase() : ''
   const red = s === 'failed' || s === 'red' || l.verify === 'failed' || l.verify === 'red' || l.verify === false
   if (red) return 'failed'
   if (s === 'done') return 'done'
   if (s === 'running') {
     const u = time(l.updated_at) ?? time(l.started_at)
-    return u !== null && now - u > STALE_MS ? null : 'running' // « en cours » périmé : présumé mort
+    if (u !== null && now - u > STALE_MS) return 'interrupted' // « en cours » périmé : présumé mort
+    const stop = agentsStoppedAt(agents, l.id)
+    return stop !== null && now - stop > STOP_GRACE_MS ? 'interrupted' : 'running'
   }
   if (s === 'pending' || s === 'queued' || s === 'waiting' || s === 'todo') return 'pending'
   return null
@@ -108,12 +122,14 @@ export function seededAt(text: unknown): number | null {
   }
 }
 
-// État d'une vague : rouge si un lot l'est, en cours si un lot tourne ou si elle est entamée sans
-// être finie, faite si tous ses lots le sont, sinon en attente.
+// État d'une vague : rouge si un lot l'est, faite si tous ses lots le sont, en cours si un lot tourne,
+// interrompue si un lot l'est (et aucun ne tourne), en cours si elle est entamée, sinon en attente.
 function waveStatus(lots: LiveLot[]): LotStatus {
   if (lots.some((l) => l.status === 'failed')) return 'failed'
   if (lots.every((l) => l.status === 'done')) return 'done'
-  if (lots.some((l) => l.status === 'running' || l.status === 'done')) return 'running'
+  if (lots.some((l) => l.status === 'running')) return 'running'
+  if (lots.some((l) => l.status === 'interrupted')) return 'interrupted'
+  if (lots.some((l) => l.status === 'done')) return 'running'
   return 'pending'
 }
 
@@ -156,10 +172,11 @@ export function parseLive(text: unknown, now: number): LiveView | null {
     if (updated !== null && now - updated > STALE_MS) return null // session maître éteinte
     const src = Array.isArray(raw.lots) ? raw.lots : isRec(raw.lots) ? Object.values(raw.lots) : null
     if (!src) return null
+    const agents = isRec(raw.agents) ? Object.values(raw.agents).filter(isRec) : []
     const lots: LiveLot[] = []
     for (const l of src) {
       if (!isRec(l) || l.id === undefined || l.id === null) continue
-      const status = lotStatus(l, now)
+      const status = lotStatus(l, now, agents)
       if (!status) continue
       lots.push({
         id: str(l.id, 20),
@@ -177,10 +194,10 @@ export function parseLive(text: unknown, now: number): LiveView | null {
     if (!lots.length) return null
     lots.sort(byId)
     const count = (s: LotStatus) => lots.filter((l) => l.status === s).length
-    const running = count('running'), pending = count('pending')
+    const running = count('running'), pending = count('pending'), interrupted = count('interrupted')
     const failed = lots.filter((l) => l.status === 'failed')
     const explicit = typeof raw.finished === 'boolean' ? raw.finished : null
-    const finished = explicit ?? (running === 0 && pending === 0)
+    const finished = explicit ?? (running === 0 && pending === 0 && interrupted === 0)
     const td = raw.to_decide ?? raw.a_trancher
     const toDecide = Array.isArray(td) ? td.length : num(td) ?? 0
     const epicRaw = isRec(raw.epic) ? raw.epic.title : raw.epic
@@ -191,6 +208,7 @@ export function parseLive(text: unknown, now: number): LiveView | null {
       done: count('done'),
       running,
       pending,
+      interrupted,
       failed,
       finished,
       toDecide,
@@ -224,17 +242,22 @@ export function runningLine(l: LiveLot, now: number): string {
   return bits.join(' · ')
 }
 
+// Ligne d'un lot interrompu : « #id titre · interrompu · temps depuis le lancement ».
+export function interruptedLine(l: LiveLot, now: number): string {
+  return `#${l.id} ${l.title}`.trim() + ` · interrompu · ${elapsed(l.startedAt, now)}`
+}
+
 export function pendingLine(l: LiveLot): string {
   const dep = l.dependsOn.length ? ` · attend ${l.dependsOn.map((d) => '#' + d).join(', ')}` : ''
   return `#${l.id} ${l.title}`.trim() + dep
 }
 
 export function failedLabel(failed: LiveLot[]): string {
-  return `${failed.length} ✗ verify rouge ${failed.map((l) => '#' + l.id).join(', ')}`
+  return `${failed.length} ☠️ verify rouge ${failed.map((l) => '#' + l.id).join(', ')}`
 }
 
 export function finishedLabel(v: LiveView): string {
-  return `◆ epicmaster terminé · ${v.done}/${v.lots.length} ✓ · ${v.toDecide} à trancher`
+  return `◆ epicmaster terminé · ${v.done}/${v.lots.length} ✅ · ${v.toDecide} à trancher`
 }
 
 // Ligne d'une vague : « Vague N (#a, #b) · libellé » (+ temps écoulé si elle tourne).
@@ -244,8 +267,8 @@ export function waveLine(w: LiveWave, now: number): string {
   return `Vague ${w.index} (${ids}) · ${w.label}${run}`
 }
 
-const STATE_LABEL: Record<LotStatus, string> = { done: 'fait', running: 'en cours', pending: 'à lancer', failed: 'verify rouge' }
-const STATE_GLYPH: Record<LotStatus, string> = { done: '✓', running: '⟳', pending: '⧗', failed: '✗' }
+const STATE_LABEL: Record<LotStatus, string> = { done: 'fait', running: 'en cours', interrupted: 'interrompu', pending: 'à lancer', failed: 'verify rouge' }
+const STATE_GLYPH: Record<LotStatus, string> = { done: '✅', running: '👉', interrupted: '⏳', pending: '⏳', failed: '☠️' }
 
 // Plan complet en Markdown (panneau « Plan ») : une section par vague, une puce par lot avec
 // modèle·effort, état, tokens et « fait quand ». Sans vagues : une seule liste de lots.
@@ -253,11 +276,11 @@ export function planMarkdown(v: LiveView, now: number): string {
   const L: string[] = []
   L.push(`## ◆ ${v.epic}${v.wave ? ` — vague ${v.wave.current}/${v.wave.total}` : ''}`)
   L.push('')
-  L.push(`✓ ${v.done} fait · ⟳ ${v.running} en cours · ⧗ ${v.pending} à lancer · ✗ ${v.failed.length} rouge · ${v.toDecide} à trancher`)
+  L.push(`✅ ${v.done} fait · 👉 ${v.running} en cours · ⏳ ${v.interrupted} interrompu · ⏳ ${v.pending} à lancer · ☠️ ${v.failed.length} rouge · ${v.toDecide} à trancher`)
   const lotBlock = (l: LiveLot) => {
     const me = [l.model, l.effort].filter(Boolean).join(' · ')
     const bits = [me ? `\`${me}\`` : '', STATE_LABEL[l.status]]
-    if (l.status === 'running') bits.push(elapsed(l.startedAt, now))
+    if (l.status === 'running' || l.status === 'interrupted') bits.push(elapsed(l.startedAt, now))
     const tk = tokensLabel(l.tokens)
     if (tk) bits.push(tk)
     if (l.dependsOn.length && l.status === 'pending') bits.push(`après ${l.dependsOn.map((d) => '#' + d).join(', ')}`)

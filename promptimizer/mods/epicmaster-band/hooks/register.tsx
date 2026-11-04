@@ -17,7 +17,7 @@ import type { Register } from 'claude-code'
 import type { EpicmasterBandDismissed } from '../types'
 
 import {
-  LIVE_PATH, failedLabel, finishedLabel, parseLive, pendingLine, planMarkdown, runningLine, seededAt, waveLine,
+  LIVE_PATH, failedLabel, finishedLabel, interruptedLine, parseLive, pendingLine, planMarkdown, runningLine, seededAt, waveLine,
   type LiveLot, type LiveView,
 } from './live'
 
@@ -40,11 +40,12 @@ const NAME_RE = /(?:^|[^\w-])(?:pmz:)?(?:epic|picky)master(?![\w-])/
 const START_SESSION = 'mcp__ccd_session__start_session'
 const BAND_CMD = 'epicband'
 
-const WAVE_GLYPH: Record<LiveLot['status'], string> = { done: '✓', running: '⟳', pending: '⧗', failed: '✗' }
+const WAVE_GLYPH: Record<LiveLot['status'], string> = { done: '✅', running: '👉', interrupted: '⏳', pending: '⏳', failed: '☠️' }
 const SEG: Record<LiveLot['status'], { glyph: string; color: string }> = {
   done: { glyph: '■', color: 'success' },
-  running: { glyph: '■', color: 'warning' },
-  pending: { glyph: '□', color: 'inactive' },
+  running: { glyph: '■', color: 'suggestion' },
+  interrupted: { glyph: '■', color: 'warning' },
+  pending: { glyph: '□', color: 'warning' },
   failed: { glyph: '■', color: 'error' },
 }
 
@@ -151,9 +152,9 @@ function segmentsByWave(view: LiveView, shown: LiveLot[]): (LiveLot | string | n
   return out
 }
 
-// Détail déplié par vague : « ✓ Vague 1 (#9) · libellé », la vague en cours détaille ses lots en vol
-// et ses verify rouges (une ligne indentée chacun).
-const WAVE_COLOR: Record<LiveLot['status'], string | undefined> = { done: 'success', running: 'warning', pending: undefined, failed: 'error' }
+// Détail déplié par vague : « ✅ Vague 1 (#9) · libellé », la vague en cours détaille ses lots en vol
+// ses lots interrompus et ses verify rouges (une ligne indentée chacun).
+const WAVE_COLOR: Record<LiveLot['status'], string | undefined> = { done: 'success', running: 'suggestion', interrupted: 'warning', pending: 'warning', failed: 'error' }
 function waveRows(view: LiveView, now: number, Text: any): unknown[] {
   const byId = new Map(view.lots.map(l => [l.id, l]))
   const rows: unknown[] = []
@@ -164,12 +165,13 @@ function waveRows(view: LiveView, now: number, Text: any): unknown[] {
         {`  ${WAVE_GLYPH[w.status]} ${waveLine(w, now)}`}
       </Text>,
     )
-    if (w.status !== 'running' && w.status !== 'failed') continue
+    if (w.status === 'done' || w.status === 'pending') continue
     for (const id of w.ids) {
       const l = byId.get(id)
       if (!l) continue
-      if (l.status === 'running') rows.push(<Text key={`run-${l.id}`} color="warning" wrap="truncate">{'      ⟳ ' + runningLine(l, now)}</Text>)
-      if (l.status === 'failed') rows.push(<Text key={`red-${l.id}`} color="error" wrap="truncate">{`      ✗ #${l.id} ${l.title} · verify rouge`}</Text>)
+      if (l.status === 'running') rows.push(<Text key={`run-${l.id}`} color="suggestion" wrap="truncate">{'      👉 ' + runningLine(l, now)}</Text>)
+      if (l.status === 'interrupted') rows.push(<Text key={`int-${l.id}`} color="warning" wrap="truncate">{'      ⏳ ' + interruptedLine(l, now)}</Text>)
+      if (l.status === 'failed') rows.push(<Text key={`red-${l.id}`} color="error" wrap="truncate">{`      ☠️ #${l.id} ${l.title} · verify rouge`}</Text>)
     }
   }
   return rows
@@ -277,7 +279,7 @@ export const register: Register = on => {
         if (view && arg === 'plan') await $.ui.open({ id: PLAN_PANE, title: `Plan epicmaster · ${view.epic}` })
         return {
           text: view
-            ? `Bande epicmaster affichée · ${view.epic} (✓${view.done} ⟳${view.running} ⧗${view.pending}).`
+            ? `Bande epicmaster affichée · ${view.epic} (✅${view.done} 👉${view.running} ⏳${view.pending + view.interrupted}).`
             : 'Aucun plan epicmaster actif trouvé (fichier live absent ou périmé) — la bande attendra le prochain plan semé.',
         }
       } catch (_) {
@@ -347,7 +349,7 @@ export const register: Register = on => {
       const shown = view.lots.slice(0, MAX_SEGMENTS)
       const more = view.lots.length - shown.length
       const head = `◆ ${view.epic}${view.wave ? ` · vague ${view.wave.current}/${view.wave.total}` : ''} `
-      const counts = ` ✓${view.done} ⟳${view.running} ⧗${view.pending}`
+      const counts = ` ✅${view.done} 👉${view.running} ⏳${view.pending + view.interrupted}`
 
       const line = (
         <Box key="em-line" flexDirection="row">
@@ -376,13 +378,16 @@ export const register: Register = on => {
 
       const rows = view.waves.length ? waveRows(view, now, Text) : [
         ...view.lots.filter(l => l.status === 'running').map(l => (
-          <Text key={`run-${l.id}`} color="warning" wrap="truncate">{'  ⟳ ' + runningLine(l, now)}</Text>
+          <Text key={`run-${l.id}`} color="suggestion" wrap="truncate">{'  👉 ' + runningLine(l, now)}</Text>
+        )),
+        ...view.lots.filter(l => l.status === 'interrupted').map(l => (
+          <Text key={`int-${l.id}`} color="warning" wrap="truncate">{'  ⏳ ' + interruptedLine(l, now)}</Text>
         )),
         ...view.failed.map(l => (
-          <Text key={`red-${l.id}`} color="error" wrap="truncate">{`  ✗ #${l.id} ${l.title} · verify rouge`}</Text>
+          <Text key={`red-${l.id}`} color="error" wrap="truncate">{`  ☠️ #${l.id} ${l.title} · verify rouge`}</Text>
         )),
         ...view.lots.filter(l => l.status === 'pending').map(l => (
-          <Text key={`wait-${l.id}`} dimColor wrap="truncate">{'  ⧗ ' + pendingLine(l)}</Text>
+          <Text key={`wait-${l.id}`} color="warning" wrap="truncate">{'  ⏳ ' + pendingLine(l)}</Text>
         )),
       ]
       return (

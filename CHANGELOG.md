@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Bande epicmaster : légende des statuts et lot interrompu
+
+- Nouvelle légende : vert ✅ terminé, bleu 👉 en cours, jaune ⏳ en attente/interrompu, rouge ☠️ verify rouge (barre, compteurs, détail, panneau Plan).
+- Statut dérivé « interrompu » : lot en cours dont les sous-agents sont tous arrêtés depuis plus de 2 min sans clôture, ou sans signe de vie depuis 6 h (auparavant masqué) ; affiché en jaune, il empêche le récap « terminé ».
+- 1 test ajouté, tests de la bande adaptés (22/22).
+
 ## 2026-11-04 — Release v2.15.1
 
 - Bande epicmaster ouverte à la fois sur la session parente (qui lance la session maître par `start_session`) et sur la session maître (skill `pmz:epicmaster`/`pickymaster` invoqué) ; `/pickymaster` arme la bande ; pas de réarmement d'une bande qui affiche déjà un plan.
