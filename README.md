@@ -129,6 +129,14 @@ claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz
 Puis redémarrer Claude Code. Ne **pas** relancer `marketplace add` pour mettre à jour : la commande
 est refusée quand la source déclarée diffère.
 
+*Avis automatique.* Au démarrage d'une session, PMZ compare sa version à celle publiée sur la
+branche `plugin-release` (lecture en cache 24 h, réseau hors bande, jamais bloquant) et affiche
+un avis une fois par jour et par version ; la statusline montre un badge `↑ v<version>` et
+`/pmz:doctor` une ligne « Mise à jour ». Opt-out : `PMZ_NO_UPDATE_CHECK=1`.
+
+*Auto-update natif.* Dans Claude Code : `/plugin` → Marketplaces → `pmz-marketplace` →
+Enable auto-update. Pour être notifié des releases : sur GitHub, `Watch → Custom → Releases`.
+
 Prérequis : le dépôt doit être **public** (`marketplace add owner/repo` lit le dépôt sans
 authentification). Côté mainteneur, publier l'artefact de build à chaque release :
 
