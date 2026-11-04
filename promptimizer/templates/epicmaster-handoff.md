@@ -10,11 +10,14 @@ US restées ouvertes (et pourquoi) :
 Non vérifié (agrégé) :
 - … (#N)
 
-Dette consolidée :
+Décidé cette session (≤ 5 lignes : choix — raison) :
 - … (#N)
 
-À trancher (décisions qui attendent l'humain — jamais tranchées à sa place) :
-- … (#N)
+Dette consolidée :
+- … (#N) — « non résolu après arbitrage » si un point est resté bloquant
+
+À trancher (maquettes à valider uniquement — geste humain hors session) :
+- maquette <slug> — <chemin> (#N)
 
 Prochaine action recommandée :
 - /epicmaster — reprend les US restées ouvertes (ou : « plan terminé, rien à relancer »)

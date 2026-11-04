@@ -7,7 +7,8 @@ Objectif de l'US terminée :
 Fichiers modifiés :
 - ...
 
-Décisions prises :
+Décidé (point technique tranché par l'agent : choix — raison ; point d'expérience utilisateur :
+question à choix posée en fin d'US ; section vide omise) :
 - ...
 
 Vérifications faites :

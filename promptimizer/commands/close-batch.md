@@ -41,6 +41,9 @@ Point de départ : `node ~/.claude/promptimizer/scripts/close-batch.js`
    relecture ; « — » = tiret cadratin obligatoire). Le champ « Prochaine action
    recommandée » doit nommer l'US suivante **et son modèle préconisé** — jamais l'un
    sans l'autre.
+   Points ouverts : un point **technique** est décidé par l'agent et noté dans « Décidé » ; un
+   point d'**expérience utilisateur** fait l'objet d'une question à choix (AskUserQuestion) en
+   fin d'US. Une section vide est omise.
 6ter. Archiver le handoff manuel **avant** qu'il ne soit détruit — la commande exacte (avec le
    bon fichier) est donnée par la checklist :
    `node ~/.claude/promptimizer/scripts/archive.js raw --id N --file .vibe-agent/handoff.md`.

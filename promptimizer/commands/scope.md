@@ -97,6 +97,9 @@ plus que son socle.
    figure **avec sa justification** (« qu'est-ce qui empêche sonnet ? »), pour être contesté avant
    d'être persisté ; les fusions de micro-US et les US de conception extraites y sont signalées. Si des US produisent des écrans, **cette même
    question** présente la liste des écrans à maquetter et demande « on maquette ? » (oui / non).
+   Les **décisions d'expérience utilisateur et de contrat** se posent à l'humain **ici**, dans cette
+   même question unique, puis sont écrites dans la section spec « Décisions » de l'US. Une US qui
+   laisse **plus de 2 questions ouvertes** est redécoupée ou précisée avant d'être persistée.
 3. Si un epic a été validé, l'enregistrer — **toujours**, même s'il était déjà posé par un
    découpage précédent : `node ~/.claude/promptimizer/scripts/backlog.js epic --set "Nom de l'epic"`
    (écrit `.vibe-agent/epic`, cap 60 caractères). C'est aussi ce qui marque la session courante
@@ -148,7 +151,7 @@ plus que son socle.
    `[XXX · Plan] Nom de l'epic`). Conclure en **trois lignes** : (1) « ouvre une session fraîche
    avec `/model <modèle maître>` » ; (2) « le handoff maître y sera injecté ; lance `/epicmaster`
    (ou `/pmz:epicmaster`) : il confirme la liste des US — toutes cochées, décochables — puis lance
-   chaque US en sous-agent au modèle préconisé et consolide dette / à trancher en handoff » ;
+   chaque US en sous-agent au modèle préconisé et consolide et tranche en fin de session » ;
    (3) le nombre de sessions maîtres prévu si > 1.
    **Exception, sur demande explicite seulement** : si l'utilisateur veut traiter la 1ʳᵉ US
    lui-même ici, ou ouvrir de vraies sessions filles (vague D3, `/parallelize` + `fleet join`),

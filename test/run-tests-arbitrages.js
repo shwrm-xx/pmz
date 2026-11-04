@@ -92,5 +92,15 @@ ok(bl.checkSpecStructure(sbx, 'docs/s.md').missing.includes('Décisions'), 'spec
 ok(/^## Décisions/m.test(fs.readFileSync(path.join(PKG, 'templates', 'spec-template.md'), 'utf8')), 'gabarit : section ## Décisions');
 
 fs.rmSync(sbx, { recursive: true, force: true });
+// 6. US#172 — procédure maître (docs).
+const rdc = (f) => fs.readFileSync(path.join(__dirname, '..', 'promptimizer', f), 'utf8');
+for (const f of ['epicmaster', 'pickymaster']) {
+  const t = rdc('commands/' + f + '.md');
+  ok(/Arbitrages/.test(t) && /--arbiter-brief/.test(t) && /AskUserQuestion/.test(t) && /--kind arbitrages/.test(t) && /attends/.test(t) && /close-wave/.test(t), f + '.md : étape Arbitrages complète');
+  ok(/tranche et exécute les arbitrages/.test(t.split('\n')[1]), f + '.md : description à jour');
+}
+ok(/Décidé cette session/.test(rdc('templates/epicmaster-handoff.md')) && /Dette/.test(rdc('templates/epicmaster-handoff.md')), 'handoff maître : Décidé + Dette');
+ok(/« Décisions »/.test(rdc('commands/scope.md')) && /plus de 2 questions ouvertes/.test(rdc('commands/scope.md')), 'scope.md : section Décisions + règle > 2 questions');
+
 console.log(`arbitrages : ${fail ? fail + ' échec(s)' : 'OK'}`);
 process.exit(fail ? 1 : 0);
