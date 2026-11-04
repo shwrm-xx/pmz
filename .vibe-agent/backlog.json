@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 171,
+  "next_id": 173,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-10-29T11:38:39.094Z",
+  "updated_at": "2026-11-04T08:08:28.863Z",
   "lots": [
     {
       "id": 1,
@@ -5142,6 +5142,77 @@
       "depends_on": [],
       "session_owner": "master/lot-170",
       "regression_of": 166
+    },
+    {
+      "id": 171,
+      "title": "Rapport, arbitre et US d'arbitrages",
+      "scope": "fait quand : rapport sous-agent avec section Décidé et règle stricte À trancher ; epicmaster --arbiter-brief --stdin imprime le brief de l'arbitre ; add --kind arbitrages donne un brief sans À trancher ; spec exige la section Décisions ; node test/run-tests.js vert",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Arbitrages en session",
+      "verify": "node test/run-tests.js",
+      "spec": "docs/us/US-171/spec.md",
+      "closed_commit": "b1fee78",
+      "closed_at": "2026-11-04T08:08:28.815Z",
+      "closed_session_id": "95230e75-d145-45bd-b1c3-df01264e13fd",
+      "closed_occupancy": 117100,
+      "closed_verify": "ok",
+      "cost_tokens": 83,
+      "cost_turns": 1,
+      "cost_subagent_tokens": 83,
+      "closed_avg_cost_per_turn": 83,
+      "started_at": "2026-11-04T07:59:49.804Z",
+      "lot_number": 661,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/lib/epicmaster.js",
+        "promptimizer/lib/backlog.js",
+        "promptimizer/scripts/backlog.js",
+        "promptimizer/templates/spec-template.md",
+        "test/**"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-171",
+      "regression_of": null
+    },
+    {
+      "id": 172,
+      "title": "Procédure maître : tri, arbitrage, exécution immédiate",
+      "scope": "fait quand : epicmaster.md/pickymaster.md §4 Arbitrages (tri tech/UX cible <6, arbitre tech, AskUserQuestion UX, US --kind arbitrages lancée aussitôt, attendue, close-wave) ; scope.md pose les décisions UX au découpage ; handoff maître « Décidé cette session », À trancher = maquettes seules ; close-batch/handoff-template même règle ; README/ARCHITECTURE/CHANGELOG ; tests verts",
+      "status": "todo",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Arbitrages en session",
+      "verify": "node test/run-tests.js",
+      "spec": "docs/us/US-172/spec.md",
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/commands/**",
+        "promptimizer/templates/epicmaster-handoff.md",
+        "promptimizer/templates/handoff-template.md",
+        "README.md",
+        "ARCHITECTURE.md",
+        "test/**"
+      ],
+      "depends_on": [
+        171
+      ],
+      "session_owner": null,
+      "regression_of": null
     }
   ]
 }
