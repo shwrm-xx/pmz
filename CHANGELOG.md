@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.16.3 (garde-fou maquettes : bouton « Lancer »)
+
+- `/epicmaster` et `/pickymaster` : une US bloquée par « ⚠ Maquettes non validées » se débloque par une question à choix à deux boutons, **« Lancer »** (vaut validation humaine : `maquette.js validate` sur chaque maquette, brief régénéré sans ⚠, puis lancement de l'US) et **« J'ajuste d'abord »**. Avant, la validation n'était pas proposée comme bouton (seuls « Lance sans valider » / « J'ajuste d'abord » apparaissaient).
+- « Lance sans maquettes » reste possible en texte libre explicite, jamais en bouton.
+- Test : `run-tests-maquettes-garde.js` vérifie les deux libellés dans les deux commandes.
+
 ## 2026-11-04 — Release v2.16.2 (fin de plan → Scope : titres, sous-session, refus)
 
 - Titre de la session courante : « [XXX · Plan] <objet> » si mode plan, « [XXX · Scope] <objet> » si lancée par `/pmz:scope` (prioritaire) ; l'objet est composé d'après la demande — fini l'epic périmé du backlog (« [CLE · Plan] Mise à jour dev » sur une sous-session Scope).
