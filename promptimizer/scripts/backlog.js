@@ -546,6 +546,22 @@ function epicmaster(root, json) {
     const r = em.renderReviewBrief(b, ids, { unverified });
     return out(json ? JSON.stringify({ ok: r.ok, ids: r.ids, base: r.base, reason: r.reason, model: em.REVIEW_MODEL, effort: em.REVIEW_EFFORT, brief: r.text }, null, 2) : (r.ok ? r.text : r.reason));
   }
+  // --settle-check --stdin (US#174) : garde de solde d'epic. exit 1 si des points restent à reprendre.
+  if (process.argv.includes('--settle-check')) {
+    let raw = '';
+    try { raw = process.argv.includes('--stdin') ? fs.readFileSync(0, 'utf8') : ''; } catch (_) { raw = ''; }
+    let input = null;
+    try { input = raw.trim() ? JSON.parse(raw) : {}; } catch (_) { input = null; }
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      out('Usage : epicmaster --settle-check --stdin  (JSON : {"dette":[{"item","us","importance","raison"}],"a_trancher":[{"item","maquette"}],"non_verifie":[{"item","geste_humain","cause"}],"arbitrage_rounds":0}). Entrée illisible.');
+      process.exitCode = 1; return;
+    }
+    const r = em.settleCheck(input);
+    const warn = r.warnings.map((w) => `  ! ${w}`);
+    if (r.ok) return out(['Solde : OK'].concat(warn).join('\n'));
+    out([`Solde : NON — ${r.problems.length} point(s) à reprendre`].concat(r.problems.map((p) => `  - ${p}`), warn).join('\n'));
+    process.exitCode = 1; return;
+  }
   // --arbiter-brief --stdin (US#171) : brief de l'arbitre opus pour les « À trancher » techniques.
   // Fail-open : entrée vide / JSON invalide -> message, exit 0.
   if (process.argv.includes('--arbiter-brief')) {
@@ -1057,5 +1073,5 @@ function main() {
 
 if (require.main === module) {
   try { main(); } catch (_) { /* fail-open */ }
-  process.exit(0);
+  process.exit(process.exitCode || 0);
 }

@@ -396,6 +396,8 @@ function renderBrief(l, b, pmzBase, root) {
   L.push(`  Fait / Fichiers modifiés / Verify (verdict ok|failed|none + 5 dernières lignes si rouge) / Non vérifié / Dette / Décidé${arb ? '' : ' / À trancher'} / Bloc CHANGELOG (3 à 6 puces).`);
   L.push('- Décidé : les choix techniques que tu fais seul, une ligne chacun « choix — raison — comment revenir ». Tranche seul le technique, ne le remonte pas.');
   if (!arb) L.push('- À trancher : SEULEMENT un point qui touche l\'expérience utilisateur ou un contrat visible (CLI, format de fichier, périmètre) et que la spec ne tranche pas, avec 2 à 3 options dont une recommandée. Jamais un choix purement technique.');
+  L.push('- Dette : un défaut, un critère raté ou une finition dans ton périmètre se corrige, il ne se classe jamais en Dette. La Dette n\'admet qu\'un point hors périmètre, d\'importance haute ou critique, avec la raison du report.');
+  L.push('- Non vérifié : précise s\'il faut un geste humain (mot de passe, matériel…) et pourquoi ; sinon vérifie-le toi-même.');
   L.push('- Test instable ou doute de vérification → « Non vérifié ». Une section vide est omise, jamais « Aucun ».');
   L.push('- Interdits dans le rapport : diff, contenu de fichier, listing de code, sortie complète de tests.');
   L.push(`(Référence : node ${base}/scripts/backlog.js show --json pour le maître uniquement.)`);
@@ -443,7 +445,7 @@ function renderReviewBrief(b, ids, opts) {
   L.push('- Ne lance aucun script Promptimizer (backlog.js, close-batch.js…) ; tu peux rejouer les verify (lecture) et utiliser git/grep.');
   L.push('- Lecture ciblée (git grep, lecture partielle) ; pas de scan large du dépôt.');
   L.push('- Maquettes : pour chaque US relue dont la spec a une section « Maquettes », compare les maquettes validées (`maquette.js brief --id <US citée>`, HTML lu) à l\'UI livrée ; tout écart (écran, état, libellé, structure) ou UI codée sans maquette validée = Problème confirmé.');
-  L.push('- Ne corrige rien : signale. Le maître classe tes constats en Dette, Décidé ou À trancher.');
+  L.push('- Ne corrige rien : signale. Tes Problèmes confirmés sont des Défauts : le maître les fait corriger dans l\'US d\'arbitrages, jamais en Dette.');
   L.push(`- Rapport final ≤ ${REPORT_MAX_WORDS} mots, EXACTEMENT ces sections, rien d'autre :`);
   L.push(`  ${REVIEW_SECTIONS.join(' / ')}.`);
   L.push('- Interdits dans le rapport : diff, contenu de fichier, listing de code, sortie complète de tests.');
@@ -545,7 +547,35 @@ function writeMasterHandoff(root, text, file) {
   try { return writeAtomicText(target, text) ? target : null; } catch (_) { return null; }
 }
 
+// US#174 — garde de solde d'epic : une epic se solde entièrement par l'US d'arbitrages.
+const DEBT_MAX = 1;               // dette tolérée par epic (exceptionnelle, importante)
+const ARBITRAGE_MAX_ROUNDS = 2;   // tours d'arbitrages max ; au-delà, seul le plafond de dette devient un avertissement
+function settleCheck(input) {
+  const inp = input && typeof input === 'object' ? input : {};
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const name = (x) => String((x && x.item) || '?');
+  const problems = [];
+  const warnings = [];
+  for (const t of arr(inp.a_trancher)) if (!t || t.maquette !== true) problems.push(`À trancher non soldé : ${name(t)}`);
+  const dette = arr(inp.dette);
+  for (const d of dette) {
+    const imp = d && typeof d.importance === 'string' ? d.importance.trim().toLowerCase() : '';
+    const raison = d && typeof d.raison === 'string' ? d.raison.trim() : '';
+    if (!['haute', 'critique'].includes(imp) || !raison) problems.push(`Dette non éligible : ${name(d)} — à corriger dans l'US d'arbitrages`);
+  }
+  if (dette.length > DEBT_MAX) {
+    const msg = `Trop de dette (${dette.length} > ${DEBT_MAX})`;
+    if (Number(inp.arbitrage_rounds) >= ARBITRAGE_MAX_ROUNDS) warnings.push(msg); else problems.push(msg);
+  }
+  for (const n of arr(inp.non_verifie)) {
+    if (!n || n.geste_humain !== true) problems.push(`Non vérifié vérifiable : ${name(n)} — à vérifier dans l'US d'arbitrages`);
+    else if (!String(n.cause || '').trim()) problems.push(`Non vérifié : cause manquante : ${name(n)}`);
+  }
+  return { ok: problems.length === 0, problems, warnings };
+}
+
 module.exports = {
+  settleCheck, DEBT_MAX, ARBITRAGE_MAX_ROUNDS,
   selectLots, groupByEpic, planMasterWaves, isMaquettesLot, effectiveDeps, chunkWaves, masterModel, contextBudget, splitSessions,
   planMaster, renderPlan, renderBrief, renderReviewBrief, renderArbiterBrief, ARBITER_MODEL, ARBITER_EFFORT,
   REVIEW_MIN_LOTS, REVIEW_MODEL, REVIEW_EFFORT, REVIEW_SECTIONS, launchCommand, closeCommands, renderMasterHandoff, writeMasterHandoff,
