@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 181,
+  "next_id": 184,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-11-04T14:02:38.992Z",
+  "updated_at": "2026-11-04T15:11:38.901Z",
   "lots": [
     {
       "id": 1,
@@ -5469,6 +5469,112 @@
       "session_owner": "master/lot-180",
       "regression_of": null,
       "kind": "arbitrages"
+    },
+    {
+      "id": 181,
+      "title": "Module update-check",
+      "scope": "fait quand : promptimizer/lib/update-check.js respecte le contrat figé (cache 24 h, fetch détaché, fail-open, opt-out PMZ_NO_UPDATE_CHECK, updateNotice 2 canaux) et la suite run-tests-update-check est verte",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Avis de mise à jour",
+      "verify": "node test/run-tests.js",
+      "spec": "docs/us/US-181/spec.md",
+      "closed_commit": "265562f",
+      "closed_at": "2026-11-04T15:11:38.854Z",
+      "closed_session_id": "56a23d35-c097-4652-aae0-e70d258d1e27",
+      "closed_occupancy": 139496,
+      "closed_verify": "ok",
+      "cost_tokens": 2052,
+      "cost_turns": 5,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": 410,
+      "started_at": "2026-11-04T15:07:55.536Z",
+      "lot_number": 682,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/lib/update-check.js",
+        "test/run-tests-update-check.js",
+        "test/run-tests.js"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-181",
+      "regression_of": null
+    },
+    {
+      "id": 182,
+      "title": "Avis : session, statusline, doctor",
+      "scope": "fait quand : session-start (startup seulement) annonce une fois par jour et par version, la statusline montre ↑ v<latest> si en retard, doctor a une ligne Mise à jour jamais rouge ; run-tests-update-notice vert",
+      "status": "todo",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Avis de mise à jour",
+      "verify": "node test/run-tests.js",
+      "spec": "docs/us/US-182/spec.md",
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/hooks/session-start.js",
+        "promptimizer/scripts/statusline.js",
+        "promptimizer/install/doctor.js",
+        "test/run-tests-update-notice.js",
+        "test/run-tests.js"
+      ],
+      "depends_on": [
+        181
+      ],
+      "session_owner": null,
+      "regression_of": null
+    },
+    {
+      "id": 183,
+      "title": "Doc + release v2.17.0",
+      "scope": "fait quand : README/ARCHITECTURE/CLAUDE.md documentent l'avis, l'opt-out et l'auto-update natif ; VERSION et plugin.json à 2.17.0, CHANGELOG daté, commit chore(release) poussé et plugin publié",
+      "status": "todo",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Avis de mise à jour",
+      "verify": "node test/run-tests.js && grep -q '^2.17.0' promptimizer/VERSION && git grep -q PMZ_NO_UPDATE_CHECK -- README.md ARCHITECTURE.md",
+      "spec": "docs/us/US-183/spec.md",
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": null,
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "README.md",
+        "ARCHITECTURE.md",
+        "CLAUDE.md",
+        "CHANGELOG.md",
+        "promptimizer/VERSION",
+        "promptimizer/.claude-plugin/plugin.json"
+      ],
+      "depends_on": [
+        181,
+        182
+      ],
+      "session_owner": null,
+      "regression_of": null
     }
   ]
 }

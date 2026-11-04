@@ -183,5 +183,6 @@
 #0178 | 2026-11-04 | 52c7b1f | epic:Plan vers Scope | verify:inconnu | fiche:non | /scope consomme le plan
 #0179 | 2026-11-04 | a6532c1 | epic:Plan vers Scope | verify:inconnu | fiche:non | Bouton Scope en fin de plan
 #0180 | 2026-11-04 | 7c07568 | epic:Plan vers Scope | verify:inconnu | fiche:oui | Arbitrages — Plan vers Scope
+#0181 | 2026-11-04 | 265562f | epic:Avis de mise à jour | verify:inconnu | fiche:oui | Module update-check
 
 # Archive PMZ — index des lots clos

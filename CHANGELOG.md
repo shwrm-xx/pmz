@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#181 US#181 — Module update-check
+
+- Nouveau module lib/update-check.js : version publiée lue sur la branche plugin-release, cache 24 h dans le dossier d'état.
+- Fetch réseau hors bande par un process détaché ; aucun hook n'attend le réseau.
+- Fail-open absolu, opt-out PMZ_NO_UPDATE_CHECK=1, URL surchargeable par PMZ_UPDATE_URL.
+- updateNotice rédige l'avis pour les canaux plugin et manuel ; shouldNotify / markNotified limitent à un avis par jour et par version.
+- Sous-suite run-tests-update-check.js (38 assertions) branchée dans run-tests.js.
+
 ## 2026-11-04 — Bande epicmaster : couleurs de statut
 
 - Détail déplié : le picto (✅ 👉 ⏳ ☠️) n'apparaît plus que sur les lignes de vague. Une ligne d'US a un texte neutre et une puce « • » à la couleur de son statut (bleu en cours, vert fait, rouge verify rouge, jaune interrompu).
