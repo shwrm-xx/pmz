@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Bande epicmaster : couleurs de statut
+
+- Détail déplié : le picto (✅ 👉 ⏳ ☠️) n'apparaît plus que sur les lignes de vague. Une ligne d'US a un texte neutre et une puce « • » à la couleur de son statut (bleu en cours, vert fait, rouge verify rouge, jaune interrompu).
+- Jaune réservé à « en attente d'une action utilisateur » (lot interrompu). Un lot ou une vague qui attend seulement le précédent (« à lancer ») est neutre : ligne de vague, puce et segment □ de la barre.
+- Tests du mod adaptés (29 pass) ; `run-tests` 2571 OK.
+
 ## 2026-11-04 — Release v2.16.3 (garde-fou maquettes : bouton « Lancer »)
 
 - `/epicmaster` et `/pickymaster` : une US bloquée par « ⚠ Maquettes non validées » se débloque par une question à choix à deux boutons, **« Lancer »** (vaut validation humaine : `maquette.js validate` sur chaque maquette, brief régénéré sans ⚠, puis lancement de l'US) et **« J'ajuste d'abord »**. Avant, la validation n'était pas proposée comme bouton (seuls « Lance sans valider » / « J'ajuste d'abord » apparaissaient).
