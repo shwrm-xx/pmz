@@ -170,8 +170,9 @@ function updateLine() {
     const cmp = compareSemver(version, latest);
     if (cmp === null || cmp === undefined) return 'orange — vérification impossible';
     if (cmp < 0) {
-      return 'orange — v' + latest + ' disponible (installé v' + version + ') : ' +
-        'claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace, puis redémarrer';
+      return 'orange — v' + latest + ' disponible (installé v' + version + ') : ' + (pluginActive
+        ? 'claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace, puis redémarrer'
+        : "relancer l'installateur promptimizer/install/install.command (.sh / .ps1) depuis un dépôt à jour");
     }
     return 'vert — à jour (v' + version + ')';
   } catch (_) { return 'orange — vérification impossible'; }

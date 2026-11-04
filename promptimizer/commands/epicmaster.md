@@ -197,5 +197,7 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    restantes, sessions prévues. Liée à cette session maître (la chaîne s'imbrique). Outil absent
    ou refusé : repli texte (« ouvre une session fraîche, `/model <maître>`, `/epicmaster` »). Plus
    d'US : aucune carte.
+   Carte posée : cette session maître devient **relais** (elle ne bouge plus ; le hook écarte les
+   `<side-sessions-event>` de la suivante — si l'un passe quand même : aucune réponse).
 
 Ne déclare jamais une US « faite » sans verify verte rapportée **et** persistée.

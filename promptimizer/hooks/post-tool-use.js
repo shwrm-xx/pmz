@@ -49,6 +49,18 @@ function main() {
     if (root) writeTodoSnapshot(root, input.tool_input && input.tool_input.todos, input.session_id || null);
     return passThrough();
   }
+  // start_session (retour utilisateur 2026-11-04) : la session qui lance (ou propose) la Scope ou
+  // la session maître devient RELAIS — ses <side-sessions-event> seront écartés au prompt.
+  if (tool === 'mcp__ccd_session__start_session') {
+    const root = gitRoot(input.cwd || process.cwd());
+    const sid = input.session_id || null;
+    try {
+      if (root && sid && require('../lib/roles').launchesChainSession(input.tool_input)) {
+        require('../lib/roles').setRole(root, sid, { relay: true });
+      }
+    } catch (_) { /* fail-open */ }
+    return passThrough();
+  }
   // Bash : fallback natif de sortie volumineuse (lot #84). Réécrit updatedToolOutput SEULEMENT si
   // reduceBashOutput décide de réduire (RTK absent, sortie > seuil, gain réel) ; sinon passThrough
   // → sortie brute intacte. tool_response porte {stdout,stderr,interrupted,isImage,…} pour Bash.

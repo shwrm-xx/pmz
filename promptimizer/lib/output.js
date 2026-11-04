@@ -71,4 +71,11 @@ function passThrough() {
   process.exit(0);
 }
 
-module.exports = { write, injectContext, postToolContext, preToolDecision, preToolUpdatedInput, postToolUpdatedOutput, systemMessage, passThrough };
+// Écarte un prompt (UserPromptSubmit) : le modèle ne le voit pas, aucun tour n'est joué. Réservé
+// aux <side-sessions-event> reçus par une session relais (lib/roles.js) — jamais un prompt humain.
+function blockPrompt(reason) {
+  write({ decision: 'block', reason: reason || '', suppressOutput: true });
+  process.exit(0);
+}
+
+module.exports = { blockPrompt, write, injectContext, postToolContext, preToolDecision, preToolUpdatedInput, postToolUpdatedOutput, systemMessage, passThrough };

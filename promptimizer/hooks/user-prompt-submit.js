@@ -14,7 +14,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { parseHookInput } = require('../lib/stdin');
-const { injectContext, passThrough } = require('../lib/output');
+const { injectContext, passThrough, blockPrompt } = require('../lib/output');
+const roles = require('../lib/roles');
 const { gitRoot, isFullyInitialized } = require('../lib/project');
 const { autoInitGitAndBootstrap } = require('../lib/bootstrap');
 const { loadSessionState, saveSessionState } = require('../lib/state');
@@ -66,6 +67,17 @@ function main() {
 
   const initialized = isFullyInitialized(root);
   const sid = input.session_id || null;
+
+  // Session RELAIS (retour utilisateur 2026-11-04) : une session Plan ou Scope qui a lancé la
+  // suivante de la chaîne « ne bouge plus ». L'app la réveille pourtant à chaque tour de son
+  // enfant (<side-sessions-event>) : on écarte ce prompt synthétique, sans tour ni titre. Seule la
+  // session maître porte les événements. Un prompt humain passe toujours.
+  try {
+    if (sid && roles.isSideSessionsEvent(prompt) && roles.isRelay(root, sid)) {
+      return blockPrompt('PMZ : session relais — l\'événement de la sous-session est porté par la session suivante.');
+    }
+  } catch (_) { /* fail-open : le prompt passe */ }
+
   const st = loadSessionState(root, sid);
 
   // Session de CONCEPTION (lot #130) : le mode plan de Claude Code est porté par le champ
@@ -76,6 +88,13 @@ function main() {
   // Session lancée par /pmz:scope (sous-session Scope de fin de plan comprise) : titrée
   // « [XXX · Scope] », prioritaire sur le mode plan (retour utilisateur 2026-11-04).
   if (/^\s*\/(pmz:)?scope\b/.test(prompt)) st.scope_session = true;
+  // Rôle persisté PAR session_id (lib/roles.js) : session-state.json est écrasé par les autres
+  // sessions vivantes, le drapeau scope s'y perdait (Scope retitrée « Plan »).
+  try {
+    if (st.scope_session) roles.setRole(root, sid, { role: 'scope' });
+    else if (input.permission_mode === 'plan') roles.setRole(root, sid, { role: 'plan' });
+    if (roles.getRole(root, sid).role === 'scope') st.scope_session = true;
+  } catch (_) { /* fail-open */ }
 
   st.prompt_reminders = st.prompt_reminders || {};
   const parts = [];
@@ -86,9 +105,16 @@ function main() {
   // (/epicmaster) : elle se titre elle-même, on se tait.
   const isMasterPrompt = /^\s*\/(pmz:)?(epicmaster|pickymaster)\b/.test(prompt);
   if (isMasterPrompt) st.master_session = true; // seule exclue : la session maître se titre elle-même
+  try {
+    if (isMasterPrompt) roles.setRole(root, sid, { role: 'master' });
+    else if (roles.getRole(root, sid).role === 'master') st.master_session = true;
+  } catch (_) { /* fail-open */ }
   if (initialized && !st.master_session) {
     const nomenclature = !lotLib.nomenclatureSet(root);
-    const t = lotLib.currentSessionTitle(root, sid, { plan: input.permission_mode === 'plan', scope: st.scope_session === true });
+    // Plan relais (plan validé, Scope lancée) : garde « [XXX · Plan] » même hors mode plan.
+    let planRelay = false;
+    try { const r = roles.getRole(root, sid); planRelay = r.role === 'plan' && r.relay === true; } catch (_) { /* fail-open */ }
+    const t = lotLib.currentSessionTitle(root, sid, { plan: input.permission_mode === 'plan' || planRelay, scope: st.scope_session === true });
     if (t) {
       if (nomenclature && st.prompt_reminders.nomenclature) {
         // Question déjà posée, toujours sans trigramme : sans réponse on renomme quand même
