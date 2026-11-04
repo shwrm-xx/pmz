@@ -402,8 +402,10 @@ Bande absente ? **`/epicband`** l'affiche à la demande (plan le plus récent du
 modèle) ; `/epicband plan` ouvre aussi le panneau du plan, `/epicband off` la retire.
 
 **Fin de plan (US#179)** : en session PMZ en mode plan, le mod pose avant la carte native d'`ExitPlanMode`
-une question « Scope (recommandé) » / « Approuver le plan ». Scope refuse la sortie du mode plan (rien
+une question « Scope » / « Approuver le plan ». Scope refuse la sortie du mode plan (rien
 n'est implémenté) et lance `/pmz:scope --plan <fichier plan>` ; Approuver ouvre la carte native intacte.
+Une réponse arrivée en moins d'une seconde (question jamais vue, réponse automatique) ne force jamais
+Scope : la carte native s'ouvre comme sans PMZ (v2.17.2).
 
 **Chaîne Plan → Scope → session maître** : Plan (facultative) → sous-session Scope au clic (la session
 Plan passe en « ignorer les permissions », la Scope y démarre) → session maître au clic depuis la carte

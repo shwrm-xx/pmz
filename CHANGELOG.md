@@ -2,6 +2,15 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.17.2 (fin de plan : plus de Scope forcé)
+
+- En mode plan, la question « Scope / Approuver » pouvait recevoir « Scope » sans aucun clic (observé en session desktop : question jamais affichée, réponse automatique). PMZ bloquait alors la fin du plan, affichée « Échec » en rouge, et lançait le découpage.
+- Une réponse arrivée en moins d'une seconde n'est plus prise pour un choix : la carte native de fin de plan s'ouvre, comme sans PMZ.
+- Le bouton s'appelle désormais « Scope » (plus « (recommandé) »), pour ne plus être choisi d'office.
+- Test ajouté : réponse instantanée -> pas de Scope (terminal et desktop).
+
+**Mise à jour d'un poste** : `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`, puis redémarrage.
+
 ## 2026-11-04 — Release v2.17.1 (avis de mise à jour + chaîne Plan → Scope → maître)
 
 Compilation des évolutions depuis la v2.16.3 (la v2.17.0 les contenait déjà, mais ses notes étaient incomplètes).
