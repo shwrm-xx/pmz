@@ -367,10 +367,12 @@ suivantes (dépendances closes, périmètre libre, parallélisme borné). **`clo
 fiche d'archive, CHANGELOG ; `--dry-run` pour prévisualiser ; verify rouge = pas de commit, US
 rouverte). Désinstallation : `uninstall.js` retire aussi `commands/pickymaster.md`.
 
+**Solde d'epic** (US#175) : `/epicmaster` et `/pickymaster` trient le solde en trois catégories — **Défaut** (critère raté, problème confirmé, item dans le périmètre : corrigé), **Finition** (tout point mineur : corrigé) et **Dette** (hors périmètre, importance `haute`/`critique`, avec la raison du report ; **au plus 1 par epic**). Pas de catégorie « Écarté ». L'US d'arbitrages porte tous les Défauts et Finitions ; avant le handoff, la garde `backlog.js epicmaster --settle-check --stdin` répond « Solde : OK/NON » ; sur NON, un second tour d'arbitrages (**2 tours max**, au-delà : Dette « non résolu après arbitrage »). Dette du handoff : `item (US#N) — importance — raison`.
+
 **Qualité epicmaster** (US#160-#161) : en consolidation, si ≥ 2 US sont closes, le maître lance
 **une seule** relecture `opus · medium` par session (`backlog.js epicmaster --review-brief --ids …` :
-diff cumulé + « Non vérifié » agrégés, lecture seule, rapport ≤ 250 mots) ; ses constats vont en
-Dette / À trancher, jamais corrigés d'office. Mesure : `add --regression-of <id>` marque une US
+diff cumulé + « Non vérifié » agrégés, lecture seule, rapport ≤ 250 mots) ; ses « Problèmes
+confirmés » sont des Défauts corrigés dans l'US d'arbitrages. Mesure : `add --regression-of <id>` marque une US
 ouverte pour un bug d'une US close ; `show --quality` donne par modèle et modèle · effort les closes,
 réouvertures, régressions et le taux ; `export` porte la colonne `regression_of`.
 

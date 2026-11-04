@@ -163,16 +163,22 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    --review-brief --ids <ids des US closes> [--unverified "<Non vérifié>" …]` imprime le brief ;
    colle-le dans UN sous-agent (outil Agent, `model=opus`, `effort=medium`, lecture seule, rapport
    ≤ 250 mots : Problèmes confirmés / Non vérifié levé / Non vérifié confirmé / RAS). Le maître
-   reste sonnet. Ses « Problèmes confirmés » et « Non vérifié confirmé » vont en **Dette** ou dans le tri des
-   **Arbitrages** (étape suivante) — jamais corrigés d'office.
+   reste sonnet. Ses « Problèmes confirmés » sont des **Défauts**
+   : toujours corrigés dans l'US d'arbitrages, jamais en Dette. Son « Non vérifié confirmé » est
+   vérifié dans l'US d'arbitrages, sauf s'il exige un geste humain.
 3. **Arbitrages (tri → arbitre / question → US d'arbitrages → exécution → clôture)** — aucun
    « À trancher » ne se reporte tel quel, sauf les maquettes à valider. Anti-cascade : ni la dette
    ni une décision ne crée d'US d'office, hors l'US d'arbitrages de la session.
-   1. **Tri** : agrège les « À trancher » des rapports et de la relecture ; reclasse en Décidé /
-      Dette / Non vérifié ce qui n'est pas éligible ; classe le reste en « expérience
-      utilisateur » (ce que l'utilisateur voit, fait ou ressent) ou « technique ». Cible : moins
-      de 6 points au total, sans plafond dur ; au-delà de 5, une ligne au résumé signale que le
-      découpage était trop flou. Les maquettes à valider restent à part (geste humain).
+   1. **Tri en 3 catégories** (pas de catégorie « Écarté ») :
+      - **Défaut** : critère raté, problème confirmé, ou item dans le périmètre d'une US → corrigé.
+      - **Finition** : tout point mineur, dans le périmètre ou non → corrigé.
+      - **Dette** : point hors périmètre, d'importance `haute` ou `critique`, avec la raison du
+        report (il exige une conception ou plus d'un commit) ; **au plus 1 par epic**.
+      Les « À trancher » des rapports et de la relecture : classe-les en « expérience utilisateur »
+      (ce que l'utilisateur voit, fait ou ressent) ou « technique » (étapes 2 et 3 ci-dessous).
+      Cible : moins de 6 points au total, sans plafond dur ; au-delà de 5, une ligne au résumé
+      signale que le découpage était trop flou. Les maquettes à valider restent à part (geste
+      humain).
    2. **Technique** : UN sous-agent arbitre (`model=opus`, `effort=medium`), brief =
       `backlog.js epicmaster --arbiter-brief --stdin` (points en entrée). Pas d'escalade vers
       l'humain.
@@ -180,21 +186,30 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
       recommandée en premier) ; un second appel seulement si nécessaire.
    4. **US d'arbitrages** : `backlog.js add --kind arbitrages --title "Arbitrages — <epic>" …`
       puis `spec --new` ; la spec liste par décision l'action, les fichiers et le critère de fin,
-      avec « Décisions : toutes prises — aucune question ouverte ». Sans action à faire : aucune
-      US créée.
+      avec « Décisions : toutes prises — aucune question ouverte ». Elle porte **tous** les Défauts,
+      Finitions, décisions et vérifications « Non vérifié » réalisables sans geste humain. Sans
+      action à faire : aucune US créée.
    5. **Exécution** : lance aussitôt UN sous-agent sur cette US (brief `backlog.js epicmaster
       --brief --id <id>`), **attends**-le, puis clos-la avec `close-wave`. Chaque item tranché :
       `backlog.js note --id N --note "décidé : …"` (sans `--decide`).
-   6. Un point resté bloquant passe en **Dette** avec la mention « non résolu après arbitrage ».
+   6. **Garde de solde** : après la clôture de l'US d'arbitrages et **avant** le handoff, lance
+      `node ~/.claude/promptimizer/scripts/backlog.js epicmaster --settle-check --stdin` avec le
+      JSON `{dette:[{item,us,importance,raison}], a_trancher:[{item,maquette}],
+      non_verifie:[{item,geste_humain,cause}], arbitrage_rounds}`.
+      - « Solde : NON » → second tour : nouvelle US d'arbitrages sur les points listés, exécutée
+        puis close (étapes 4 et 5), et relance la garde.
+      - Au plus **2 tours** d'arbitrages. Au-delà, chaque point restant passe en **Dette** avec la
+        mention « non résolu après arbitrage », en gardant son importance et sa raison.
+      - Cite la sortie de la garde dans le résumé final.
 4. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
    `.vibe-agent/handoff.md` (écrase ; garde la première ligne `<!-- pmz:handoff:manual -->`) :
-   US livrées (id + commit), US restées ouvertes et pourquoi, **Non vérifié** agrégé, **Décidé
-   cette session** (≤ 5 lignes), **Dette consolidée** (une puce par item, US d'origine entre
-   parenthèses), **À trancher** = les seules **maquettes à valider** (jamais validées à la place
+   US livrées (id + commit), US restées ouvertes et pourquoi, **Non vérifié** agrégé (seulement les points qui exigent un geste humain, avec leur cause), **Décidé
+   cette session** (≤ 5 lignes), **Dette consolidée** (une puce par item : `item (US#N) — importance —
+   raison du report`), **À trancher** = les seules **maquettes à valider** (jamais validées à la place
    de l'humain), prochaine action (US restantes → `/epicmaster` ; sinon « plan terminé »).
    Section vide omise. Moins de 800 tokens.
-5. Résume en 5 lignes à l'utilisateur : livrés / ouverts / décidé / maquettes à valider / session
-   fraîche recommandée (oui si des US restent ou si le hook l'a prescrit).
+5. Résume en 5 lignes à l'utilisateur : livrés / ouverts / décidé / solde (sortie de la garde) /
+   maquettes à valider (aucune autre ligne « À trancher ») / session fraîche recommandée (oui si des US restent ou si le hook l'a prescrit).
    **Session maître suivante** : s'il reste des US (plan > 1 session, ou session fraîche prescrite
    par le hook Stop), lance-la par **la carte « Session maître »** de `/scope` (étape 6) : charge
    l'outil par `ToolSearch` (`select:mcp__ccd_session__start_session`), puis un seul appel
