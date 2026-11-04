@@ -301,6 +301,59 @@ describe('bande epicmaster', () => {
     await ui.unmount()
   })
 
+  test('session parente : start_session de la session maître arme la bande, qui suit le plan semé ensuite', async ($, on) => {
+    const box: FileBox = { text: null }
+    serve(on, box)
+    on('tool.call', () => ({ result: {} }) as never)
+    await $.tool.call({ tool: 'mcp__ccd_session__start_session', title: 'Session maître — X', prompt: 'Invoque le skill pmz:epicmaster.' } as never)
+    let ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+    expect(await text(ui, /plan en préparation/)).toBeDefined()
+    await ui.unmount()
+    box.text = live({ seeded_at: iso(0) })
+    ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+    expect(await ui.find({ key: 'em-line' })).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('start_session sans epicmaster, ou refusé -> rien', async ($, on) => {
+    serve(on, { text: null })
+    on('tool.call', () => ({ result: {} }) as never)
+    await $.tool.call({ tool: 'mcp__ccd_session__start_session', title: 'Corriger le bug', prompt: 'Corrige le test.' } as never)
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /plan en préparation/)).toBeUndefined()
+    await ui.unmount()
+  })
+
+  test('session maître : le skill pmz:epicmaster (prompt de sous-session) arme la bande', async ($, on) => {
+    serve(on, { text: null })
+    on('tool.call', () => ({ result: {} }) as never)
+    await $.tool.call({ tool: 'Skill', skill: 'pmz:epicmaster' } as never)
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      expect(await text(ui, /^◆ epicmaster · plan en préparation… $/)).toBeDefined()
+      await ui.unmount()
+    }
+  })
+
+  test('prompt sans slash « invoque le skill pmz:epicmaster » arme aussi la bande', async ($, on) => {
+    serve(on, { text: null })
+    await $.prompt.submit({ text: 'Invoque le skill pmz:epicmaster (handoff maître injecté).' })
+    const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+    expect(await text(ui, /plan en préparation/)).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('maître qui propose la suivante : sa bande garde son plan (pas de réarmement)', async ($, on) => {
+    serve(on, { text: live({ seeded_at: iso(0) }) })
+    on('tool.call', () => ({ result: {} }) as never)
+    await arm($)
+    await mockClock.advance(60000)
+    await $.tool.call({ tool: 'mcp__ccd_session__start_session', title: 'Session maître — X', prompt: 'Invoque le skill pmz:epicmaster.' } as never)
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await ui.find({ key: 'em-line' })).toBeDefined()
+    await ui.unmount()
+  })
+
   test('plan local semé AVANT le /epicmaster de la session -> ignoré', async ($, on) => {
     serve(on, { text: live({ seeded_at: iso(30) }) })
     await arm($)

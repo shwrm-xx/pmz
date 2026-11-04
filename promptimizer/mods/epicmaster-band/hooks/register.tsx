@@ -6,6 +6,9 @@
 // Source : .vibe-agent/epicmaster-live.json (lot #136), lu par $.fs ; rafraîchie par un sondage
 // léger (2 s) qui ne redessine que si le fichier change (+ une fois par minute pour les durées).
 // Fail-open absolu : hors epicmaster, fichier absent / illisible / invalide -> next(e), rien d'affiché.
+// Armement aussi sans /epicmaster tapé : skill pmz:epicmaster|pickymaster invoqué (session maître
+// lancée en sous-session), appel start_session dont le prompt le nomme (session parente), prompt qui
+// le nomme sans slash — sans réarmer une bande qui affiche déjà un plan.
 // Secours manuel (/epicband) : force la bande sur le plan le plus récent (local, sinon copie de projet),
 // sans exiger qu'il ait été semé après un /epicmaster de la session ; `/epicband off` la retire.
 import { atom, read, update } from 'claude-code'
@@ -31,7 +34,10 @@ const ARM_MS = 15 * 60 * 1000 // l'attente « préparation du plan » expire seu
 const PLAN_PANE = 'epicmaster-plan'
 const SEED_SLACK_MS = 5000 // horloges du moteur et de node : même machine, marge de sûreté
 const GLOBAL_DIR = 'promptimizer/epicmaster-live'
-const CALL_RE = /^\s*\/(?:pmz:)?epicmaster(?![\w-])/
+const CALL_RE = /^\s*\/(?:pmz:)?(?:epic|picky)master(?![\w-])/
+// Lancement sans slash : prompt de sous-session (« invoque le skill pmz:epicmaster »), skill, carte.
+const NAME_RE = /(?:^|[^\w-])(?:pmz:)?(?:epic|picky)master(?![\w-])/
+const START_SESSION = 'mcp__ccd_session__start_session'
 const BAND_CMD = 'epicband'
 
 const WAVE_GLYPH: Record<LiveLot['status'], string> = { done: '✓', running: '⟳', pending: '⧗', failed: '✗' }
@@ -123,6 +129,13 @@ const arm = async ($: Dollar, now: number, force = false) => {
   if (force) await update($, dismissed, () => null) // un récap déjà vu se réaffiche à la demande
 }
 
+// Armement « doux » (skill, carte de session, mention) : une bande déjà liée à un plan visible reste
+// liée — la session maître qui propose la suivante garde la sienne jusqu'au prochain plan semé.
+const armSoft = async ($: Dollar, now: number) => {
+  if ((await read($, armedAt)) !== null && parseLive(await readLive($, now), now)) return
+  await arm($, now)
+}
+
 // Segments de la barre groupés par vague (une espace entre deux vagues) ; sans vagues : à plat.
 function segmentsByWave(view: LiveView, shown: LiveLot[]): (LiveLot | string | null)[] {
   if (!view.waves.length) return shown
@@ -205,18 +218,45 @@ export const register: Register = on => {
       }
       // /epicmaster saisi : la bande s'affiche tout de suite (plan en préparation), sans attendre le fichier.
       if (CALL_RE.test(e.text)) await arm($, now)
+      else if (NAME_RE.test(e.text)) await armSoft($, now)
     } catch (_) { /* fail-open */ }
     return next(e)
   }).catch(($, e, next) => next(e)) // jamais de refus : la saisie passe toujours
 
   // /epicmaster est une commande : elle passe par command.run (et non toujours par prompt.submit).
   // On arme la bande à cet instant puis on laisse la commande tourner, inchangée.
-  for (const command of ['epicmaster', 'pmz:epicmaster']) {
+  for (const command of ['epicmaster', 'pmz:epicmaster', 'pickymaster', 'pmz:pickymaster']) {
     on('command.run', { command }, async ($, e, next) => {
       try { await arm($, await $.clock.now()) } catch (_) { /* fail-open */ }
       return next(e)
     }).catch(($, e, next) => next(e))
   }
+
+  // Session maître lancée par une sous-session : le modèle invoque le skill (pas de /epicmaster tapé).
+  on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
+    const out = await next(e)
+    try {
+      if (out.deny === undefined && NAME_RE.test(String((e as { skill?: unknown }).skill || ''))) {
+        await armSoft($, await $.clock.now())
+        $.ui.invalidate('ui.render')
+      }
+    } catch (_) { /* fail-open */ }
+    return out
+  }).catch(($, e, next) => next(e)) // jamais de refus : l'appel d'outil passe toujours
+
+  // Session parente : elle lance (ou propose) la session maître par start_session — sa bande suit
+  // le plan que la maître sèmera dans le même checkout (fichier local, ou copie de projet).
+  on('tool.call', { tool: START_SESSION }, async ($, e, next) => {
+    const out = await next(e)
+    try {
+      const a = e as { prompt?: unknown; title?: unknown }
+      if (out.deny === undefined && out.isError !== true && NAME_RE.test(`${a.prompt || ''} ${a.title || ''}`)) {
+        await armSoft($, await $.clock.now())
+        $.ui.invalidate('ui.render')
+      }
+    } catch (_) { /* fail-open */ }
+    return out
+  }).catch(($, e, next) => next(e)) // jamais de refus : l'appel d'outil passe toujours
 
   // /epicband : commande locale (aucun appel au modèle). Secours quand la bande ne s'est pas armée seule.
   for (const command of ['epicband', 'pmz:epicband']) {
