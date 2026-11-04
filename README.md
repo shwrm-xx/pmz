@@ -355,6 +355,8 @@ un **handoff consolidé** portant le **décidé** et la **dette**. **Arbitrages 
 **systématiquement** par la préparation de cette session maître (handoff maître écrit, injecté à la
 session fraîche suivante) et ne démarre plus d'US lui-même.
 
+**Sous-sessions liées (US#173)** : `/scope` finit sur une carte « Session maître » (`mcp__ccd_session__start_session`, `fresh`, même checkout, `/pmz:epicmaster` au modèle maître) : un clic ouvre la session maître en rangée indentée sous la session de plan. `/epicmaster` et `/pickymaster` relancent la session maître suivante de la même façon. Hors desktop (outil absent) ou appel refusé : repli en trois lignes.
+
 `/pickymaster` est la variante **sélective** : même moteur que `/epicmaster`, mais le plan est proposé
 avant lancement (cases précochées, décochables) au lieu d'être lancé en direct. **Maître sonnet** :
 le maître orchestre (il ne raisonne pas sur le code), il tourne donc en `sonnet` / effort `medium`

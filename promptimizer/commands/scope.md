@@ -1,6 +1,6 @@
 ---
 description: Découpe une grosse demande en 2-5 US persistées (.vibe-agent/backlog.json)
-allowed-tools: Bash(node *), Bash(git *)
+allowed-tools: Bash(node *), Bash(git *), ToolSearch, mcp__ccd_session__start_session
 ---
 
 Découpe la demande courante en un plan d'US persistant.
@@ -148,15 +148,30 @@ plus que son socle.
    **modèle · effort préconisés pour la session maître**. Le verdict de parallélisation est
    **toujours visible** — jamais de silence ; n'invente aucune vague absente de la sortie.
 6. **Ne démarrer aucune US dans cette session** : elle est une session de conception (titrée
-   `[XXX · Plan] Nom de l'epic`). Conclure en **trois lignes** : (1) « ouvre une session fraîche
-   avec `/model <modèle maître>` » ; (2) « le handoff maître y sera injecté ; lance `/epicmaster`
-   (ou `/pmz:epicmaster`) : il confirme la liste des US — toutes cochées, décochables — puis lance
-   chaque US en sous-agent au modèle préconisé et consolide et tranche en fin de session » ;
-   (3) le nombre de sessions maîtres prévu si > 1.
+   `[XXX · Plan] Nom de l'epic`). Conclure par **une carte « Session maître »** (sous-session
+   liée, rangée indentée sous cette session) : charge d'abord l'outil différé
+   (`ToolSearch` `select:mcp__ccd_session__start_session`), puis **un seul** appel
+   `mcp__ccd_session__start_session` par fin de /scope (même si le plan compte plusieurs sessions
+   maîtres) avec `initiation: "own_initiative"`, `context: "fresh"`, `use_worktree: false` (même
+   checkout : le handoff maître de `.vibe-agent/handoff.md` y est injecté),
+   `title: "Session maître — <epic>"` (< 60 car. ; sans epic : « Session maître »),
+   `model` = id courant de la famille maître de la sortie `epicmaster`, `effort` = effort maître,
+   `prompt` = invoquer le skill `pmz:epicmaster` (le handoff maître est injecté au démarrage),
+   `background` (≥ 80 car.) = epic, nombre d'US, nombre de sessions maîtres prévues. Si le modèle
+   maître est plus cher que celui de cette session, l'app l'ignore (hérite) : le dire en une ligne.
+   **Règle « sous-session systématique »** : depuis la session de plan, toute session associée
+   (session maître, session maître suivante) part par cette carte, jamais par « ouvre une session
+   fraîche » à la main. À la réception d'un `<side-sessions-event>` : rapport en une ligne, rien
+   relancé.
+   **Repli (outil absent hors desktop, ou appel refusé)** : conclure en **trois lignes** :
+   (1) « ouvre une session fraîche avec `/model <modèle maître>` » ; (2) « le handoff maître y sera
+   injecté ; lance `/epicmaster` (ou `/pmz:epicmaster`) : il confirme la liste des US — toutes
+   cochées, décochables — puis lance chaque US en sous-agent au modèle préconisé et consolide et
+   tranche en fin de session » ; (3) le nombre de sessions maîtres prévu si > 1.
    **Exception, sur demande explicite seulement** : si l'utilisateur veut traiter la 1ʳᵉ US
    lui-même ici, ou ouvrir de vraies sessions filles (vague D3, `/parallelize` + `fleet join`),
-   `backlog.js start --id <id>` comme avant et ne traiter **que** cette US. Le handoff maître
-   écrit à l'étape 5 reste valable pour les US restantes.
+   `backlog.js start --id <id>` comme avant, **sans carte**, et ne traiter **que** cette US. Le
+   handoff maître écrit à l'étape 5 reste valable pour les US restantes.
 
 Le suivi est ensuite automatique : la session maître clôt chaque US au commit
 (`done --verify-verdict`), le handoff porte l'avancement (x/y faites), le plan est réinjecté au
