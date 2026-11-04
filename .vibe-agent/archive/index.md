@@ -178,5 +178,6 @@
 #0173 | 2026-11-04 | 65f8bfa | epic:Bouton session maître | verify:inconnu | fiche:oui | Sessions maîtres en sous-sessions liées
 #0174 | 2026-11-04 | 64b3384 | epic:Solde d'epic | verify:inconnu | fiche:non | Garde de solde et briefs
 #0175 | 2026-11-04 | 1ff9e9e | epic:Solde d'epic | verify:inconnu | fiche:non | Procédure maître de solde
+#0176 | 2026-11-04 | 0080cfb | epic:Solde d'epic | verify:inconnu | fiche:non | Arbitrages — Solde d'epic
 
 # Archive PMZ — index des lots clos

@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#176 US#176 — Arbitrages — Solde d'epic
+
+- settleCheck ne bloque plus à arbitrage_rounds ≥ 2 : les points restants passent en avertissement (Dette « non résolu après arbitrage »)
+- arbitrage_rounds défini dans epicmaster.md et pickymaster.md (0 au premier appel, +1 par tour)
+- Tests ajoutés dans run-tests-solde.js
+- README et ARCHITECTURE alignés
+
 ## 2026-11-04 — Release v2.14.0
 
 - Sessions maîtres en sous-sessions liées : `/scope` se termine sur une carte « Session maître » (session fraîche liée, même checkout, `/pmz:epicmaster` au modèle maître) ; `/epicmaster` et `/pickymaster` relancent la session maître suivante de la même façon ; repli texte hors desktop (US#173).
