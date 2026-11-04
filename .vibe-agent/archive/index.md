@@ -179,5 +179,9 @@
 #0174 | 2026-11-04 | 64b3384 | epic:Solde d'epic | verify:inconnu | fiche:non | Garde de solde et briefs
 #0175 | 2026-11-04 | 1ff9e9e | epic:Solde d'epic | verify:inconnu | fiche:non | Procédure maître de solde
 #0176 | 2026-11-04 | 0080cfb | epic:Solde d'epic | verify:inconnu | fiche:non | Arbitrages — Solde d'epic
+#0177 | 2026-11-04 | f6427b4 | epic:Plan vers Scope | verify:inconnu | fiche:non | Conception : bouton Scope en fin de plan
+#0178 | 2026-11-04 | 52c7b1f | epic:Plan vers Scope | verify:inconnu | fiche:non | /scope consomme le plan
+#0179 | 2026-11-04 | a6532c1 | epic:Plan vers Scope | verify:inconnu | fiche:non | Bouton Scope en fin de plan
+#0180 | 2026-11-04 | 7c07568 | epic:Plan vers Scope | verify:inconnu | fiche:oui | Arbitrages — Plan vers Scope
 
 # Archive PMZ — index des lots clos

@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#180 Epic Plan vers Scope : bouton Scope en fin de plan (#177–#180)
+
+- Hook ExitPlanMode du mod epicmaster-band : question « Scope (recommandé) / Approuver le plan » avant la carte native ; Scope lance /pmz:scope --plan sans implémenter (fail-open).
+- /pmz:scope --plan <fichier> affiche la source avant de découper ; /scope tapé en mode plan part en sous-session.
+- Hook PreToolUse : capture .vibe-agent/plan.md en repli hors mod (tool_input.plan peut être vide en réel).
+- Conception #177 : contrat et preuve dans docs/us/US-177/preuve.md.
+- Test du mod réparé (27 pass), run-tests 2568 OK.
+
 ## 2026-11-04 — Bande epicmaster : légende des statuts et lot interrompu
 
 - Nouvelle légende : vert ✅ terminé, bleu 👉 en cours, jaune ⏳ en attente/interrompu, rouge ☠️ verify rouge (barre, compteurs, détail, panneau Plan).
