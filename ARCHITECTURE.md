@@ -893,6 +893,12 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   slash ; `/pickymaster` arme comme `/epicmaster`. Armement **doux** (`armSoft`) : une bande déjà liée
   à un plan visible n'est pas réarmée (la maître qui propose la suivante garde le sien). Fail-open :
   hooks après `next`, `.catch` → `next(e)`, jamais de refus.
+- **Fin de plan (US#179, contrat US#177)** : `mods/epicmaster-band/hooks/plan-scope.ts` (`registerPlanScope`, appelé
+  par `register`). `prompt.attachment` (`plan_mode`/`plan_mode_reentry`) retient `planFilePath` dans l'atom
+  `planFile` ; `tool.call` `ExitPlanMode` (boucle principale, `planFile` connu, `.vibe-agent/backlog.json`
+  lisible) pose `$.ui.ask` : Scope -> `{ deny }` dictant `/pmz:scope --plan <planFile>` (la capture #178
+  ne tourne pas, hook du mod avant `PreToolUse`), Approuver -> `next(e)` (carte native), autre -> refus de
+  révision. Fail-open : tout échec -> `next(e)`.
 - **Affichage manuel `/epicband`** (v2.9.1) : commande **locale** du mod (`$.command.register` dans
   `session.start`, réponse `command.run` sans `next` → aucun appel au modèle). Arme la session avec
   l'atom `manual` : `readLive` lève alors le filtre `seeded_at` (fichier local pris tel quel ; copie
