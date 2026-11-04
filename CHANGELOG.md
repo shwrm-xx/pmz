@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.15.0
+
+- Solde d'epic : une epic se solde entièrement par l'US d'arbitrages. Défauts (critère raté, problème confirmé par la relecture) et finitions sont toujours corrigés ; la Dette est l'exception (au plus 1, hors périmètre, importance haute|critique, avec la raison du report) (US#174, #175).
+- Garde `backlog.js epicmaster --settle-check --stdin` avant le handoff : 0 À trancher hors maquette, Non vérifié limité aux gestes humains, 2 tours d'arbitrages au plus (US#174, #176).
+
 ## 2026-11-04 — US#174 + US#175 — Solde d'epic
 
 - Garde `backlog.js epicmaster --settle-check --stdin` : 0 À trancher hors maquette, dette ≤ 1 (importance haute|critique + raison), Non vérifié sans geste humain refusé, 2 tours max (US#174)
