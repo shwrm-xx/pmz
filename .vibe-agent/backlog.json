@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "next_id": 174,
+  "next_id": 177,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-11-04T09:35:25.707Z",
+  "updated_at": "2026-11-04T10:09:42.631Z",
   "lots": [
     {
       "id": 1,
@@ -5250,6 +5250,110 @@
       "depends_on": [],
       "session_owner": "master/lot-173",
       "regression_of": null
+    },
+    {
+      "id": 174,
+      "title": "Garde de solde et briefs",
+      "scope": "fait quand : backlog.js epicmaster --settle-check --stdin applique les règles de solde (0 À trancher hors maquette, dette ≤ 1 avec importance haute|critique + raison, Non vérifié sans geste humain refusé, 2 tours max) ; brief sous-agent : défaut de son périmètre corrigé, jamais en Dette ; brief relecteur : Problèmes confirmés = Défaut ; tests verts",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Solde d'epic",
+      "verify": "node test/run-tests.js",
+      "spec": "docs/us/US-174/spec.md",
+      "closed_commit": "64b3384",
+      "closed_at": "2026-11-04T10:08:09.372Z",
+      "closed_session_id": "803886f0-60a5-44be-88c9-27b5c02e7644",
+      "closed_occupancy": 154329,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-11-04T09:56:45.815Z",
+      "lot_number": 666,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/lib/epicmaster.js",
+        "promptimizer/scripts/backlog.js",
+        "test/run-tests-solde.js",
+        "test/run-tests.js"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-174",
+      "regression_of": null
+    },
+    {
+      "id": 175,
+      "title": "Procédure maître de solde",
+      "scope": "fait quand : epicmaster.md et pickymaster.md trient en Défaut / Finition / Dette (tout corrigé en US d'arbitrages sauf ≤ 1 dette haute|critique hors périmètre avec raison), lancent --settle-check avant le handoff (2 tours max), handoff = dette « item (US) — importance — raison » ; README et ARCHITECTURE à jour",
+      "status": "done",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Solde d'epic",
+      "verify": "git grep -q settle-check -- promptimizer/commands && git grep -q importance -- promptimizer/templates/epicmaster-handoff.md",
+      "spec": "docs/us/US-175/spec.md",
+      "closed_commit": "1ff9e9e",
+      "closed_at": "2026-11-04T10:08:09.521Z",
+      "closed_session_id": "803886f0-60a5-44be-88c9-27b5c02e7644",
+      "closed_occupancy": 154329,
+      "closed_verify": "ok",
+      "cost_tokens": 0,
+      "cost_turns": 0,
+      "cost_subagent_tokens": 0,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-11-04T09:56:45.895Z",
+      "lot_number": 667,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [
+        "promptimizer/commands/epicmaster.md",
+        "promptimizer/commands/pickymaster.md",
+        "promptimizer/templates/epicmaster-handoff.md",
+        "README.md",
+        "ARCHITECTURE.md"
+      ],
+      "depends_on": [],
+      "session_owner": "master/lot-175",
+      "regression_of": null
+    },
+    {
+      "id": 176,
+      "title": "Arbitrages — Solde d'epic",
+      "scope": "promptimizer/lib/epicmaster.js, promptimizer/commands/epicmaster.md, promptimizer/commands/pickymaster.md, test/run-tests-solde.js, README.md, ARCHITECTURE.md",
+      "status": "in_progress",
+      "model_hint": "sonnet",
+      "effort_hint": "medium",
+      "epic": "Solde d'epic",
+      "verify": "node test/run-tests.js",
+      "spec": "docs/us/US-176/spec.md",
+      "closed_commit": null,
+      "closed_at": null,
+      "closed_session_id": null,
+      "closed_occupancy": null,
+      "closed_verify": null,
+      "cost_tokens": 10722,
+      "cost_turns": 2,
+      "cost_subagent_tokens": 4445,
+      "closed_avg_cost_per_turn": null,
+      "started_at": "2026-11-04T10:09:25.011Z",
+      "lot_number": null,
+      "note": null,
+      "session_touches": 0,
+      "perimeter": [],
+      "depends_on": [],
+      "session_owner": "master/lot-176",
+      "integrations": {
+        "command_optimizer": {
+          "snapshot_start": {
+            "commands": 0,
+            "delivered_tokens": 0
+          }
+        }
+      },
+      "regression_of": null,
+      "kind": "arbitrages"
     }
   ]
 }

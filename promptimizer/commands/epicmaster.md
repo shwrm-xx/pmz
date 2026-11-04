@@ -171,6 +171,10 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
         puis close (étapes 4 et 5), et relance la garde.
       - Au plus **2 tours** d'arbitrages. Au-delà, chaque point restant passe en **Dette** avec la
         mention « non résolu après arbitrage », en gardant son importance et sa raison.
+      - `arbitrage_rounds` vaut **0** au premier appel de la garde, puis est incrémenté de **1**
+        après chaque tour d'arbitrages exécuté (donc 2 au troisième appel). À `arbitrage_rounds` ≥ 2,
+        la garde ne bloque plus : « Solde : OK » avec avertissements « sera converti en Dette non
+        résolu après arbitrage ».
       - Cite la sortie de la garde dans le résumé final.
 4. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
    `.vibe-agent/handoff.md` (écrase ; garde la première ligne `<!-- pmz:handoff:manual -->`) :

@@ -176,5 +176,7 @@
 #0171 | 2026-11-04 | b1fee78 | epic:Arbitrages en session | verify:inconnu | fiche:oui | Rapport, arbitre et US d'arbitrages
 #0172 | 2026-11-04 | 26c8c5e | epic:Arbitrages en session | verify:inconnu | fiche:oui | Procédure maître : tri, arbitrage, exécution immédiate
 #0173 | 2026-11-04 | 65f8bfa | epic:Bouton session maître | verify:inconnu | fiche:oui | Sessions maîtres en sous-sessions liées
+#0174 | 2026-11-04 | 64b3384 | epic:Solde d'epic | verify:inconnu | fiche:non | Garde de solde et briefs
+#0175 | 2026-11-04 | 1ff9e9e | epic:Solde d'epic | verify:inconnu | fiche:non | Procédure maître de solde
 
 # Archive PMZ — index des lots clos

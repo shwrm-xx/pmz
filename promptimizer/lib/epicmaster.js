@@ -549,7 +549,7 @@ function writeMasterHandoff(root, text, file) {
 
 // US#174 — garde de solde d'epic : une epic se solde entièrement par l'US d'arbitrages.
 const DEBT_MAX = 1;               // dette tolérée par epic (exceptionnelle, importante)
-const ARBITRAGE_MAX_ROUNDS = 2;   // tours d'arbitrages max ; au-delà, seul le plafond de dette devient un avertissement
+const ARBITRAGE_MAX_ROUNDS = 2;   // tours d'arbitrages max ; à partir de là la garde ne bloque plus (tout point restant = avertissement)
 function settleCheck(input) {
   const inp = input && typeof input === 'object' ? input : {};
   const arr = (v) => (Array.isArray(v) ? v : []);
@@ -570,6 +570,10 @@ function settleCheck(input) {
   for (const n of arr(inp.non_verifie)) {
     if (!n || n.geste_humain !== true) problems.push(`Non vérifié vérifiable : ${name(n)} — à vérifier dans l'US d'arbitrages`);
     else if (!String(n.cause || '').trim()) problems.push(`Non vérifié : cause manquante : ${name(n)}`);
+  }
+  // Après 2 tours d'arbitrages, la garde ne bloque plus : chaque point restant devient un avertissement.
+  if (Number(inp.arbitrage_rounds) >= ARBITRAGE_MAX_ROUNDS && problems.length) {
+    for (const p of problems.splice(0)) warnings.push(`${p} — sera converti en Dette non résolu après arbitrage`);
   }
   return { ok: problems.length === 0, problems, warnings };
 }
