@@ -157,6 +157,26 @@ const versionDrift = !!(version && pluginVersion && compareSemver(version, plugi
 const channel = doubleInstall ? 'plugin + manuel (CONFLIT)' : pluginActive ? 'plugin' : 'manuel';
 const pluginProvides = pluginActive && !legacyHooksPresent;
 
+// Ligne « Mise à jour » (US#182) : informative, JAMAIS rouge et sans effet sur le statut global
+// (une version en retard n'est pas une install cassée). Version distante via update-check --print
+// (spawnSync, timeout 5 s). Fail-open : toute erreur -> « vérification impossible ».
+function updateLine() {
+  try {
+    if (process.env.PMZ_NO_UPDATE_CHECK === '1') return 'vérification désactivée (PMZ_NO_UPDATE_CHECK)';
+    const uc = path.join(__dirname, '..', 'lib', 'update-check.js');
+    const r = spawnSync(process.execPath, [uc, '--print'], { encoding: 'utf8', timeout: 5000 });
+    const latest = ((r && r.stdout) || '').trim();
+    if (!latest || !version) return 'orange — vérification impossible';
+    const cmp = compareSemver(version, latest);
+    if (cmp === null || cmp === undefined) return 'orange — vérification impossible';
+    if (cmp < 0) {
+      return 'orange — v' + latest + ' disponible (installé v' + version + ') : ' +
+        'claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace, puis redémarrer';
+    }
+    return 'vert — à jour (v' + version + ')';
+  } catch (_) { return 'orange — vérification impossible'; }
+}
+
 log('Promptimizer — diagnostic');
 log('');
 log('Version installée : ' + (version || 'inconnue'));
@@ -170,6 +190,7 @@ if (pluginProvides) {
   log('Skill globale : ' + skillOk);
 }
 log('Scripts exécutables : ' + scriptsOk);
+log('Mise à jour : ' + updateLine());
 log('Projet courant : ' + proj);
 log('');
 log('node : ' + nodeV + ' | git : ' + gitOk + ' | rg : ' + rgOk);

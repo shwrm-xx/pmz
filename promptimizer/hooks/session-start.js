@@ -107,6 +107,21 @@ function withFleet(root, sessionId, msg) {
   }
 }
 
+function startupUpdateNotice(src) {
+  try {
+    if (src !== 'startup') return null;
+    const uc = require('../lib/update-check');
+    uc.refreshIfStale();
+    const c = uc.readCached();
+    if (!c || !c.behind || !uc.shouldNotify(c)) return null;
+    const line = "Dis UNE fois à l'utilisateur : " + uc.updateNotice(c.local, c.latest);
+    uc.markNotified(c.latest);
+    return line;
+  } catch (_) {
+    return null;
+  }
+}
+
 function main() {
   const input = parseHookInput();
   const cwd = input.cwd || process.cwd();
@@ -114,7 +129,10 @@ function main() {
   // Accueil 1er démarrage (lot #144) : au vrai démarrage seulement, UNE fois après l'install.
   // `ctx`/`pass` remplacent injectContext/passThrough sur les chemins startup|clear pour que le
   // message ne soit jamais perdu (même hors dépôt git ou projet déjà rappelé).
-  const welcome = src === 'startup' ? firstRunWelcome() : null;
+  const welcome0 = src === 'startup' ? firstRunWelcome() : null;
+  // Avis de mise à jour (US#182) : startup seulement, une fois par jour et par version.
+  // Cache lu sans réseau ; le fetch périmé part détaché (jamais attendu). Fail-open absolu.
+  const welcome = [startupUpdateNotice(src), welcome0].filter(Boolean).join('\n\n') || null;
   const ctx = (text) => injectContext('SessionStart', welcome ? welcome + (text ? '\n\n' + text : '') : text);
   const pass = () => (welcome ? injectContext('SessionStart', welcome) : passThrough());
   const root = gitRoot(cwd);

@@ -62,7 +62,16 @@ function main() {
     }
   } catch (_) { /* projet illisible → on garde version + occupation */ }
 
-  emit(statusLineText(info));
+  let line = statusLineText(info);
+  // Badge de retard (US#182) : cache seul, ni spawn ni réseau. Juste après « PMZ v<version> ».
+  try {
+    const c = require('../lib/update-check').readCached();
+    if (c && c.behind && c.latest && version) {
+      const head = `PMZ v${version}`;
+      if (line.startsWith(head)) line = head + ` · ↑ v${c.latest}` + line.slice(head.length);
+    }
+  } catch (_) { /* fail-open */ }
+  emit(line);
 }
 
 try { main(); } catch (_) { emit(''); }
