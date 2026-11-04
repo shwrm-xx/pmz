@@ -103,8 +103,8 @@ describe('bande epicmaster', () => {
       expect((await ui.find({ key: 'em-line' }))).toBeDefined()
       expect(await text(ui, /◆ Bande epicmaster · vague 2\/3/)).toBeDefined()
       const segs = await segments(ui)
-      expect(segs.map(x => x.props.color)).toEqual(['success', 'success', 'warning', 'inactive'])
-      expect(await text(ui, /^ ✓2 ⟳1 ⧗1$/)).toBeDefined()
+      expect(segs.map(x => x.props.color)).toEqual(['success', 'success', 'suggestion', 'warning'])
+      expect(await text(ui, /^ ✅2 👉1 ⏳1$/)).toBeDefined()
       expect(await text(ui, /verify rouge/)).toBeUndefined()
       expect((await ui.find(toggle))?.props.label).toBe('Détails')
       expect(await text(ui, /#137 Bande/)).toBeUndefined()
@@ -123,9 +123,9 @@ describe('bande epicmaster', () => {
     await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
-      const red = await text(ui, /1 ✗ verify rouge #42/)
+      const red = await text(ui, /1 ☠️ verify rouge #42/)
       expect(red?.props.color).toBe('error')
-      expect((await segments(ui)).map(x => x.props.color)).toEqual(['warning', 'error'])
+      expect((await segments(ui)).map(x => x.props.color)).toEqual(['suggestion', 'error'])
       await ui.unmount()
     }
   })
@@ -136,8 +136,8 @@ describe('bande epicmaster', () => {
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       await ui.press(toggle)
-      expect(await text(ui, /⟳ #137 Bande · opus·high · 12 min · ~21k tokens/)).toBeDefined()
-      expect(await text(ui, /⧗ #138 Install · attend #137/)).toBeDefined()
+      expect(await text(ui, /👉 #137 Bande · opus·high · 12 min · ~21k tokens/)).toBeDefined()
+      expect(await text(ui, /⏳ #138 Install · attend #137/)).toBeDefined()
       expect(await text(ui, /#135 Spec/)).toBeUndefined() // un lot fait n'a pas de ligne
       expect((await ui.find(toggle))?.props.label).toBe('Masquer')
       await ui.press(toggle)
@@ -145,6 +145,41 @@ describe('bande epicmaster', () => {
       expect((await ui.find(toggle))?.props.label).toBe('Détails')
       await ui.unmount()
     }
+  })
+
+  test('interrompu : agent arrêté sans clôture (> 2 min) ou « en cours » périmé -> jaune ⏳', async ($, on) => {
+    const box: FileBox = { text: live({ agents: {
+      a1: { id: 'a1', lot: 137, started_at: iso(12), stopped_at: iso(5) },
+    } }) }
+    serve(on, box)
+    await arm($)
+    for (const surface of SURFACES) {
+      const ui = await $.ui.mount({ ...BAND, surface })
+      expect((await segments(ui)).map(x => x.props.color)).toEqual(['success', 'success', 'warning', 'warning'])
+      expect(await text(ui, /^ ✅2 👉0 ⏳2$/)).toBeDefined()
+      await ui.press(toggle)
+      expect((await text(ui, /^ {2}⏳ #137 Bande · interrompu · 12 min$/))?.props.color).toBe('warning')
+      expect((await text(ui, /^ {2}⏳ #138 Install/))?.props.color).toBe('warning')
+      await ui.press(toggle) // replie : l'état « déplié » est partagé entre surfaces
+      await ui.unmount()
+    }
+    // arrêt récent (< 2 min) : le maître a encore le temps de clôturer -> toujours en cours
+    box.text = live({ agents: { a1: { id: 'a1', lot: 137, started_at: iso(12), stopped_at: iso(1) } } })
+    let ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /^ ✅2 👉1 ⏳1$/)).toBeDefined()
+    await ui.unmount()
+    // un agent encore actif sur le lot : en cours
+    box.text = live({ agents: { a1: { id: 'a1', lot: 137, started_at: iso(12), stopped_at: iso(5) }, a2: { id: 'a2', lot: 137, started_at: iso(4), stopped_at: null } } })
+    ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    expect(await text(ui, /^ ✅2 👉1 ⏳1$/)).toBeDefined()
+    await ui.unmount()
+    // « en cours » sans signe de vie depuis plus de 6 h, fichier vivant : interrompu (plus masqué)
+    box.text = live({}, { 9: { id: 9, title: 'Z', status: 'running', started_at: iso(500), updated_at: iso(400) } })
+    ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    // un seul segment : la barre parente a aussi le texte « ■ » (sans couleur) -> on la saute
+    expect((await segments(ui)).filter(x => x.props.color).map(x => x.props.color)).toEqual(['warning'])
+    expect(await text(ui, /^ ✅0 👉0 ⏳1$/)).toBeDefined()
+    await ui.unmount()
   })
 
   test('critère 5 : absent, illisible, invalide ou périmé -> rien, sans erreur', async ($, on) => {
@@ -157,7 +192,6 @@ describe('bande epicmaster', () => {
       '[]',
       JSON.stringify({ v: 1, lots: 'x' }),
       JSON.stringify({ v: 1, lots: {} }),
-      live({}, { 9: { id: 9, title: 'Z', status: 'running', started_at: iso(500), updated_at: iso(400) } }),
       live({ updated_at: iso(7 * 60) }), // > 6 h : session maître éteinte
     ]
     for (const surface of SURFACES) {
@@ -182,7 +216,7 @@ describe('bande epicmaster', () => {
     await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
-      expect(await text(ui, /^◆ epicmaster terminé · 3\/3 ✓ · 2 à trancher$/)).toBeDefined()
+      expect(await text(ui, /^◆ epicmaster terminé · 3\/3 ✅ · 2 à trancher$/)).toBeDefined()
       expect(await ui.find(toggle)).toBeUndefined()
       await ui.unmount()
     }
@@ -218,16 +252,16 @@ describe('bande epicmaster', () => {
     await arm($)
     await $.session.start({ cwd: '/projet', surface: 'terminal', isInteractive: true })
     const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-    expect(await text(ui, /^ ✓2 ⟳1 ⧗1$/)).toBeDefined()
+    expect(await text(ui, /^ ✅2 👉1 ⏳1$/)).toBeDefined()
     box.text = live({ updated_at: iso(0) }, {
       135: { id: 135, title: 'Spec', status: 'done' },
       136: { id: 136, title: 'Fichier live', status: 'done' },
       137: { id: 137, title: 'Bande', status: 'done' },
       138: { id: 138, title: 'Install', status: 'running', started_at: iso(0), updated_at: iso(0) },
     })
-    expect(await text(ui, /^ ✓2 ⟳1 ⧗1$/)).toBeDefined() // pas encore sondé
+    expect(await text(ui, /^ ✅2 👉1 ⏳1$/)).toBeDefined() // pas encore sondé
     await mockClock.advance(2500)
-    expect(await text(ui, /^ ✓3 ⟳1 ⧗0$/)).toBeDefined()
+    expect(await text(ui, /^ ✅3 👉1 ⏳0$/)).toBeDefined()
     await ui.unmount()
   })
   test('desktop : session démarrée sans surface (app desktop), la bande suit quand même le fichier', async ($, on) => {
@@ -237,7 +271,7 @@ describe('bande epicmaster', () => {
     await arm($)
     await $.session.start({ cwd: '/projet', surface: null, isInteractive: false })
     const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
-    expect(await text(ui, /^ ✓2 ⟳1 ⧗1$/)).toBeDefined()
+    expect(await text(ui, /^ ✅2 👉1 ⏳1$/)).toBeDefined()
     box.text = live({ updated_at: iso(0) }, {
       135: { id: 135, title: 'Spec', status: 'done' },
       136: { id: 136, title: 'Fichier live', status: 'done' },
@@ -245,7 +279,7 @@ describe('bande epicmaster', () => {
       138: { id: 138, title: 'Install', status: 'running', started_at: iso(0), updated_at: iso(0) },
     })
     await mockClock.advance(2500)
-    expect(await text(ui, /^ ✓3 ⟳1 ⧗0$/)).toBeDefined()
+    expect(await text(ui, /^ ✅3 👉1 ⏳0$/)).toBeDefined()
     await ui.unmount()
   })
   test('lot #142 : fichier du vrai writer — vague, à trancher, verify rouge, tokens', async ($, on) => {
@@ -254,8 +288,8 @@ describe('bande epicmaster', () => {
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       expect(await text(ui, /◆ Plan · vague 2\/2/)).toBeDefined()
-      expect(await text(ui, /^ ✓1 ⟳1 ⧗1$/)).toBeDefined()
-      const red = await text(ui, /1 ✗ verify rouge #2/)
+      expect(await text(ui, /^ ✅1 👉1 ⏳1$/)).toBeDefined()
+      const red = await text(ui, /1 ☠️ verify rouge #2/)
       expect(red?.props.color).toBe('error')
       await ui.unmount()
     }
@@ -395,11 +429,11 @@ describe('bande epicmaster', () => {
       expect(await text(ui, /◆ Multi · vague 2\/3/)).toBeDefined()
       expect(await text(ui, /^■ ■□ □$/)).toBeDefined() // une espace entre deux vagues
       await ui.press(toggle)
-      expect((await text(ui, /^ {2}✓ Vague 1 \(#9\) · Socle$/))?.props.color).toBe('success')
-      expect((await text(ui, /^ {2}⟳ Vague 2 \(#10, #11\) · Providers · 12 min$/))?.props.color).toBe('warning')
-      expect(await text(ui, /^ {6}⟳ #10 Registre · opus·high · 12 min/)).toBeDefined()
-      expect(await text(ui, /^ {2}⧗ Vague 3 \(#12\) · Page web$/)).toBeDefined()
-      expect(await text(ui, /^ {2}⧗ #12/)).toBeUndefined() // plus de ligne par lot en attente
+      expect((await text(ui, /^ {2}✅ Vague 1 \(#9\) · Socle$/))?.props.color).toBe('success')
+      expect((await text(ui, /^ {2}👉 Vague 2 \(#10, #11\) · Providers · 12 min$/))?.props.color).toBe('suggestion')
+      expect(await text(ui, /^ {6}👉 #10 Registre · opus·high · 12 min/)).toBeDefined()
+      expect(await text(ui, /^ {2}⏳ Vague 3 \(#12\) · Page web$/)).toBeDefined()
+      expect(await text(ui, /^ {2}⏳ #12/)).toBeUndefined() // plus de ligne par lot en attente
       await ui.press(toggle) // replié pour la surface suivante (état de session)
       await ui.unmount()
     }
@@ -423,7 +457,7 @@ describe('bande epicmaster', () => {
       props: { title: 'Plan', isFocused: false, bodyColumns: 100, placement: 'dock', scroll: { offset: 0, bodyRows: 40 } } as never,
     })
     const md = String((await pane.find({ key: 'em-plan-md' }))?.props.text)
-    expect(md).toContain('### ⟳ Vague 2 — Providers')
+    expect(md).toContain('### 👉 Vague 2 — Providers')
     expect(md).toContain('**#10 Registre** — `opus · high` · en cours')
     expect(md).toContain('Fait quand : registre testé')
     await pane.unmount()
