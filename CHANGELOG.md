@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.16.1
+
+- Fix bouton Scope en fin de plan : la question n'apparaissait pas (carte native seule). Cause : un autre plugin (`cc-plugin-sec-default`) consomme le rappel `prompt.attachment` du mode plan avant le mod, donc `planFile` restait vide et la garde renvoyait `next`. Le chemin du plan n'est plus une garde (entrée d'ExitPlanMode, puis atom, sinon indice résolu par le modèle) ; garde `.vibe-agent/backlog.json` retirée (la fin de plan précède souvent le 1er `/scope`).
+- Tests du mod : 29 pass (2 cas ajoutés : rappel jamais vu sans backlog, `planFilePath` en entrée).
+
 ## 2026-11-04 — Release v2.16.0
 
 - Bouton Scope en fin de plan (epic « Plan vers Scope », #177–#180) : `/pmz:scope --plan`, hook ExitPlanMode du mod `epicmaster-band`, capture `plan.md` en repli.

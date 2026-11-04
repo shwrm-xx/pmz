@@ -895,8 +895,11 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   hooks après `next`, `.catch` → `next(e)`, jamais de refus.
 - **Fin de plan (US#179, contrat US#177)** : `mods/epicmaster-band/hooks/plan-scope.ts` (`registerPlanScope`, appelé
   par `register`). `prompt.attachment` (`plan_mode`/`plan_mode_reentry`) retient `planFilePath` dans l'atom
-  `planFile` ; `tool.call` `ExitPlanMode` (boucle principale, `planFile` connu, `.vibe-agent/backlog.json`
-  lisible) pose `$.ui.ask` : Scope -> `{ deny }` dictant `/pmz:scope --plan <planFile>` (la capture #178
+  `planFile` ; `tool.call` `ExitPlanMode` (boucle principale seule — v2.16.1 : plus de garde « `planFile`
+  connu » ni « backlog lisible », car un autre plugin peut consommer `prompt.attachment` avant le mod et la
+  fin de plan précède souvent le 1er backlog) pose `$.ui.ask` : Scope -> `{ deny }` dictant
+  `/pmz:scope --plan <chemin>` (chemin = `planFilePath` de l'entrée d'ExitPlanMode, sinon l'atom, sinon
+  indice « chemin du rappel du mode plan » que le modèle résout) (la capture #178
   ne tourne pas, hook du mod avant `PreToolUse`), Approuver -> `next(e)` (carte native), autre -> refus de
   révision. Fail-open : tout échec -> `next(e)`.
 - **Affichage manuel `/epicband`** (v2.9.1) : commande **locale** du mod (`$.command.register` dans

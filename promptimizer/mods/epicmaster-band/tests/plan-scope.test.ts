@@ -1,7 +1,7 @@
 // Tests de la fin de plan (US-179) sur terminal et desktop.
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
-import { APPROVE, QUESTION, SCOPE, denyRevise, denyScope } from '../hooks/plan-scope'
+import { APPROVE, PLAN_HINT, QUESTION, SCOPE, denyRevise, denyScope } from '../hooks/plan-scope'
 
 const SURFACES = ['terminal', 'desktop'] as const
 const PLAN = '/home/u/.claude/plans/p.md'
@@ -33,13 +33,18 @@ describe('fin de plan', () => {
     expect(denyRevise('x')).toContain('révision du plan : x')
   })
   for (const surface of SURFACES) {
-    test(`${surface} : hors PMZ ou sans planFile -> next, aucune question`, async ($, on) => {
+    test(`${surface} : rappel du mode plan jamais vu, sans backlog -> question quand même, indice de chemin`, async ($, on) => {
       const box: Box = { pmz: false, asked: 0, answer: SCOPE, nexted: 0 }
       setup(on, box)
-      await attach($, PLAN)
       const out = await $.tool.call({ tool: 'ExitPlanMode' } as never)
-      expect(box.asked).toBe(0)
-      expect((out as { deny?: string }).deny).toBeUndefined()
+      expect(box.asked).toBe(1)
+      expect((out as { deny?: string }).deny).toContain(`--plan ${PLAN_HINT}`)
+    })
+    test(`${surface} : planFilePath dans l'entrée d'ExitPlanMode prime`, async ($, on) => {
+      const box: Box = { pmz: true, asked: 0, answer: SCOPE, nexted: 0 }
+      setup(on, box)
+      const out = await $.tool.call({ tool: 'ExitPlanMode', planFilePath: '/x/plan.md' } as never)
+      expect((out as { deny?: string }).deny).toContain('--plan /x/plan.md')
     })
     test(`${surface} : Scope -> deny avec --plan, Approuver -> next, rejet -> next`, async ($, on) => {
       const box: Box = { pmz: true, asked: 0, answer: SCOPE, nexted: 0 }
