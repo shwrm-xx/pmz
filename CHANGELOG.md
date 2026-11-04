@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#182 US#182 — Avis de mise à jour : session, statusline, doctor
+
+- session-start annonce la mise à jour une fois par jour et par version, au startup seulement.
+- statusline : badge ↑ v<latest> lu depuis le cache, sans réseau.
+- doctor : ligne « Mise à jour » (vert / orange / opt-out), jamais rouge.
+- Nouvelle sous-suite run-tests-update-notice.js (20 assertions).
+
 ## 2026-11-04 — US#181 US#181 — Module update-check
 
 - Nouveau module lib/update-check.js : version publiée lue sur la branche plugin-release, cache 24 h dans le dossier d'état.
