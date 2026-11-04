@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.13.0
+
+- Arbitrages en session : rapports avec « Décidé », arbitre opus (`--arbiter-brief`), US `--kind arbitrages`, étape Arbitrages dans `/epicmaster` et `/pickymaster` (US#171, #172).
+- Section « Décisions » des specs versionnée par `<!-- spec-v2 -->` : les specs antérieures ne sont plus refusées à la clôture.
+
 ## 2026-11-04 — Spec : section « Décisions » versionnée (suite US#171)
 
 - Le gabarit de spec porte le marqueur `<!-- spec-v2 -->` ; « Décisions » n'est exigée que des specs qui le portent.
