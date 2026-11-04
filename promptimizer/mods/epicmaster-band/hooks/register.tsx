@@ -16,6 +16,8 @@ import type { Register } from 'claude-code'
 
 import type { EpicmasterBandDismissed } from '../types'
 
+import { registerPlanScope } from './plan-scope'
+
 import {
   LIVE_PATH, failedLabel, finishedLabel, interruptedLine, parseLive, pendingLine, planMarkdown, runningLine, seededAt, waveLine,
   type LiveLot, type LiveView,
@@ -178,6 +180,7 @@ function waveRows(view: LiveView, now: number, Text: any): unknown[] {
 }
 
 export const register: Register = on => {
+  registerPlanScope(on)
   let lastText: string | null = null
   let ticks = 0
 

@@ -1,6 +1,8 @@
 // Contrat d'état de la bande epicmaster (lot #137) : seules valeurs gardées dans $.state.
 /** Signature du plan terminé déjà vu à une saisie (il ne s'affiche plus), ou null. */
 export type EpicmasterBandDismissed = string | null
+/** Chemin du plan natif (planFilePath du rappel du mode plan), ou null. */
+export type EpicmasterBandPlanFile = string | null
 
 declare module 'claude-code' {
   interface PluginState {
@@ -14,6 +16,8 @@ declare module 'claude-code' {
       boundFile: string | null
       /** Bande forcée par /epicband : plan le plus récent, sans exiger un semis après /epicmaster. */
       manual: boolean
+      /** Fichier plan natif de la session (US#179), lu par le hook ExitPlanMode. */
+      planFile: EpicmasterBandPlanFile
     }
   }
 }

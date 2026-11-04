@@ -392,6 +392,10 @@ L'install manuelle enregistre aussi
 La bande s'ouvre à la fois dans la session parente (celle qui lance la session maître par sa carte) et dans la session maître.
 Bande absente ? **`/epicband`** l'affiche à la demande (plan le plus récent du projet, sans appel au
 modèle) ; `/epicband plan` ouvre aussi le panneau du plan, `/epicband off` la retire.
+
+**Fin de plan (US#179)** : en session PMZ en mode plan, le mod pose avant la carte native d'`ExitPlanMode`
+une question « Scope (recommandé) » / « Approuver le plan ». Scope refuse la sortie du mode plan (rien
+n'est implémenté) et lance `/pmz:scope --plan <fichier plan>` ; Approuver ouvre la carte native intacte.
 Fichier live (US#141-#142) : `backlog.js epicmaster --live-seed` sème le **plan complet**
 (epic, vagues, US en attente) ; `note --id N --note "…" --decide` ajoute la décision à
 `to_decide` (« N à trancher » dans la bande) ; `done --id N --tokens <réels>` remplace l'estimation

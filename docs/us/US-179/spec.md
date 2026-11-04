@@ -104,3 +104,7 @@ Notes de mise en œuvre :
 ## Preuve de clôture
 
 - `node test/run-tests.js` + un essai manuel en desktop (mode plan → Scope).
+
+## Notes
+
+Livrée par le mod epicmaster-band (hooks/plan-scope.ts) selon le contrat US#177. Test manuel desktop restant (geste humain).
