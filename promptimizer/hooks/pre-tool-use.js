@@ -21,6 +21,7 @@ const { findFleetRoot, loadFleet, lotForSession, requestExtension } = require('.
 const { memberVerdict, toRelPosix } = require('../lib/perimeter');
 const { markPlanSession } = require('../lib/state');
 const { gitRoot } = require('../lib/project');
+const { capturePlan } = require('../lib/plancapture');
 
 // Outils du mode plan de Claude Code (lot #130) : leur simple passage prouve que la session
 // fait de la CONCEPTION, quel que soit le champ `permission_mode` du payload (optionnel).
@@ -69,6 +70,12 @@ function main() {
       const planRoot = gitRoot(input.cwd || process.cwd());
       if (planRoot) markPlanSession(planRoot);
     } catch (_) { /* fail-open : la trace est un bonus, jamais un blocage */ }
+  }
+  // Capture du plan validé (US#178) : .vibe-agent/plan.md, consommé par /pmz:scope --plan.
+  if (input.tool_name === 'ExitPlanMode') {
+    try {
+      capturePlan(input.cwd || process.cwd(), input.session_id, input.tool_input && input.tool_input.plan);
+    } catch (_) { /* fail-open */ }
   }
   if (input.tool_name === 'Bash') {
     const cmd = String((input.tool_input && input.tool_input.command) || '');

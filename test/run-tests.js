@@ -9529,6 +9529,35 @@ section('B130 — titre de session : jamais nu quand un plan existe, sessions de
   ok(lot.suggestedTitle(repo7) === `[${trg7} · Plan] Diffusion plugin`,
     'B130-9 : mode plan -> « [XXX · Plan] <epic> » (epic du dernier lot du plan)');
 
+  // US#178. ExitPlanMode capture le plan dans .vibe-agent/plan.md (verdict inchangé, B130-7).
+  const planFile7 = path.join(repo7, '.vibe-agent', 'plan.md');
+  const rPlanBody = runHook('pre-tool-use.js', { tool_name: 'ExitPlanMode', cwd: repo7, session_id: 'sess-planmode', tool_input: { plan: '# Titre\nfaire ceci' } });
+  const planTxt7 = fs.existsSync(planFile7) ? fs.readFileSync(planFile7, 'utf8') : '';
+  ok(rPlanBody.code === 0 && !rPlanBody.out.trim(), 'US#178-1 : ExitPlanMode avec plan -> sortie du hook inchangée (allow silencieux)');
+  ok(/^<!-- pmz:plan session=sess-planmode at=\d{4}-\d\d-\d\dT[^ ]+ -->\n# Titre\nfaire ceci\n?$/.test(planTxt7),
+    'US#178-2 : .vibe-agent/plan.md = en-tête pmz:plan + texte du plan');
+  const pcLib = require(path.join(PKG, 'lib', 'plancapture'));
+  ok(pcLib.capturePlan(repo7, 's', '   ') === null && pcLib.capturePlan(repo7, 's', undefined) === null,
+    'US#178-3 : plan vide ou absent -> null');
+  const noGit178 = fs.mkdtempSync(path.join(os.tmpdir(), 'pmz-nogit178-'));
+  const rNoGit = runHook('pre-tool-use.js', { tool_name: 'ExitPlanMode', cwd: noGit178, session_id: 's', tool_input: { plan: 'x' } });
+  ok(rNoGit.code === 0 && !rNoGit.out.trim() && !fs.existsSync(path.join(noGit178, '.vibe-agent')),
+    'US#178-4 : cwd hors git -> exit 0, aucun fichier');
+  const repo178b = mk('repo-us178-ro', 'chore: ro', 'sess-old178');
+  fs.rmSync(path.join(repo178b, '.vibe-agent'), { recursive: true, force: true });
+  fs.writeFileSync(path.join(repo178b, '.vibe-agent'), 'fichier bloquant');
+  const rRo = runHook('pre-tool-use.js', { tool_name: 'ExitPlanMode', cwd: repo178b, session_id: 's', tool_input: { plan: 'x' } });
+  ok(rRo.code === 0 && !rRo.out.trim() && pcLib.capturePlan(repo178b, 's', 'x') === null,
+    'US#178-5 : .vibe-agent non inscriptible -> exit 0 sans erreur, null');
+  const scopeMd178 = fs.readFileSync(path.join(PKG, 'commands', 'scope.md'), 'utf8');
+  ok(/--plan <fichier>/.test(scopeMd178) && /\.vibe-agent\/plan\.md/.test(scopeMd178)
+    && /Découpe du plan : /.test(scopeMd178) && /résumé du plan en\s+3 lignes/.test(scopeMd178),
+    'US#178-6 : scope.md documente --plan et l\'affichage de la source');
+  ok(/mcp__ccd_session__start_session/.test(scopeMd178) && /initiation: "user_asked"/.test(scopeMd178)
+    && /permission_mode: "default"/.test(scopeMd178) && /title: "Scope — <titre du plan>"/.test(scopeMd178)
+    && /\/pmz:scope --plan <chemin absolu du fichier plan>/.test(scopeMd178) && /mode plan/i.test(scopeMd178),
+    'US#178-7 : scope.md documente la branche mode plan -> sous-session');
+
   // …et le champ `permission_mode: plan` du payload hook (UserPromptSubmit).
   const repo10 = mk('repo-b130-permmode', 'chore: exploration', 'sess-old10');
   runHook('session-start.js', { source: 'startup', session_id: 'sess-pm', cwd: repo10, transcript_path: empty });
