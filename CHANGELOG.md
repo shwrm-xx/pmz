@@ -2,6 +2,10 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.16.0
+
+- Bouton Scope en fin de plan (epic « Plan vers Scope », #177–#180) : `/pmz:scope --plan`, hook ExitPlanMode du mod `epicmaster-band`, capture `plan.md` en repli.
+
 ## 2026-11-04 — US#180 Epic Plan vers Scope : bouton Scope en fin de plan (#177–#180)
 
 - Hook ExitPlanMode du mod epicmaster-band : question « Scope (recommandé) / Approuver le plan » avant la carte native ; Scope lance /pmz:scope --plan sans implémenter (fail-open).
