@@ -1,5 +1,5 @@
 ---
-description: Session maître — lance toutes les US ouvertes du backlog en sous-agents (modèle préconisé) et consolide un handoff dette / à trancher
+description: Session maître — lance toutes les US ouvertes du backlog en sous-agents (modèle préconisé), consolide, tranche et exécute les arbitrages
 allowed-tools: Bash(node *), Bash(git *), Agent, Write
 ---
 
@@ -107,9 +107,9 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
      `backlog.js note --id <id> --note "maquettes à valider : <slug, …>" --decide`, et reprise
      dans « À trancher » du handoff final (jamais validées à la place de l'humain). Un écart
      maquette ↔ implémentation signalé par une US à écrans se traite comme un « À trancher ».
-   - Toute décision qui attend l'humain (« À trancher » du rapport d'un sous-agent) :
-     `backlog.js note --id <id> --note "<décision en une ligne>" --decide` — la bande compte
-     « N à trancher » en direct.
+   - Tout « À trancher » du rapport d'un sous-agent : `backlog.js note --id <id> --note
+     "<point en une ligne>" --decide` (la bande compte « N à trancher »), puis il va au tri de
+     l'étape 4.3 Arbitrages — plus de report tel quel (hors maquettes à valider).
 5. Ajoute au `CHANGELOG.md` une entrée datée par US, reprise du « Bloc CHANGELOG » du rapport
    (fait par `close-wave` quand il est utilisé).
 
@@ -127,22 +127,44 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
 ## 4. Consolidation finale
 
 1. Fiche d'archive par US close (déjà écrite par `close-wave` si `fiche` y figurait) : `node ~/.claude/promptimizer/scripts/archive.js write --id N
-   --stdin` — les sections du rapport (Fait, Non vérifié, Dette, À trancher) se reportent telles
-   quelles ; aucun diff ni contenu de fichier.
+   --stdin` — les sections du rapport (Fait, Non vérifié, Dette, Décidé ; « À trancher » : voir l'étape
+   Arbitrages) se reportent ; aucun diff ni contenu de fichier.
 2. **Relecture opus (1× par session maître, jamais par vague)** — seulement si **≥ 2 US closes**
    dans la session (sinon passe) : `node ~/.claude/promptimizer/scripts/backlog.js epicmaster
    --review-brief --ids <ids des US closes> [--unverified "<Non vérifié>" …]` imprime le brief ;
    colle-le dans UN sous-agent (outil Agent, `model=opus`, `effort=medium`, lecture seule, rapport
    ≤ 250 mots : Problèmes confirmés / Non vérifié levé / Non vérifié confirmé / RAS). Le maître
-   reste sonnet. Ses « Problèmes confirmés » et « Non vérifié confirmé » vont en **Dette** ou
-   **À trancher** du handoff — jamais corrigés d'office.
-3. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
+   reste sonnet. Ses « Problèmes confirmés » et « Non vérifié confirmé » vont en **Dette** ou dans le tri des
+   **Arbitrages** (étape suivante) — jamais corrigés d'office.
+3. **Arbitrages (tri → arbitre / question → US d'arbitrages → exécution → clôture)** — aucun
+   « À trancher » ne se reporte tel quel, sauf les maquettes à valider. Anti-cascade : ni la dette
+   ni une décision ne crée d'US d'office, hors l'US d'arbitrages de la session.
+   1. **Tri** : agrège les « À trancher » des rapports et de la relecture ; reclasse en Décidé /
+      Dette / Non vérifié ce qui n'est pas éligible ; classe le reste en « expérience
+      utilisateur » (ce que l'utilisateur voit, fait ou ressent) ou « technique ». Cible : moins
+      de 6 points au total, sans plafond dur ; au-delà de 5, une ligne au résumé signale que le
+      découpage était trop flou. Les maquettes à valider restent à part (geste humain).
+   2. **Technique** : UN sous-agent arbitre (`model=opus`, `effort=medium`), brief =
+      `backlog.js epicmaster --arbiter-brief --stdin` (points en entrée). Pas d'escalade vers
+      l'humain.
+   3. **Expérience utilisateur** : `AskUserQuestion` (≤ 4 questions par appel, option
+      recommandée en premier) ; un second appel seulement si nécessaire.
+   4. **US d'arbitrages** : `backlog.js add --kind arbitrages --title "Arbitrages — <epic>" …`
+      puis `spec --new` ; la spec liste par décision l'action, les fichiers et le critère de fin,
+      avec « Décisions : toutes prises — aucune question ouverte ». Sans action à faire : aucune
+      US créée.
+   5. **Exécution** : lance aussitôt UN sous-agent sur cette US (brief `backlog.js epicmaster
+      --brief --id <id>`), **attends**-le, puis clos-la avec `close-wave`. Chaque item tranché :
+      `backlog.js note --id N --note "décidé : …"` (sans `--decide`).
+   6. Un point resté bloquant passe en **Dette** avec la mention « non résolu après arbitrage ».
+4. Handoff consolidé, modèle `~/.claude/promptimizer/templates/epicmaster-handoff.md`, écrit dans
    `.vibe-agent/handoff.md` (écrase ; garde la première ligne `<!-- pmz:handoff:manual -->`) :
-   US livrées (id + commit), US restées ouvertes et pourquoi, **Non vérifié** agrégé, **Dette
-   consolidée** (une puce par item, US d'origine entre parenthèses), **À trancher** (décisions
-   qui attendent l'humain — jamais tranchées à sa place), prochaine action (US restantes →
-   `/epicmaster` ; sinon « plan terminé »). Moins de 800 tokens.
-4. Résume en 5 lignes à l'utilisateur : livrés / ouverts / à trancher / session fraîche
-   recommandée (oui si des US restent ou si le hook l'a prescrit).
+   US livrées (id + commit), US restées ouvertes et pourquoi, **Non vérifié** agrégé, **Décidé
+   cette session** (≤ 5 lignes), **Dette consolidée** (une puce par item, US d'origine entre
+   parenthèses), **À trancher** = les seules **maquettes à valider** (jamais validées à la place
+   de l'humain), prochaine action (US restantes → `/epicmaster` ; sinon « plan terminé »).
+   Section vide omise. Moins de 800 tokens.
+5. Résume en 5 lignes à l'utilisateur : livrés / ouverts / décidé / maquettes à valider / session
+   fraîche recommandée (oui si des US restent ou si le hook l'a prescrit).
 
 Ne déclare jamais une US « faite » sans verify verte rapportée **et** persistée.

@@ -1658,6 +1658,18 @@ lot #150 ; `new`/`validate`/`open` prennent `--id`) ;
 dépendent les US à écrans ; `/epicmaster` remonte les « maquettes à valider » en à-trancher, impose
 aux sous-agents de suivre les maquettes liées et renomme la session maître dès la confirmation du
 plan (`set_session_title` self).
+
+**Arbitrages en session (US#172)** : `epicmaster.md`/`pickymaster.md` §4.3 — flux « tri → arbitre /
+question → US d'arbitrages → exécution → clôture ». Le maître agrège les « À trancher », reclasse
+en Décidé / Dette / Non vérifié, sépare « expérience utilisateur » et « technique » (cible < 6
+points). Technique : UN sous-agent `opus`·`medium` (brief `epicmaster --arbiter-brief --stdin`),
+sans escalade humaine. Expérience utilisateur : `AskUserQuestion` (≤ 4 questions par appel). Si une
+action en découle : `backlog.js add --kind arbitrages` + `spec --new` (section « Décisions »), US
+lancée aussitôt (`--brief`), attendue, close par `close-wave` ; un point bloquant passe en Dette
+(« non résolu après arbitrage »). Le handoff maître porte « Décidé cette session », « Dette » ; « À
+trancher » = maquettes à valider seules. `scope.md` pose les décisions UX/contrat au découpage
+(section spec « Décisions », > 2 questions ouvertes → redécoupage) ; `close-batch.md` /
+`handoff-template.md` appliquent la même règle (technique décidé par l'agent, UX en question à choix).
 Restitution du lien d'index (US#163) : `maquette.md` (étape 3), `epicmaster.md` et `pickymaster.md`
 (prompt du sous-agent « Maquettes » + consolidation) imposent `maquette.js index` puis le lien
 cliquable de `docs/us/maquettes-index.html` (chemin relatif + `file://`), en tête de « maquettes à

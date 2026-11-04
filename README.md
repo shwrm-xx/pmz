@@ -351,7 +351,7 @@ vol), **parallélisme borné** (plafond 4, réglable) **et** budget de contexte 
 par session maître, découpe en sessions successives au-delà), modèle préconisé pour le maître
 lui-même. Le maître ne relit jamais la sortie brute d'un sous-agent (rapport ≤ 250 mots, sections
 fixes), commite **par périmètre**, clôt chaque US avec verdict de verify persisté, et termine par
-un **handoff consolidé** portant la **dette** et ce qui reste **à trancher**. `/scope` se termine
+un **handoff consolidé** portant le **décidé** et la **dette**. **Arbitrages en session (US#172)** : tri des « À trancher » (cible < 6) → points techniques tranchés par UN agent opus, points d'expérience utilisateur posés en `AskUserQuestion` → US `--kind arbitrages` lancée aussitôt, attendue, clôturée par `close-wave`. Seules les maquettes à valider restent « à trancher ». `/scope` se termine
 **systématiquement** par la préparation de cette session maître (handoff maître écrit, injecté à la
 session fraîche suivante) et ne démarre plus d'US lui-même.
 

@@ -9747,7 +9747,7 @@ section('Session maître — lib/epicmaster + CLI epicmaster + fin de /scope (lo
   ok(!/3 choix/.test(cmdScope), 'commands/scope.md : l\'ancienne question à 3 choix a disparu (vagues calculées par epicmaster)');
   ok(/## 2ter\. Session maître/.test(fs.readFileSync(path.join(REPO, 'skills', 'promptimizer', 'SKILL.md'), 'utf8')), 'SKILL.md : section session maître');
   const tpl = fs.readFileSync(path.join(PKG, 'templates', 'epicmaster-handoff.md'), 'utf8');
-  ok(tpl.startsWith(handoffLib.MANUAL_MARKER) && /Dette consolidée/.test(tpl) && /À trancher/.test(tpl), 'templates/epicmaster-handoff.md : manuel, dette + à trancher');
+  ok(tpl.startsWith(handoffLib.MANUAL_MARKER) && /Dette consolidée/.test(tpl) && /Décidé cette session/.test(tpl) && /À trancher \(maquettes/.test(tpl), 'templates/epicmaster-handoff.md : manuel, décidé + dette + à trancher = maquettes');
 }
 
 section('État live epicmaster — lib/epicmaster-live + CLI start/done/note + hooks Subagent* + statusline (lot #136)');
