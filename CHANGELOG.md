@@ -2,6 +2,10 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.14.0
+
+- Sessions maîtres en sous-sessions liées : `/scope` se termine sur une carte « Session maître » (session fraîche liée, même checkout, `/pmz:epicmaster` au modèle maître) ; `/epicmaster` et `/pickymaster` relancent la session maître suivante de la même façon ; repli texte hors desktop (US#173).
+
 ## 2026-11-04 — US#173 US#173 — Sessions maîtres en sous-sessions liées
 
 - /scope se termine sur une carte « Session maître » (start_session fresh, liée, même checkout, /pmz:epicmaster)

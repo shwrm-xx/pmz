@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 174,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-11-04T09:35:20.441Z",
+  "updated_at": "2026-11-04T09:35:25.707Z",
   "lots": [
     {
       "id": 1,
@@ -5235,7 +5235,7 @@
       "closed_avg_cost_per_turn": 95,
       "started_at": "2026-11-04T09:29:56.853Z",
       "lot_number": 664,
-      "note": null,
+      "note": "allowed-tools ToolSearch+start_session ajoutés aux 3 commandes (hors spec) : à confirmer",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/commands/scope.md",
