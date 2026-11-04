@@ -10616,6 +10616,7 @@ for (const [title, file] of [
   ['US#164 — liaison des maquettes', 'run-tests-maquettes-liaison.js'],
   ['v2.12.1 — garde-fou maquettes', 'run-tests-maquettes-garde.js'],
   ['US#168 — releases traçables (tag)', 'run-tests-release-tag.js'],
+  ['US#173 — sessions maîtres en sous-sessions', 'run-tests-sous-session.js'],
 ]) {
   section(`${title} (test/${file})`);
   const r = spawnSync(process.execPath, [path.join(__dirname, file)], { encoding: 'utf8' });

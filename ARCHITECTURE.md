@@ -777,6 +777,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   repasse en série) / série. Le lancement des sessions filles reste **manuel** dans tous les
   cas — aucun changement à la doctrine D3 palier 2, seule la découverte et la visibilité du
   raisonnement deviennent automatiques.
+- **Sous-sessions liées (US#173)** : consigne pure, aucun script (l'outil de session n'est pas joignable depuis Node). `scope.md` étape 6 prescrit UN appel `start_session` (`own_initiative`, `fresh`, `use_worktree: false`, `pmz:epicmaster`, modèle/effort maîtres) ; `epicmaster.md`/`pickymaster.md` (fin de section 4) idem pour la session maître suivante, liée à la session maître courante (chaîne imbriquée). Repli 3 lignes si outil absent/refusé ; exception `backlog.js start --id` sans carte. Test : `test/run-tests-sous-session.js`.
 - **Session maître — `pmz:epicmaster`** (lot #133, epic « Session maître ») : troisième voie
   d'exécution d'un plan, entre la série classique (une US par session) et la vague D3 (N sessions
   réelles + `fleet.json`). Une **session fraîche qui ne code pas** lance les US ouvertes (todo +

@@ -1,6 +1,6 @@
 ---
 description: Session maître — lance toutes les US ouvertes du backlog en sous-agents (modèle préconisé), consolide, tranche et exécute les arbitrages
-allowed-tools: Bash(node *), Bash(git *), Agent, Write
+allowed-tools: Bash(node *), Bash(git *), Agent, Write, ToolSearch, mcp__ccd_session__start_session
 ---
 
 Tu es la **session maître** (`/epicmaster` = **direct**, sans question ; `/pickymaster` pour choisir les US) : tu ne codes pas, tu **lances** les US ouvertes du backlog en
@@ -166,5 +166,14 @@ Pour **chaque vague** du plan, et **jamais plus d'US en vol que le parallélisme
    Section vide omise. Moins de 800 tokens.
 5. Résume en 5 lignes à l'utilisateur : livrés / ouverts / décidé / maquettes à valider / session
    fraîche recommandée (oui si des US restent ou si le hook l'a prescrit).
+   **Session maître suivante** : s'il reste des US (plan > 1 session, ou session fraîche prescrite
+   par le hook Stop), lance-la par **la carte « Session maître »** de `/scope` (étape 6) : charge
+   l'outil par `ToolSearch` (`select:mcp__ccd_session__start_session`), puis un seul appel
+   `mcp__ccd_session__start_session` avec `initiation: "own_initiative"`, `context: "fresh"`,
+   `use_worktree: false`, `title: "Session maître — <epic>"`, `model`/`effort` maîtres de la sortie
+   `epicmaster`, `prompt` = invoquer le skill `pmz:epicmaster`, `background` (≥ 80 car.) = epic, US
+   restantes, sessions prévues. Liée à cette session maître (la chaîne s'imbrique). Outil absent
+   ou refusé : repli texte (« ouvre une session fraîche, `/model <maître>`, `/epicmaster` »). Plus
+   d'US : aucune carte.
 
 Ne déclare jamais une US « faite » sans verify verte rapportée **et** persistée.
