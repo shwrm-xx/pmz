@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — US#173 US#173 — Sessions maîtres en sous-sessions liées
+
+- /scope se termine sur une carte « Session maître » (start_session fresh, liée, même checkout, /pmz:epicmaster)
+- /epicmaster et /pickymaster relancent la session maître suivante par la même carte
+- Repli en trois lignes hors desktop ou si refus ; backlog.js start --id sans carte
+- Nouveau test/run-tests-sous-session.js
+- README et ARCHITECTURE à jour
+
 ## 2026-11-04 — Release v2.13.0
 
 - Arbitrages en session : rapports avec « Décidé », arbitre opus (`--arbiter-brief`), US `--kind arbitrages`, étape Arbitrages dans `/epicmaster` et `/pickymaster` (US#171, #172).

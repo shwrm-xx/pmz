@@ -175,5 +175,6 @@
 #0170 | 2026-10-29 | c66af42 | epic:Distribution publique | verify:inconnu | fiche:oui | Docs publiques : PRIVACY (8 événements, lancement) + liens README FR
 #0171 | 2026-11-04 | b1fee78 | epic:Arbitrages en session | verify:inconnu | fiche:oui | Rapport, arbitre et US d'arbitrages
 #0172 | 2026-11-04 | 26c8c5e | epic:Arbitrages en session | verify:inconnu | fiche:oui | Procédure maître : tri, arbitrage, exécution immédiate
+#0173 | 2026-11-04 | 65f8bfa | epic:Bouton session maître | verify:inconnu | fiche:oui | Sessions maîtres en sous-sessions liées
 
 # Archive PMZ — index des lots clos
