@@ -93,6 +93,8 @@ type UI = {
 }
 const text = async (ui: UI, re: RegExp) => (await ui.find({ type: 'Text', text: re }))
 const segments = async (ui: UI) => (await ui.findAll({ type: 'Text', text: /^[■□]$/ }))
+// Puces « • » des lignes d'US, dans l'ordre d'affichage.
+const dots = async (ui: UI) => (await ui.findAll({ type: 'Text', text: /^•$/ })).map(x => x.props.color)
 
 describe('bande epicmaster', () => {
   test('critère 1 : une ligne compacte (epic, vague, barre, compteurs)', async ($, on) => {
@@ -103,7 +105,7 @@ describe('bande epicmaster', () => {
       expect((await ui.find({ key: 'em-line' }))).toBeDefined()
       expect(await text(ui, /◆ Bande epicmaster · vague 2\/3/)).toBeDefined()
       const segs = await segments(ui)
-      expect(segs.map(x => x.props.color)).toEqual(['success', 'success', 'suggestion', 'warning'])
+      expect(segs.map(x => x.props.color)).toEqual(['success', 'success', 'suggestion', undefined]) // à lancer : neutre
       expect(await text(ui, /^ ✅2 👉1 ⏳1$/)).toBeDefined()
       expect(await text(ui, /verify rouge/)).toBeUndefined()
       expect((await ui.find(toggle))?.props.label).toBe('Détails')
@@ -136,8 +138,9 @@ describe('bande epicmaster', () => {
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
       await ui.press(toggle)
-      expect(await text(ui, /👉 #137 Bande · opus·high · 12 min · ~21k tokens/)).toBeDefined()
-      expect(await text(ui, /⏳ #138 Install · attend #137/)).toBeDefined()
+      expect(await text(ui, /^ {2}• #137 Bande · opus·high · 12 min · ~21k tokens/)).toBeDefined()
+      expect(await text(ui, /^ {2}• #138 Install · attend #137/)).toBeDefined()
+      expect(await text(ui, /[👉⏳] #13[78]/)).toBeUndefined() // picto réservé aux vagues
       expect(await text(ui, /#135 Spec/)).toBeUndefined() // un lot fait n'a pas de ligne
       expect((await ui.find(toggle))?.props.label).toBe('Masquer')
       await ui.press(toggle)
@@ -147,7 +150,7 @@ describe('bande epicmaster', () => {
     }
   })
 
-  test('interrompu : agent arrêté sans clôture (> 2 min) ou « en cours » périmé -> jaune ⏳', async ($, on) => {
+  test('interrompu : agent arrêté sans clôture (> 2 min) ou « en cours » périmé -> puce jaune', async ($, on) => {
     const box: FileBox = { text: live({ agents: {
       a1: { id: 'a1', lot: 137, started_at: iso(12), stopped_at: iso(5) },
     } }) }
@@ -155,11 +158,14 @@ describe('bande epicmaster', () => {
     await arm($)
     for (const surface of SURFACES) {
       const ui = await $.ui.mount({ ...BAND, surface })
-      expect((await segments(ui)).map(x => x.props.color)).toEqual(['success', 'success', 'warning', 'warning'])
+      expect((await segments(ui)).map(x => x.props.color)).toEqual(['success', 'success', 'warning', undefined])
       expect(await text(ui, /^ ✅2 👉0 ⏳2$/)).toBeDefined()
       await ui.press(toggle)
-      expect((await text(ui, /^ {2}⏳ #137 Bande · interrompu · 12 min$/))?.props.color).toBe('warning')
-      expect((await text(ui, /^ {2}⏳ #138 Install/))?.props.color).toBe('warning')
+      const int = await text(ui, /^ {2}• #137 Bande · interrompu · 12 min$/)
+      expect(int?.props.color).toBeUndefined() // texte neutre
+      expect((await text(ui, /^ {2}• #138 Install/))?.props.color).toBeUndefined()
+      // puce jaune : action utilisateur attendue ; « à lancer » (attend le précédent) : neutre
+      expect(await dots(ui)).toEqual(['warning', undefined])
       await ui.press(toggle) // replie : l'état « déplié » est partagé entre surfaces
       await ui.unmount()
     }
@@ -431,8 +437,11 @@ describe('bande epicmaster', () => {
       await ui.press(toggle)
       expect((await text(ui, /^ {2}✅ Vague 1 \(#9\) · Socle$/))?.props.color).toBe('success')
       expect((await text(ui, /^ {2}👉 Vague 2 \(#10, #11\) · Providers · 12 min$/))?.props.color).toBe('suggestion')
-      expect(await text(ui, /^ {6}👉 #10 Registre · opus·high · 12 min/)).toBeDefined()
-      expect(await text(ui, /^ {2}⏳ Vague 3 \(#12\) · Page web$/)).toBeDefined()
+      const reg = await text(ui, /^ {5}• #10 Registre · opus·high · 12 min/)
+      expect(reg?.props.color).toBeUndefined()
+      expect(await dots(ui)).toEqual(['suggestion'])
+      const w3 = await text(ui, /^ {2}⏳ Vague 3 \(#12\) · Page web$/)
+      expect(w3?.props.color).toBeUndefined() // en attente de la vague précédente : neutre
       expect(await text(ui, /^ {2}⏳ #12/)).toBeUndefined() // plus de ligne par lot en attente
       await ui.press(toggle) // replié pour la surface suivante (état de session)
       await ui.unmount()
