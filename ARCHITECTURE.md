@@ -1691,6 +1691,20 @@ question → US d'arbitrages → exécution → clôture ». Le maître agrège 
 en Décidé / Dette / Non vérifié, sépare « expérience utilisateur » et « technique » (cible < 6
 points). Technique : UN sous-agent `opus`·`medium` (brief `epicmaster --arbiter-brief --stdin`),
 sans escalade humaine. Expérience utilisateur : `AskUserQuestion` (≤ 4 questions par appel). Si une
+### Avis de mise à jour (update-check, v2.17.0, lots #181–#183)
+
+- **Source** : `promptimizer/VERSION` sur la branche `plugin-release`
+  (`https://raw.githubusercontent.com/shwrm-xx/pmz/plugin-release/promptimizer/VERSION`),
+  surchargeable par `PMZ_UPDATE_URL`.
+- **Cache et TTL** : `update-check.json` dans le dossier d'état, TTL 24 h.
+- **Fetch détaché** : `node lib/update-check.js --fetch` lancé en process détaché ; aucun hook
+  n'attend le réseau.
+- **Fail-open** : aucune fonction ne lève ; erreur, réseau absent ou JSON invalide → pas d'avis.
+- **Opt-out** : `PMZ_NO_UPDATE_CHECK=1`.
+- **Consommateurs** : `hooks/session-start.js` (avis au startup, une fois par jour et par version via
+  `shouldNotify`/`markNotified`), `scripts/statusline.js` (badge `↑ v<latest>` lu depuis le cache),
+  `install/doctor.js` (ligne « Mise à jour » : vert / orange / opt-out, jamais rouge).
+
 action en découle : `backlog.js add --kind arbitrages` + `spec --new` (section « Décisions »), US
 lancée aussitôt (`--brief`), attendue, close par `close-wave` ; un point bloquant passe en Dette
 (« non résolu après arbitrage »). Le handoff maître porte « Décidé cette session », « Dette » ; « À

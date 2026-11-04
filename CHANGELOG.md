@@ -2,6 +2,12 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-04 — Release v2.17.0 (avis de mise à jour)
+
+- Avis automatique de nouvelle version au démarrage de session, badge `↑` dans la statusline, ligne « Mise à jour » dans `/pmz:doctor` (epic #181–#183).
+- Version publiée lue sur la branche `plugin-release`, cache 24 h, fetch détaché, fail-open ; opt-out `PMZ_NO_UPDATE_CHECK=1`.
+- Doc : README (avis, opt-out, auto-update natif `/plugin`, `Watch → Custom → Releases`), ARCHITECTURE (section update-check), CLAUDE.md (étape 5 de la Release).
+
 ## 2026-11-04 — US#182 US#182 — Avis de mise à jour : session, statusline, doctor
 
 - session-start annonce la mise à jour une fois par jour et par version, au startup seulement.

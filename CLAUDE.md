@@ -69,3 +69,5 @@ attendre qu'on le demande — sinon les postes ne voient pas la mise à jour :
 5. Dire à l'utilisateur la commande côté poste collègue :
    `claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace`
    (ne **pas** relancer `marketplace add` : refusé si la source déclarée diffère), puis redémarrage.
+   Les postes sont aussi avertis au démarrage de session qui suit la release (avis update-check,
+   opt-out `PMZ_NO_UPDATE_CHECK=1`).
