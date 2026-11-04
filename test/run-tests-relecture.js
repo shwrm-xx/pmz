@@ -66,7 +66,7 @@ for (const f of ['epicmaster.md', 'pickymaster.md']) {
   const md = fs.readFileSync(path.join(PKG, 'commands', f), 'utf8');
   ok(/--review-brief/.test(md) && /model=opus/.test(md), `${f} : lance le brief relecteur opus`);
   ok(/1× par session maître/.test(md) && /≥ 2 US closes/.test(md), `${f} : 1× par session, garde ≥ 2 US closes`);
-  ok(/Dette/.test(md) && /À trancher/.test(md) && /jamais corrigés d'office/.test(md), `${f} : constats -> Dette / À trancher`);
+  ok(/Défaut/.test(md) && /Problèmes confirmés/.test(md) && /Dette/.test(md), `${f} : constats -> Défaut (corrigé) / Dette plafonnée`);
   ok(/Le maître\s+reste sonnet/.test(md), `${f} : le maître reste sonnet`);
 }
 
