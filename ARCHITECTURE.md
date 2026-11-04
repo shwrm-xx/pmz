@@ -897,7 +897,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   par `register`). `prompt.attachment` (`plan_mode`/`plan_mode_reentry`) retient `planFilePath` dans l'atom
   `planFile` ; `tool.call` `ExitPlanMode` (boucle principale seule — v2.16.1 : plus de garde « `planFile`
   connu » ni « backlog lisible », car un autre plugin peut consommer `prompt.attachment` avant le mod et la
-  fin de plan précède souvent le 1er backlog) pose `$.ui.ask` : Scope -> `{ deny }` dictant
+  fin de plan précède souvent le 1er backlog) pose `$.ui.ask` (v2.17.2 : réponse en moins de `MIN_HUMAN_MS` = 1 s, mesurée par `$.clock.now`, = question jamais vue -> `next(e)`, jamais de Scope forcé ; libellé « Scope » sans « (recommandé) ») : Scope -> `{ deny }` dictant
   `/pmz:scope --plan <chemin>` (chemin = `planFilePath` de l'entrée d'ExitPlanMode, sinon l'atom, sinon
   indice « chemin du rappel du mode plan » que le modèle résout) (la capture #178
   ne tourne pas, hook du mod avant `PreToolUse`), Approuver -> `next(e)` (carte native), autre -> refus de

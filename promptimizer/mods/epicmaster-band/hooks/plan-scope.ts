@@ -1,5 +1,5 @@
 // Fin de plan (US#179, contrat US#177 « piste 3 ») : en session PMZ en mode plan, le mod pose
-// lui-même la question avant la carte native d'ExitPlanMode — « Scope (recommandé) » ou
+// lui-même la question avant la carte native d'ExitPlanMode — « Scope » ou
 // « Approuver le plan ». Scope refuse ExitPlanMode (la session reste en mode plan, rien n'est
 // implémenté) et dicte l'appel de /pmz:scope --plan <fichier plan natif> ; Approuver laisse la
 // carte native (Accepter, Accepter et continuer, Réviser, Refuser) intacte.
@@ -9,11 +9,16 @@ import type { Register } from 'claude-code'
 
 export const HEADER = 'Fin du plan'
 export const QUESTION = 'Plan prêt : le découper en US avec Scope, ou l\'approuver ?'
-export const SCOPE = 'Scope (recommandé)'
+export const SCOPE = 'Scope'
 export const APPROVE = 'Approuver le plan'
 
 // Chemin inconnu (rappel du mode plan intercepté par un autre plugin) : le modèle connaît son fichier
 // plan par le rappel système du mode plan — on le lui fait nommer.
+// Réponse plus rapide qu'un humain (v2.17.2) : la question n'a pas été vue (réponse automatique
+// d'un autre composant, observée en session desktop sans aucun clic) -> jamais de Scope forcé,
+// carte native d'ExitPlanMode à la place.
+export const MIN_HUMAN_MS = 1000
+
 export const PLAN_HINT = '<chemin absolu du fichier plan indiqué par le rappel du mode plan>'
 // Le refus est le seul canal sûr : l'app l'affiche « Échec » (rendu d'un deny, non réglable), mais
 // substituer un résultat ferait lire au modèle « plan approuvé, commence à coder ». Texte court, lisible
@@ -50,7 +55,12 @@ export const registerPlanScope = (on: Parameters<Register>[0]): void => {
       const p = typeof fromInput === 'string' && fromInput !== '' ? fromInput : await read($, planFile)
       let answer: string
       try {
+        const askedAt = await $.clock.now()
         answer = String(await $.ui.ask(QUESTION, { header: HEADER, options: [SCOPE, APPROVE] }))
+        if ((await $.clock.now()) - askedAt < MIN_HUMAN_MS) {
+          $.ui.log(`pmz: réponse « ${answer} » trop rapide pour un humain, carte native gardée`, { to: 'debug' })
+          return next(e)
+        }
       } catch (_) { return next(e) } // question fermée ou -p
       if (answer === SCOPE) return { deny: denyScope(p) }
       if (answer === APPROVE) return next(e)

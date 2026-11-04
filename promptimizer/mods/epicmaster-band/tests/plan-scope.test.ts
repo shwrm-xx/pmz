@@ -1,20 +1,22 @@
 // Tests de la fin de plan (US-179) sur terminal et desktop.
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
-import { APPROVE, PLAN_HINT, QUESTION, SCOPE, denyRevise, denyScope } from '../hooks/plan-scope'
+import { APPROVE, MIN_HUMAN_MS, PLAN_HINT, QUESTION, SCOPE, denyRevise, denyScope } from '../hooks/plan-scope'
 
 const SURFACES = ['terminal', 'desktop'] as const
 const PLAN = '/home/u/.claude/plans/p.md'
 
-type Box = { pmz: boolean; asked: number; answer: string | Error; nexted: number }
+type Box = { pmz: boolean; asked: number; answer: string | Error; nexted: number; thinkMs?: number }
 function setup(on: On, box: Box) {
   on('fs.read', () => {
     if (!box.pmz) throw new Error('ENOENT')
     return { value: '{}' } as never
   })
   // $.ui.ask lève un appel d'outil AskUserQuestion : on l'intercepte au niveau tool.call.
-  on('tool.call', { tool: 'AskUserQuestion' }, () => {
+  const clock = mock.clock(on)
+  on('tool.call', { tool: 'AskUserQuestion' }, async () => {
     box.asked++
+    await clock.advance(box.thinkMs ?? MIN_HUMAN_MS + 500)
     if (box.answer instanceof Error) throw box.answer
     return { result: { answers: { [QUESTION]: box.answer } } } as never
   })
@@ -28,7 +30,7 @@ const attach = ($: any, planFilePath: string) =>
 
 describe('fin de plan', () => {
   test('libellés exacts', () => {
-    expect([QUESTION, SCOPE, APPROVE]).toEqual(["Plan prêt : le découper en US avec Scope, ou l'approuver ?", 'Scope (recommandé)', 'Approuver le plan'])
+    expect([QUESTION, SCOPE, APPROVE]).toEqual(["Plan prêt : le découper en US avec Scope, ou l'approuver ?", 'Scope', 'Approuver le plan'])
     expect(denyScope(PLAN)).toContain(`--plan ${PLAN}`)
     expect(denyRevise('x')).toContain('révision du plan : x')
   })
@@ -59,6 +61,14 @@ describe('fin de plan', () => {
       box.answer = 'plus court'
       expect((await $.tool.call({ tool: 'ExitPlanMode' } as never) as { deny?: string }).deny).toContain('plus court')
       expect(box.asked).toBe(4)
+    })
+    test(`${surface} : réponse instantanée (question jamais vue) -> pas de Scope forcé, carte native`, async ($, on) => {
+      const box: Box = { pmz: true, asked: 0, answer: SCOPE, nexted: 0, thinkMs: 0 }
+      setup(on, box)
+      await attach($, PLAN)
+      const out = await $.tool.call({ tool: 'ExitPlanMode' } as never)
+      expect(box.asked).toBe(1)
+      expect((out as { deny?: string }).deny).toBeUndefined()
     })
   }
 })
