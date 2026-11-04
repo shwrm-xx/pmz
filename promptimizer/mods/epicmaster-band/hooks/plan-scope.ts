@@ -11,10 +11,12 @@ export const HEADER = 'Fin du plan'
 export const QUESTION = 'Plan prêt : le découper en US avec Scope, ou l\'approuver ?'
 export const SCOPE = 'Scope (recommandé)'
 export const APPROVE = 'Approuver le plan'
-export const BACKLOG_PATH = '.vibe-agent/backlog.json' // même résolution que LIVE_PATH (relatif au projet)
 
-export const denyScope = (p: string): string =>
-  `Scope choisi par l'utilisateur en fin de plan. N'implémente rien et ne rappelle pas ExitPlanMode. Invoque maintenant le skill pmz:scope avec l'argument « --plan ${p} », puis termine ton tour.`
+// Chemin inconnu (rappel du mode plan intercepté par un autre plugin) : le modèle connaît son fichier
+// plan par le rappel système du mode plan — on le lui fait nommer.
+export const PLAN_HINT = '<chemin absolu du fichier plan indiqué par le rappel du mode plan>'
+export const denyScope = (p: string | null): string =>
+  `Scope choisi par l'utilisateur en fin de plan. N'implémente rien et ne rappelle pas ExitPlanMode. Invoque maintenant le skill pmz:scope avec l'argument « --plan ${p || PLAN_HINT} », puis termine ton tour.`
 export const denyRevise = (t: string): string =>
   `L'utilisateur demande une révision du plan : ${t}. Reste en mode plan, révise le plan, puis rappelle ExitPlanMode.`
 
@@ -37,10 +39,12 @@ export const registerPlanScope = (on: Parameters<Register>[0]): void => {
   on('tool.call', { tool: 'ExitPlanMode' }, async ($, e, next) => {
     try {
       if ((e as { agentId?: unknown }).agentId !== undefined) return next(e)
-      const p = await read($, planFile)
-      if (!p) return next(e)
-      const backlog = await $.fs.read(BACKLOG_PATH).catch(() => null)
-      if (backlog === null || backlog === undefined) return next(e) // hors projet PMZ
+      // Le chemin du plan n'est PLUS une garde (fix v2.16.1) : un autre plugin peut consommer le
+      // rappel prompt.attachment avant ce mod. Ordre : entrée d'ExitPlanMode, puis atom, sinon indice.
+      // Pas de garde backlog non plus : la fin de plan précède souvent le 1er /scope (backlog absent) ;
+      // ce mod n'est chargé que par le plugin PMZ, ce qui suffit à dire « session PMZ ».
+      const fromInput = (e as { planFilePath?: unknown }).planFilePath
+      const p = typeof fromInput === 'string' && fromInput !== '' ? fromInput : await read($, planFile)
       let answer: string
       try {
         answer = String(await $.ui.ask(QUESTION, { header: HEADER, options: [SCOPE, APPROVE] }))
