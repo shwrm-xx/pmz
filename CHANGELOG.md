@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-06 — US#184 US#184 — Identité de session fiable
+
+- Le prompt de carte « Invoque le skill pmz:epicmaster » est détecté maître : plus de titre HS.
+- Relay posé seulement sur démarrage réel (id local_…), levé après clôture ou 7 jours.
+- State par session : session-state/<sid>.json, élagué à 50, repli sur l'ancien fichier.
+- session-roles.json porte title et epic.
+
 ## 2026-11-04 — Release v2.17.2 (fin de plan : plus de Scope forcé)
 
 - En mode plan, la question « Scope / Approuver » pouvait recevoir « Scope » sans aucun clic (observé en session desktop : question jamais affichée, réponse automatique). PMZ bloquait alors la fin du plan, affichée « Échec » en rouge, et lançait le découpage.

@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 190,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-11-06T13:02:04.784Z",
+  "updated_at": "2026-11-06T13:12:04.677Z",
   "lots": [
     {
       "id": 1,
@@ -5580,23 +5580,23 @@
       "id": 184,
       "title": "Identité de session : rôle maître, relais, state par session",
       "scope": "fait quand : la maître lancée par carte est détectée master (pas de titre HS), relay posé seulement sur démarrage réel et levé après clôture/7 j, session-state par sid, session-roles porte title+epic — test/run-tests-relais.js vert",
-      "status": "todo",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Fiabilité sous-sessions",
       "verify": "node test/run-tests-relais.js",
       "spec": "docs/us/US-184/spec.md",
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
+      "closed_commit": "95d94dc",
+      "closed_at": "2026-11-06T13:12:04.625Z",
+      "closed_session_id": "07ee6640-afaa-4b63-93ba-55a466dcbc51",
+      "closed_occupancy": 182207,
+      "closed_verify": "ok",
       "cost_tokens": 0,
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
-      "started_at": null,
-      "lot_number": null,
+      "started_at": "2026-11-06T13:08:10.423Z",
+      "lot_number": 688,
       "note": null,
       "session_touches": 0,
       "perimeter": [
@@ -5608,14 +5608,14 @@
         "test/run-tests-relais.js"
       ],
       "depends_on": [],
-      "session_owner": null,
+      "session_owner": "master/lot-184",
       "regression_of": null
     },
     {
       "id": 185,
       "title": "Fichier live juste : rattachement FIFO, filtre session, phases, verrou",
       "scope": "fait quand : en vague de 3 chaque agent est rattaché à son US (launch_queue), SubagentStart d'une autre session ignoré, phase review/arbitrage/settle tracée et finished seulement en done, timeout=reopened, second --live-seed refusé sans --force, alerte rejouée sur nouvelle epic — test/run-tests-live.js vert",
-      "status": "todo",
+      "status": "in_progress",
       "model_hint": "sonnet",
       "effort_hint": "high",
       "epic": "Fiabilité sous-sessions",
@@ -5630,7 +5630,7 @@
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
-      "started_at": null,
+      "started_at": "2026-11-06T13:08:10.583Z",
       "lot_number": null,
       "note": null,
       "session_touches": 0,
@@ -5644,14 +5644,22 @@
         "test/run-tests-live.js"
       ],
       "depends_on": [],
-      "session_owner": null,
+      "session_owner": "master/lot-185",
+      "integrations": {
+        "command_optimizer": {
+          "snapshot_start": {
+            "commands": 0,
+            "delivered_tokens": 0
+          }
+        }
+      },
       "regression_of": null
     },
     {
       "id": 186,
       "title": "Stop et handoff neutres pour la maître",
       "scope": "fait quand : le hook Stop n'auto-clôt jamais une US owner master/ ni en session maître, incrementLot seulement après clôture effective, handoff auto affiche la première US in_progress (ou aucune) et plus jamais lot-counter+1 — test/run-tests-stop.js vert",
-      "status": "todo",
+      "status": "in_progress",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Fiabilité sous-sessions",
@@ -5666,7 +5674,7 @@
       "cost_turns": 0,
       "cost_subagent_tokens": 0,
       "closed_avg_cost_per_turn": null,
-      "started_at": null,
+      "started_at": "2026-11-06T13:08:10.759Z",
       "lot_number": null,
       "note": null,
       "session_touches": 0,
@@ -5676,7 +5684,15 @@
         "test/run-tests-stop.js"
       ],
       "depends_on": [],
-      "session_owner": null,
+      "session_owner": "master/lot-186",
+      "integrations": {
+        "command_optimizer": {
+          "snapshot_start": {
+            "commands": 0,
+            "delivered_tokens": 0
+          }
+        }
+      },
       "regression_of": null
     },
     {
