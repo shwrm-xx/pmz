@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-06 — US#187 US#187 — Archive et CHANGELOG exacts
+
+- Index d'archive : verify réel resynchronisé à la clôture (OK/ÉCHEC/aucune/TIMEOUT).
+- Fiches : plus de [object Object].
+- Entrées CHANGELOG : préfixe US#N — non doublé ; un seul en-tête d'index.
+- close-wave écrit les fiches et puces CHANGELOG depuis le rapport.
+- archive.repair répare verify, en-têtes et fiches corrompues (idempotent).
+
 ## 2026-11-06 — US#185 US#185 — Fichier live juste
 
 - Chaque sous-agent rattaché à son US par launch_queue (start puis Agent).

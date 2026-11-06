@@ -189,5 +189,6 @@
 #0184 | 2026-11-06 | 95d94dc | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Identité de session : rôle maître, relais, state par session
 #0185 | 2026-11-06 | 3eb93b5 | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Fichier live juste : rattachement FIFO, filtre session, phases, verrou
 #0186 | 2026-11-06 | 3defc8f | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Stop et handoff neutres pour la maître
+#0187 | 2026-11-06 | a22fcdb | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Archive et CHANGELOG exacts + archive --repair
 
 # Archive PMZ — index des lots clos
