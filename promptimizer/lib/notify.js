@@ -88,4 +88,28 @@ function notifyWaveClosed(wave, opts) {
   return send('Promptimizer — vague close', body, opts);
 }
 
-module.exports = { enabled, send, commandFor, notifyRedZone, notifyLotClosed, notifyLotReady, notifyWaveClosed };
+// Surface « où se passe quoi » (US#188) — signaux de la session maître. Passent par
+// `module.exports.send` (substituable par les tests), même opt-in PMZ_NOTIFY=1, même fail-open.
+function lotLabel(lot) {
+  return lot && lot.id != null ? `#${lot.id}${lot.title ? ` — ${lot.title}` : ''}` : 'US';
+}
+function notifyAgentDone(agent, opts) {
+  const a = agent || {};
+  const what = a.lot != null ? `US#${a.lot}` : (a.kind || 'consolidation');
+  return module.exports.send('Promptimizer — sous-agent terminé', `${a.type || 'agent'} · ${what}`, opts);
+}
+function notifyVerifyRed(lot, opts) {
+  return module.exports.send('Promptimizer — verify rouge', lotLabel(lot), opts);
+}
+function notifyToDecide(item, opts) {
+  const reason = item && item.reason ? ` : ${item.reason}` : '';
+  return module.exports.send('Promptimizer — à trancher', `${lotLabel(item)}${reason}`.slice(0, 200), opts);
+}
+function notifyMasterDone(epic, opts) {
+  return module.exports.send('Promptimizer — session maître terminée', epic ? String(epic) : 'Epic terminée.', opts);
+}
+
+module.exports = {
+  enabled, send, commandFor, notifyRedZone, notifyLotClosed, notifyLotReady, notifyWaveClosed,
+  notifyAgentDone, notifyVerifyRed, notifyToDecide, notifyMasterDone,
+};

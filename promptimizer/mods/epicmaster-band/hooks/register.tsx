@@ -19,7 +19,8 @@ import type { EpicmasterBandDismissed } from '../types'
 import { registerPlanScope } from './plan-scope'
 
 import {
-  LIVE_PATH, failedLabel, finishedLabel, interruptedLine, parseLive, pendingLine, planMarkdown, runningLine, seededAt, waveLine,
+  FLEET_PATH, LIVE_PATH, ROLES_PATH, agentLine, bandHead, failedLabel, finishedLabel, fleetLabel, interruptedLine, parseFleet, parseLive,
+  pendingLine, planMarkdown, runningLine, seededAt, sessionsText, waveLine,
   type LiveLot, type LiveView,
 } from './live'
 
@@ -34,6 +35,7 @@ const MINUTE_TICKS = 30 // 30 × 2 s : redessin périodique des temps écoulés
 const MAX_SEGMENTS = 40
 const ARM_MS = 15 * 60 * 1000 // l'attente « préparation du plan » expire seule
 const PLAN_PANE = 'epicmaster-plan'
+const SESSIONS_PANE = 'epicmaster-sessions'
 const SEED_SLACK_MS = 5000 // horloges du moteur et de node : même machine, marge de sûreté
 const GLOBAL_DIR = 'promptimizer/epicmaster-live'
 const CALL_RE = /^\s*\/(?:pmz:)?(?:epic|picky)master(?![\w-])/
@@ -323,6 +325,27 @@ export const register: Register = on => {
     }
   })
 
+  // Panneau « Sessions » (US#188) : session × rôle × epic × US × état, même tableau que `backlog.js sessions`.
+  on('ui.render', { component: 'Pane', requestId: SESSIONS_PANE }, async ($, e, next) => {
+    try {
+      const now = await $.clock.now()
+      const text = sessionsText(
+        asText(await $.fs.read(ROLES_PATH).catch(() => null)),
+        asText(await $.fs.read(LIVE_PATH).catch(() => null)),
+        asText(await $.fs.read(FLEET_PATH).catch(() => null)),
+        now,
+      )
+      const { Box, Text } = $.ui.resolve(e)
+      return (
+        <Box key="em-sessions" flexDirection="column">
+          {text.split('\n').map((l, i) => <Text key={`ses-${i}`} wrap="truncate" {...(i === 0 ? { bold: true } : {})}>{l}</Text>)}
+        </Box>
+      )
+    } catch (_) {
+      return next(e)
+    }
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     try {
       if (e.props.hasSurvey) return next(e)
@@ -346,6 +369,10 @@ export const register: Register = on => {
       const planButton = (
         <Button key="em-plan" label="Plan" onPress={() => $.ui.open({ id: PLAN_PANE, title: `Plan epicmaster · ${view.epic}` })} />
       )
+      const sessionsButton = (
+        <Button key="em-sessions-btn" label="Sessions" onPress={() => $.ui.open({ id: SESSIONS_PANE, title: 'Sessions du dépôt' })} />
+      )
+      const fleet = parseFleet(asText(await $.fs.read(FLEET_PATH).catch(() => null)))
 
       if (view.finished) {
         return (
@@ -354,13 +381,15 @@ export const register: Register = on => {
             {view.failed.length ? <Text key="em-failed" color="error" wrap="truncate">{'  ' + failedLabel(view.failed)}</Text> : null}
             <Text key="em-gap"> </Text>
             {planButton}
+            <Text key="em-gap-s"> </Text>
+            {sessionsButton}
           </Box>
         )
       }
 
       const shown = view.lots.slice(0, MAX_SEGMENTS)
       const more = view.lots.length - shown.length
-      const head = `◆ ${view.epic}${view.wave ? ` · vague ${view.wave.current}/${view.wave.total}` : ''} `
+      const head = bandHead(view)
       const counts = ` ✅${view.done} 👉${view.running} ⏳${view.pending + view.interrupted}`
 
       const line = (
@@ -375,9 +404,12 @@ export const register: Register = on => {
             {more > 0 ? <Text key="seg-more" dimColor>{`+${more}`}</Text> : null}
           </Text>
           <Text key="em-counts">{counts}</Text>
+          {fleet ? <Text key="em-fleet-s" dimColor>{`  D3 ×${fleet.lots.length}`}</Text> : null}
           {view.failed.length ? <Text key="em-failed" color="error" bold>{'  ' + failedLabel(view.failed)}</Text> : null}
           <Text key="em-gap"> </Text>
           {planButton}
+          <Text key="em-gap-s"> </Text>
+          {sessionsButton}
           <Text key="em-gap2"> </Text>
           <Button
             key="em-toggle"
@@ -397,7 +429,9 @@ export const register: Register = on => {
       return (
         <Box key="em-band" flexDirection="column">
           {line}
+          {fleet ? <Text key="em-fleet" dimColor wrap="truncate">{'  ' + fleetLabel(fleet)}</Text> : null}
           {rows}
+          {view.agents.map((a, i) => <Text key={`ag-${i}`} dimColor wrap="truncate">{'     ' + agentLine(a)}</Text>)}
           <Text key="em-note" dimColor wrap="truncate">  durées et tokens : estimation indicative</Text>
         </Box>
       )

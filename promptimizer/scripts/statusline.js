@@ -16,14 +16,14 @@ process.on('unhandledRejection', () => { process.exit(0); });
 function emit(line) { process.stdout.write((line || '') + '\n'); process.exit(0); }
 
 let parseHookInput, disabled, readVersion, gitRoot, isInitialized, readEpic,
-  loadBacklog, currentLot, nextLot, blockedByOf, progress, readLastOccupancy, statusLineText;
+  loadBacklog, currentLot, lotOwnedBy, nextLot, blockedByOf, progress, readLastOccupancy, statusLineText;
 try {
   ({ parseHookInput } = require('../lib/stdin'));
   ({ disabled } = require('../lib/env'));
   ({ readVersion } = require('../lib/version'));
   ({ gitRoot, isInitialized } = require('../lib/project'));
   ({ readEpic } = require('../lib/lot'));
-  ({ loadBacklog, currentLot, nextLot, blockedByOf, progress } = require('../lib/backlog'));
+  ({ loadBacklog, currentLot, lotOwnedBy, nextLot, blockedByOf, progress } = require('../lib/backlog'));
   ({ readLastOccupancy } = require('../lib/occupancy'));
   ({ statusLineText } = require('../lib/messages'));
 } catch (_) { emit(''); }
@@ -45,7 +45,14 @@ function main() {
     const root = gitRoot(cwd);
     if (root && isInitialized(root)) {
       const b = loadBacklog(root);
-      const cur = currentLot(b);
+      const sid = input.session_id || null;
+      let isMaster = false;
+      try { isMaster = !!sid && require('../lib/epicmaster-live').isMasterSession(root, require('../lib/epicmaster-live').load(root), sid); } catch (_) { /* fail-open */ }
+      // US propre à la session (US#188) : l'owner « master/… » en maître, sinon owner = sid ; à défaut,
+      // comportement historique (in_progress puis prochaine).
+      let own = null;
+      try { own = sid ? lotOwnedBy(b, sid, isMaster) : null; } catch (_) { own = null; }
+      const cur = own || currentLot(b);
       const nxt = nextLot(b);
       info.epic = (cur && cur.epic) || (nxt && nxt.epic) || readEpic(root) || null;
       const lot = cur || nxt;
@@ -58,7 +65,11 @@ function main() {
         info.total = p.total;
       }
       // Segment de repli (lot #136) : état live de la session maître, vide hors session maître.
-      try { info.live = require('../lib/epicmaster-live').statusSegment(root) || null; } catch (_) { /* fail-open */ }
+      // « EM … » seulement en session maître ; « D3 #N » dans une session fille de vague (US#188).
+      const segs = [];
+      try { const em = require('../lib/epicmaster-live').statusSegment(root, undefined, sid || undefined); if (em) segs.push(em); } catch (_) { /* fail-open */ }
+      try { const fl = sid ? require('../lib/fleet').lotForSession(root, sid) : null; if (fl) segs.push(`D3 #${fl.id}`); } catch (_) { /* fail-open */ }
+      info.live = segs.join(' ') || null;
     }
   } catch (_) { /* projet illisible → on garde version + occupation */ }
 
