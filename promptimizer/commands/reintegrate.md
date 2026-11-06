@@ -44,7 +44,7 @@ Flags de gate (`--execute`) :
    (`fleet ready --id <id>`), puis relancer `--execute`. Si c'est le **gate final** qui rougit :
    les merges restent faits (aucun rollback automatique), la branche d'intégration est rouge —
    corriger sur place, puis relancer.
-5. **Rapport persisté** : chaque `--execute` écrit `.vibe-agent/logs/reintegrate-<horodatage>.md`
+5. **Rapport persisté** : chaque `--execute` écrit `.vibe-agent/logs/<date>-<US|sans>-<sid6>-<rnd>.md`
    (plan, statut par US, sortie **intégrale** des conflits/gates rouges, changelog agrégé,
    composition de la vague). Le chemin est affiché en fin de sortie — cite-le plutôt que de
    recoller les diagnostics dans le contexte, et va l'y lire si un gate rouge demande un
