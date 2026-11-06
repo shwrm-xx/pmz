@@ -517,7 +517,17 @@ function setClosedVerify(root, id, verdict) {
   const lot = findLot(b, id);
   if (!lot || lot.status !== 'done' || lot.closed_verify) return null;
   lot.closed_verify = verdict;
-  return saveBacklog(root, b) ? lot : null;
+  const saved = saveBacklog(root, b);
+  // US#187 : resynchronise la ligne d'index (doneLot l'a écrite en `verify:inconnu` avant que le
+  // verdict ne soit connu). Fail-open strict (hook Stop).
+  if (saved) {
+    try {
+      const ar = require('./archive');
+      const r = ar.updateIndexLine(root, lot.id, { verify: ar.CLOSED_TO_INDEX[verdict] });
+      if (r.action === 'missing') ar.appendIndexLine(root, ar.entryFromLot(lot));
+    } catch (_) { /* fail-open */ }
+  }
+  return saved ? lot : null;
 }
 
 // Deux lots en cours peuvent-ils coexister (mode fleet, D3) ? Oui ssi ils appartiennent à des
@@ -1173,7 +1183,17 @@ function planCloseWave(items) {
       seen.set(q, id);
       paths.push(q);
     }
-    out.push({ ...raw, id, paths, verdict: ['ok', 'failed', 'timeout', 'none'].includes(raw.verdict) ? raw.verdict : 'none' });
+    // US#187 : sans fiche explicite, la fiche (et les puces CHANGELOG) sont dérivées du rapport du sous-agent.
+    let derived = {};
+    if (typeof raw.report === 'string' && raw.report.trim()) {
+      try {
+        const ar = require('./archive');
+        const ttl = raw.title || (raw.changelog && raw.changelog.title);
+        if (!raw.fiche) derived.fiche = ar.ficheFromReport({ id, title: ttl, verdict: raw.verdict, verify: ar.CLOSED_TO_INDEX[raw.verdict] }, raw.report);
+        if (!raw.changelog && ttl) { const bu = ar.changelogFromReport(raw.report); if (bu.length) derived.changelog = { title: ttl, bullets: bu }; }
+      } catch (_) { derived = {}; }
+    }
+    out.push({ ...raw, ...derived, id, paths, verdict: ['ok', 'failed', 'timeout', 'none'].includes(raw.verdict) ? raw.verdict : 'none' });
   }
   return { items: out, shared };
 }
@@ -1182,7 +1202,9 @@ function planCloseWave(items) {
 function renderChangelogEntry(date, id, title, bullets) {
   const bl = (Array.isArray(bullets) ? bullets : []).map((x) => String(x || '').trim()).filter(Boolean)
     .map((x) => '- ' + x.replace(/^[-*]\s+/, ''));
-  return `## ${date} — US#${id} ${String(title || '').trim()}\n\n${bl.join('\n')}\n`;
+  // US#187 : un titre déjà préfixé « US#N — » ne doit pas doubler le préfixe.
+  const t = String(title || '').trim().replace(/^US#\d+\s*[—-]?\s*/, '');
+  return `## ${date} — US#${id} ${t}\n\n${bl.join('\n')}\n`;
 }
 
 // Insère les entrées juste avant la 1re section « ## » (les plus récentes en tête) ; idempotent
