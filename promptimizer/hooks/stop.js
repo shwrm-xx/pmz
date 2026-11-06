@@ -277,10 +277,17 @@ function main() {
       // `in_progress` indéfiniment : ni clôture, ni carte, ni preuve.
       const b = loadBacklog(root);
       const inProg = b.lots.filter((l) => l.status === 'in_progress');
-      const armed = inProg.length === 1 && (wasReminded || committedSinceLotStart(root, inProg[0]));
-      if (wasReminded || armed) {
-        const closedNumber = incrementLot(root); // lot fermé -> le prochain sera proposé au SessionStart suivant
-        if (armed) {
+      // Neutralité de la maître (US#186) : la clôture d'une US pilotée par la session maître est
+      // celle de `close-wave`, jamais celle du Stop. Ni en session maître (`master_session`), ni
+      // pour une US dont l'owner est `master/…` : pas d'armement, pas de compteur.
+      const masterOwned = st.master_session === true
+        || (inProg.length === 1 && /^master\//.test(String(inProg[0].session_owner || '')));
+      const armed = !masterOwned && inProg.length === 1 && (wasReminded || committedSinceLotStart(root, inProg[0]));
+      // Cycle de lot SANS US au backlog (tree vu sale puis propre) : comportement historique, le
+      // compteur avance. Avec des US en cours, il n'avance qu'à une clôture effective (doneLot).
+      if (!masterOwned && wasReminded && inProg.length === 0) incrementLot(root);
+      if (armed) {
+        {
           const lotToClose = inProg[0];
           // Preuve de clôture calculée AVANT doneLot (lot #111) — répare la clôture fantôme du
           // lot #110 (marqué `done` avec closed_verify:"timeout" alors qu'aucun fichier du lot
@@ -306,7 +313,8 @@ function main() {
               'L\'US reste en cours (aucune clôture fantôme) — relance la preuve via /close-batch (délai plus large) avant de clore.',
             ]));
           } else {
-            const done = doneLot(root, lotToClose.id, null, closedNumber, sid, turn && turn.occ);
+            // lot_number omis : doneLot fait avancer le compteur lui-même, une seule fois, à la clôture effective.
+            const done = doneLot(root, lotToClose.id, null, null, sid, turn && turn.occ);
             if (done) {
               notify.notifyLotClosed(done); // opt-in (#75) ; événement one-shot, pas d'anti-spam dédié nécessaire
               const after = loadBacklog(root);

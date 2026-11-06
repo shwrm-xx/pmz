@@ -19,8 +19,8 @@ const path = require('path');
 const { vibeDir, git, gitStatusMeaningful, lastCommitEpoch } = require('./project');
 const { writeAtomicText } = require('./fsjson');
 const { loadContextLedger, topWaste, scoredSummaries } = require('./ledger');
-const { readEpic, getLotCounter } = require('./lot');
-const { summaryLines, readTodoSnapshot } = require('./backlog');
+const { readEpic } = require('./lot');
+const { summaryLines, readTodoSnapshot, loadBacklog } = require('./backlog');
 const { waveHandoffLines, lotForSession, loadFleet } = require('./fleet');
 
 const AUTO_MARKER = '<!-- pmz:handoff:auto -->';
@@ -223,6 +223,17 @@ function skipCandidates(root, lastCommitMs) {
   return { reads, waste };
 }
 
+// « US en cours » du handoff auto : la PREMIÈRE US `in_progress` du backlog (`US#<id> « titre »`),
+// sinon « aucune ». Jamais lot-counter+1 (US#186) : le compteur est informatif et dérive du
+// backlog (id global) — il annonçait « US#101 » sur une epic finie. Fail-open : « aucune ».
+function currentUsLabel(root) {
+  try {
+    const cur = loadBacklog(root).lots.find((l) => l.status === 'in_progress');
+    if (cur) return `US#${cur.id} « ${String(cur.title || '').slice(0, 60)} »`;
+  } catch (_) { /* repli : aucune */ }
+  return 'aucune';
+}
+
 // Écrit le handoff auto (dernier état connu). Refuse d'écraser un handoff manuel
 // non consommé ou un fichier sans marqueur PMZ. Fail-silent.
 // `sessionId` (optionnel) : en vague, écrit `handoff-lot-<id>.md` au lieu de `handoff.md` —
@@ -250,7 +261,7 @@ function writeAutoHandoff(root, sessionId) {
       'pour un handoff riche (objectif, décisions, non-vérifié), lancer /fresh-session',
       'ou /close-batch avant de quitter la session.',
       '',
-      `- Epic / US en cours : « ${readEpic(root)} » — US#${getLotCounter(root) + 1}`,
+      `- Epic / US en cours : « ${readEpic(root)} » — ${currentUsLabel(root)}`,
       `- Branche : ${branch} — dernier commit : ${last}`,
     ];
     for (const l of waveHandoffLines(root)) lines.push(`- ${l}`);
