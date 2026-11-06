@@ -110,6 +110,27 @@ ok(st2(4).status !== 'done' && st2(5).status !== 'done', 'backlog : US4 (spec in
 ok(!/US#4 Quatre/.test(rd(path.join(d, 'CHANGELOG.md'))), 'CHANGELOG : aucune entrée pour une US dont le done est refusé');
 ok(git('log', '--format=%s').split('\n').includes('feat: US4') && !git('log', '--format=%s').split('\n').includes('feat: US5'), 'git : commit US4 fait (done refusé après), aucun commit pour le timeout');
 
+// US#187 — index exact, titre non doublé, fiche depuis le rapport du sous-agent.
+const idx = rd(path.join(d, '.vibe-agent', 'archive', 'index.md'));
+ok(/^#0001 .*verify:OK \| fiche:oui/m.test(idx) && /^#0002 .*verify:OK/m.test(idx), 'US#187 : index verify:OK resynchronisé après close-wave (fiche:oui pour US1)');
+ok(!/verify:inconnu/.test(idx.split('\n').filter((l) => /^#000[12] /.test(l)).join('\n')), 'US#187 : aucun verify:inconnu pour US1/US2');
+const dbl = lib.renderChangelogEntry('2026-01-02', 283, 'US#283 — Foo', ['x']);
+ok(dbl.split('\n')[0] === '## 2026-01-02 — US#283 Foo' && (dbl.match(/US#283/g) || []).length === 1, 'US#187 : titre « US#283 — Foo » non doublé');
+bl('add', '--title', 'Six', '--scope', 'x', '--verify', 'node -e 0', '--model', 'sonnet', '--effort', 'medium', '--epic', 'T');
+bl('start', '--id', '6');
+fs.writeFileSync(path.join(d, 'f.txt'), 'f');
+const wf3 = path.join(d, 'wave3.json');
+const report = 'Fait\nUne chose, note: [object Object]\nFichiers modifiés\nf.txt\nBloc CHANGELOG\n- p1\n- p2\n- p3\n';
+fs.writeFileSync(wf3, JSON.stringify({ date: '2026-10-28', items: [
+  { id: 6, paths: ['f.txt'], message: 'feat: US6', verdict: 'ok', title: 'US#6 — Six', report },
+] }));
+const o3 = bl('close-wave', '--file', wf3);
+ok(/US#6 commit \w+ · verify ok · fiche écrite/.test(o3), 'US#187 : close-wave écrit la fiche depuis le rapport (' + o3.split('\n').slice(0, 2).join(' / ') + ')');
+const f6 = path.join(d, '.vibe-agent', 'archive', 'lots', 'lot-0006.md');
+ok(fs.existsSync(f6) && !/\[object Object\]/.test(rd(f6)) && /## Fait/.test(rd(f6)), 'US#187 : fiche US6 lisible, sans [object Object]');
+const cl3 = rd(path.join(d, 'CHANGELOG.md'));
+ok((cl3.match(/US#6/g) || []).length === 1 && /- p1/.test(cl3), 'US#187 : entrée CHANGELOG dérivée du rapport, titre non doublé');
+
 // Entrée invalide : refus doux, exit 0.
 const bad = spawnSync(process.execPath, [BL, 'close-wave', '--stdin', '--cwd', d], { input: '{bad', encoding: 'utf8' });
 ok(bad.status === 0 && /JSON de vague invalide/.test(bad.stdout), 'fail-open : JSON invalide -> refus doux, exit 0');

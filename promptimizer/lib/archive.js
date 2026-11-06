@@ -26,7 +26,18 @@ const path = require('path');
 const { vibeDir, git } = require('./project');
 const { writeAtomicText } = require('./fsjson');
 
-const VERIFY_VALUES = ['OK', 'ÉCHEC', 'timeout', 'aucune', 'inconnu'];
+const VERIFY_VALUES = ['OK', 'ÉCHEC', 'TIMEOUT', 'aucune', 'inconnu'];
+// closed_verify (backlog) -> valeur d'index. Mapping unique (setClosedVerify, entryFromLot, repair).
+const CLOSED_TO_INDEX = { ok: 'OK', failed: 'ÉCHEC', none: 'aucune', timeout: 'TIMEOUT' };
+// Normalise une valeur verify d'index (casse libre, anciennes graphies « timeout ») ; sinon « inconnu ».
+function normVerify(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (VERIFY_VALUES.includes(s)) return s;
+  const k = s.toLowerCase();
+  if (CLOSED_TO_INDEX[k]) return CLOSED_TO_INDEX[k];
+  if (k === 'échec' || k === 'echec') return 'ÉCHEC';
+  return 'inconnu';
+}
 const FICHE_VALUES = ['oui', 'non'];
 const UNKNOWN = '—';
 
@@ -34,10 +45,10 @@ const UNKNOWN = '—';
 // commence par « # » suivi d'une espace, jamais confondu avec une entrée « #NNNN | ».
 const HEADER = [
   '<!-- pmz:archive:index -->',
-  '# Archive PMZ — index des US closes',
+  '# Archive PMZ — index des lots clos',
   '',
   '<!-- Fichier machine : réécrit trié par id à chaque écriture. Format d\'une entrée :',
-  '     #NNNN | AAAA-MM-JJ | <sha> | epic:<epic> | verify:<OK|ÉCHEC|timeout|aucune|inconnu> | fiche:<oui|non> | <titre> -->',
+  '     #NNNN | AAAA-MM-JJ | <sha> | epic:<epic> | verify:<OK|ÉCHEC|TIMEOUT|aucune|inconnu> | fiche:<oui|non> | <titre> -->',
   '',
 ];
 
@@ -78,8 +89,20 @@ function ficheMarker(id) { return `<!-- pmz:archive:lot ${Number(id)} -->`; }
 // garde une trace visible plutôt que de l'effacer), les sauts de ligne deviennent des
 // espaces, les espaces sont collapsés. Jamais de coupe silencieuse de longueur (le titre
 // est déjà plafonné côté backlog, MAX_TITLE).
+// Un objet/tableau (ex. `note` structuré) est aplati en « clé: valeur » joints par « ; » —
+// jamais « [object Object] ».
+function flat(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.map(flat).filter(Boolean).join('; ');
+  if (typeof v === 'object') {
+    const parts = Object.keys(v).map((k) => { const x = flat(v[k]); return x ? `${k}: ${x}` : ''; }).filter(Boolean);
+    return parts.join('; ');
+  }
+  return String(v);
+}
+
 function cell(v, fallback) {
-  const s = String(v == null ? '' : v)
+  const s = flat(v)
     .replace(/\|/g, '/')
     .replace(/[\r\n]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -94,7 +117,7 @@ function normalizeEntry(e) {
     date: cell(o.date),
     commit: cell(o.commit),
     epic: cell(o.epic),
-    verify: VERIFY_VALUES.includes(o.verify) ? o.verify : 'inconnu',
+    verify: normVerify(o.verify),
     fiche: FICHE_VALUES.includes(o.fiche) ? o.fiche : 'non',
     title: cell(o.title, 'sans titre'),
   };
@@ -120,6 +143,14 @@ function parseEntry(line) {
   });
 }
 
+// Ligne d'en-tête machine, ancienne (« index des US closes ») ou nouvelle (« index des lots
+// clos »), y compris le bloc de commentaire de format : toutes sont réémises par renderIndex.
+const HEADER_MARKER = '<!-- pmz:archive:index -->';
+function isHeaderLine(t) {
+  return HEADER.includes(t) || t === HEADER_MARKER || /^# Archive PMZ\b/.test(t)
+    || /^<!-- Fichier machine\b/.test(t) || /^\s+#NNNN \|.*-->$/.test(t);
+}
+
 // Lecture tolérante : les lignes hors format sont conservées à part (jamais perdues à
 // la réécriture) et les doublons d'id résolus « dernier gagne ».
 function readIndexRaw(root) {
@@ -135,7 +166,7 @@ function readIndexRaw(root) {
     if (t === '') continue;
     const e = parseEntry(t);
     if (e && e.id != null) { result.entries.set(e.id, e); continue; }
-    if (HEADER.includes(t)) continue; // en-tête : réémis, pas dupliqué
+    if (isHeaderLine(t)) continue; // en-tête (ancien ou nouveau) : réémis, jamais dupliqué
     result.others.push(t);
   }
   return result;
@@ -230,6 +261,49 @@ function appendIndexLine(root, entry) {
   }
 }
 
+// Met à jour des champs d'une ligne d'index EXISTANTE (écrasement explicite, contrairement à
+// appendIndexLine qui fusionne sans dégrader). Codes : updated | unchanged | missing | error.
+function updateIndexLine(root, id, patch) {
+  try {
+    if (!root || !Number.isFinite(Number(id))) return { ok: false, action: 'error' };
+    const n = Math.round(Number(id));
+    const { entries, others } = readIndexRaw(root);
+    const prev = entries.get(n);
+    if (!prev) return { ok: false, action: 'missing' };
+    const p = patch || {};
+    const next = normalizeEntry({ ...prev, ...p });
+    if (formatEntry(prev) === formatEntry(next)) return { ok: true, action: 'unchanged' };
+    entries.set(n, next);
+    return { ok: writeIndex(root, entries, others), action: 'updated' };
+  } catch (_) {
+    return { ok: false, action: 'error' };
+  }
+}
+
+// Garantit UN SEUL en-tête (ancien ou nouveau) dans index.md. N'écrit que si nécessaire ;
+// ne crée jamais un index absent. Retourne { ok, changed, removed } (removed = en-têtes en trop).
+function ensureIndex(root) {
+  const res = { ok: false, changed: false, removed: 0 };
+  try {
+    if (!root) return res;
+    let raw;
+    try { raw = fs.readFileSync(indexFile(root), 'utf8'); } catch (_) { res.ok = true; return res; }
+    const lines = String(raw).split('\n');
+    const markers = lines.filter((l) => l.trim() === HEADER_MARKER).length;
+    const titles = lines.filter((l) => /^# Archive PMZ\b/.test(l.trim()));
+    const stale = titles.some((l) => l.trim() !== HEADER[1]);
+    res.removed = Math.max(0, markers - 1, titles.length - 1);
+    if (markers === 1 && titles.length === 1 && !stale && res.removed === 0) { res.ok = true; return res; }
+    const { entries, others } = readIndexRaw(root);
+    res.ok = writeIndex(root, entries, others);
+    res.changed = res.ok;
+    if (res.changed && res.removed === 0) res.removed = 0;
+    return res;
+  } catch (_) {
+    return res;
+  }
+}
+
 // ------------------------------- TIER 1 : la fiche -------------------------------
 
 // Gabarit de fiche pré-rempli, émis par /close-batch au SEUL moment où le contexte riche
@@ -243,7 +317,7 @@ function ficheSkeleton(meta) {
   const date = cell(m.date);
   const commit = cell(m.commit);
   const verifyCmd = m.verifyCmd ? '`' + String(m.verifyCmd).replace(/`/g, "'") + '`' : 'aucune';
-  const verify = VERIFY_VALUES.includes(m.verify) ? m.verify : 'inconnu';
+  const verify = normVerify(m.verify);
   // Pointeur de spec (ex-`us`, lot #101) : jamais de valeur inventée — une US sans spec ne
   // produit ni segment d'en-tête, ni ligne « Liens ». `m.us` accepté en lecture (rétrocompat).
   const spec = (m.spec || m.us) ? String(m.spec || m.us).trim() : '';
@@ -394,7 +468,7 @@ function entryFromLot(lot) {
     date: typeof l.closed_at === 'string' ? l.closed_at.slice(0, 10) : '',
     commit: l.closed_commit,
     epic: l.epic,
-    verify: 'inconnu',
+    verify: CLOSED_TO_INDEX[l.closed_verify] || 'inconnu',
     fiche: 'non',
     title: l.title,
   };
@@ -430,9 +504,118 @@ function backfill(root, opts) {
   }
 }
 
+// ------------------- Fiche depuis un rapport de sous-agent / réparation -------------------
+
+const REPORT_SECTIONS = ['Fait', 'Fichiers modifiés', 'Verify', 'Non vérifié', 'Dette', 'Décidé', 'À trancher', 'Bloc CHANGELOG'];
+const SECTION_RE = new RegExp('^\\s*(?:#{1,6}\\s*|\\*\\*)?(' + REPORT_SECTIONS.join('|') + ')(?:\\*\\*)?\\s*:?\\s*(?:\\*\\*)?\\s*(.*)$', 'i');
+
+// Découpe un rapport au format fixe (sections nommées) -> { section: texte }. Tolère « Section : texte »
+// sur une ligne ou un titre seul suivi de lignes. Texte hors section -> clé '_'.
+function parseReport(report) {
+  const out = {};
+  let cur = '_';
+  const text = typeof report === 'string' ? report : (report == null ? '' : JSON.stringify(report));
+  for (const line of text.split(/\r?\n/)) {
+    const m = SECTION_RE.exec(line);
+    if (m) {
+      cur = REPORT_SECTIONS.find((x) => x.toLowerCase() === m[1].toLowerCase());
+      out[cur] = out[cur] || [];
+      if (m[2].trim()) out[cur].push(m[2].trim());
+      continue;
+    }
+    (out[cur] = out[cur] || []).push(line.replace(/\s+$/, ''));
+  }
+  for (const k of Object.keys(out)) out[k] = out[k].join('\n').replace(/\[object Object\]/g, '').trim();
+  return out;
+}
+
+// Fiche tier 1 générée à partir d'un rapport de sous-agent (format 250 mots / sections fixes).
+// Le bloc « Bloc CHANGELOG » n'y figure pas (il va au CHANGELOG). Plafonnée à MAX_FICHE_CHARS
+// avec marque explicite — jamais de coupe silencieuse. Retourne le markdown (marqueur en 1re ligne).
+function ficheFromReport(meta, report) {
+  const m = meta || {};
+  const id = Number(m.id);
+  const sec = parseReport(report);
+  const lines = [
+    ficheMarker(id),
+    `# US#${id} — ${cell(m.title, 'sans titre')}`,
+    '',
+    `- epic : ${cell(m.epic)} · clos : ${cell(m.date)} · commit : ${cell(m.commit)}`,
+    `- verify : ${normVerify(m.verify)} · brut : archive/raw/lot-${pad4(id)}.md (local)`,
+    '',
+  ];
+  const keys = REPORT_SECTIONS.filter((k) => k !== 'Bloc CHANGELOG' && sec[k]);
+  if (!keys.length && sec._) { lines.push('## Rapport', '', sec._); }
+  for (const k of keys) lines.push(`## ${k}`, '', sec[k], '');
+  let text = lines.join('\n').replace(/\s+$/, '');
+  if (text.length > MAX_FICHE_CHARS) text = text.slice(0, MAX_FICHE_CHARS - 40).replace(/\s+\S*$/, '') + '\n\n(fiche tronquée : plafond)';
+  return text;
+}
+
+// Puces « Bloc CHANGELOG » d'un rapport (3 à 6 recommandées) ; [] si absent.
+function changelogFromReport(report) {
+  const t = parseReport(report)['Bloc CHANGELOG'] || '';
+  return t.split('\n').map((x) => x.replace(/^\s*[-*]\s+/, '').trim()).filter(Boolean);
+}
+
+// archive --repair : idempotent, non destructif. Trois réparations, comptées par type :
+//   verify  : `verify:inconnu` (ou périmé) réécrit depuis closed_verify du backlog ;
+//   headers : en-têtes d'index dédoublonnés / modernisés ;
+//   fiches  : fiches contenant « [object Object] » régénérées depuis raw/ si présent
+//             (sinon listées dans fiches_sans_raw, jamais supprimées).
+function repair(root, opts) {
+  const o = opts || {};
+  const res = { ok: false, dryRun: !!o.dryRun, verify: 0, headers: 0, fiches: 0, fiches_sans_raw: [] };
+  try {
+    if (!root) return res;
+    let lots = [];
+    try { lots = require('./backlog').loadBacklog(root).lots || []; } catch (_) { /* fail-open */ }
+    const lotOf = (id) => lots.find((l) => l.id === id);
+    let rawText = '';
+    try { rawText = fs.readFileSync(indexFile(root), 'utf8'); } catch (_) { /* index absent */ }
+    const ls = rawText.split('\n');
+    const markers = ls.filter((l) => l.trim() === HEADER_MARKER).length;
+    const titles = ls.filter((l) => /^# Archive PMZ\b/.test(l.trim()));
+    if (rawText && (markers > 1 || titles.length > 1 || titles.some((l) => l.trim() !== HEADER[1]))) {
+      res.headers = Math.max(1, markers - 1, titles.length - 1);
+    }
+    const { entries, others } = readIndexRaw(root);
+    for (const e of entries.values()) {
+      const lot = lotOf(e.id);
+      const want = lot && CLOSED_TO_INDEX[lot.closed_verify];
+      if (want && e.verify !== want) { res.verify += 1; if (!res.dryRun) entries.set(e.id, { ...e, verify: want }); }
+    }
+    // Fiches corrompues.
+    let names = [];
+    try { names = fs.readdirSync(ficheDir(root)).filter((f) => /^lot-\d+\.md$/.test(f)); } catch (_) { /* aucun */ }
+    for (const f of names) {
+      const id = parseInt(f.slice(4, -3), 10);
+      let body = '';
+      try { body = fs.readFileSync(path.join(ficheDir(root), f), 'utf8'); } catch (_) { continue; }
+      if (!body.includes('[object Object]')) continue;
+      const raw = readRaw(root, id);
+      if (!raw || !String(raw).trim()) { res.fiches_sans_raw.push(id); continue; }
+      res.fiches += 1;
+      if (res.dryRun) continue;
+      const e = entries.get(id) || {};
+      const md = ficheFromReport({ id, title: e.title, epic: e.epic, date: e.date, commit: e.commit, verify: e.verify }, raw);
+      writeAtomicText(ficheFile(root, id), md + '\n');
+      try { git(['add', '--', path.relative(root, ficheFile(root, id))], root); } catch (_) { /* fail-open */ }
+    }
+    if (!res.dryRun && (res.verify || res.headers)) {
+      ensureArchiveGitignore(root);
+      res.ok = writeIndex(root, entries, others);
+    } else res.ok = true;
+    return res;
+  } catch (_) {
+    return res;
+  }
+}
+
 module.exports = {
   archiveDir, indexFile, ficheDir, ficheFile, rawDir, rawFile, ficheMarker, ensureArchiveGitignore,
-  appendIndexLine, readIndex, backfill, entryFromLot, formatEntry, parseEntry,
+  appendIndexLine, updateIndexLine, ensureIndex, repair, ficheFromReport, changelogFromReport, parseReport,
+  normVerify, CLOSED_TO_INDEX, readIndex, backfill, entryFromLot, formatEntry, parseEntry,
   ficheSkeleton, writeFiche, readFiche, appendFicheLine, writeRaw, readRaw, rawInfo,
   GITIGNORE_BLOCK, VERIFY_VALUES, FICHE_VALUES, MAX_FICHE_CHARS,
 };
