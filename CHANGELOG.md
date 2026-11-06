@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-06 — US#186 US#186 — Stop et handoff neutres
+
+- Stop : plus d'auto-clôture en session maître ni pour une US owner master/.
+- lot-counter n'avance qu'à la clôture effective (doneLot).
+- Handoff auto : « US en cours » = première US in_progress ou « aucune », plus de lot-counter + 1.
+- Nouvelle suite test/run-tests-stop.js.
+
 ## 2026-11-06 — US#184 US#184 — Identité de session fiable
 
 - Le prompt de carte « Invoque le skill pmz:epicmaster » est détecté maître : plus de titre HS.
