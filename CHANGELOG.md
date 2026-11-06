@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-06 — US#185 US#185 — Fichier live juste
+
+- Chaque sous-agent rattaché à son US par launch_queue (start puis Agent).
+- Événements d'une autre session ignorés (master_session_id).
+- Phases --phase / --live-add-lot : finished seulement en done ; timeout donne reopened.
+- Second --live-seed refusé sans --force ; selectLots écarte les US d'un autre maître.
+- Purge des copies globales > 7 j ; alerte de concurrence rejouée par epic.
+
 ## 2026-11-06 — US#186 US#186 — Stop et handoff neutres
 
 - Stop : plus d'auto-clôture en session maître ni pour une US owner master/.
