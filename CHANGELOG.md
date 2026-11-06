@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-06 — US#188 US#188 — Surface « où se passe quoi »
+
+- backlog.js sessions [--json] : une ligne par session (rôle, epic, US, état, vivante < 6 h).
+- Statusline propre à la session : EM seulement en maître, D3 #N en fille.
+- Bande : phase relecture/arbitrage/solde, vague D3, lignes d'agent, bouton Sessions.
+- Logs nommés date-US-sid6-rnd4 avec en-tête # Session.
+- Notifications opt-in : fin de sous-agent, verify rouge, à trancher, fin de maître.
+
 ## 2026-11-06 — US#187 US#187 — Archive et CHANGELOG exacts
 
 - Index d'archive : verify réel resynchronisé à la clôture (OK/ÉCHEC/aucune/TIMEOUT).
