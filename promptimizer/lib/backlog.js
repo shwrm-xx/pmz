@@ -110,11 +110,12 @@ const VALUE_FLAGS = ['cwd', 'id', 'epic', 'set', 'model', 'effort', 'title', 'sc
   'verify', 'spec', 'us', 'owner', 'commit', 'note', 'into', 'format', 'depends', 'perimeter', 'session', 'occupancy',
   'gate', 'final-gate', 'branch', 'state', 'verify-verdict', 'tokens',
   'only', 'skip', 'max-parallel', 'master-model', 'master-effort', 'handoff-file', 'file', 'wave-labels', 'why', 'regression-of', 'kind',
-  'ids', 'unverified'];
+  'ids', 'unverified', 'phase', 'wave'];
 // Flags booléens (ne consomment aucune valeur) — listés pour documentation ;
 // tout flag hors VALUE_FLAGS est traité comme booléen (ne consomme rien).
 const BOOL_FLAGS = ['json', 'suggest', 'execute', 'allow-trunc', 'no-session', 'no-occupancy', 'allow-no-gate', 'new',
-  'allow-incomplete-spec', 'allow-incomplete-us', 'no-verify', 'write-handoff', 'brief', 'stdin', 'dry-run'];
+  'allow-incomplete-spec', 'allow-incomplete-us', 'no-verify', 'write-handoff', 'brief', 'stdin', 'dry-run',
+  'force', 'live-seed', 'live-add-lot'];
 
 // Garde anti-troncature de champ (lot #90), 2e vecteur après les orphelins argv (#88) :
 // une valeur QUOTÉE mais au-delà de son plafond MAX_* serait stockée coupée par trunc()

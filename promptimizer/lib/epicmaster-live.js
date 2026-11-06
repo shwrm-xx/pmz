@@ -7,9 +7,12 @@
 // statusline (segment de repli) et par la bande au-dessus de la saisie (mods/epicmaster-band/hooks/live.ts).
 //
 // Schéma v1 (additif, rétrocompatible) :
-//   racine : v, updated_at, epic, wave:{current,total}, finished, to_decide:[{id,title,reason}], lots, agents
-//   lot    : id, title, owner, status (pending|running|done|failed), wave, model, effort, tokens,
+//   racine : v, updated_at, epic, wave:{current,total}, finished, to_decide:[{id,title,reason}], lots, agents,
+//            master_session_id (sid du maître, posé au semis), phase (waves|review|arbitrage|settle|done),
+//            launch_queue:[id…] (US démarrées par `start`, consommées en FIFO par SubagentStart)
+//   lot    : id, title, owner, status (pending|running|done|failed|reopened), wave, model, effort, tokens,
 //            tokens_basis (comparable|base|measured), depends_on, verify (verdict de clôture), started_at, done_at, note
+//   agent  : id, type, started_at, stopped_at, lot (null = non rattaché), kind (phase de consolidation, si lot null)
 //
 // Fail-open ABSOLU : aucune fonction publique ne lève ; toute erreur d'E/S ou de JSON -> no-op /
 // valeur vide. Écriture atomique (fsjson). Course possible entre deux sous-agents qui écrivent au
@@ -28,6 +31,10 @@ const MAX_LOTS = 200;
 const MAX_AGENTS = 100;
 const MAX_STR = 200;
 const MAX_NOTE = 300;
+const MAX_QUEUE = 50;
+const PHASES = ['waves', 'review', 'arbitrage', 'settle', 'done'];
+const GLOBAL_KEEP_MS = 7 * 24 * 3600 * 1000; // copies globales plus vieilles que ça : purgées
+const ALERT_FILE = 'epicmaster-concurrency-alert.json'; // alerte de concurrence (hooks/subagent-live.js)
 
 function clipStr(s, n) { s = s == null ? '' : String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 function nowIso(now) { return new Date(now == null ? Date.now() : now).toISOString(); }
@@ -56,6 +63,9 @@ function load(root) {
     if (typeof raw.seeded_at === 'string') st.seeded_at = raw.seeded_at;
     if (Array.isArray(raw.wave_plan)) st.wave_plan = raw.wave_plan;
     if (Number.isFinite(raw.max_parallel) && raw.max_parallel >= 1) st.max_parallel = raw.max_parallel;
+    if (typeof raw.master_session_id === 'string' && raw.master_session_id) st.master_session_id = raw.master_session_id;
+    if (PHASES.includes(raw.phase)) st.phase = raw.phase;
+    if (Array.isArray(raw.launch_queue)) st.launch_queue = raw.launch_queue.map(Number).filter(Number.isFinite).slice(0, MAX_QUEUE);
     return st;
   } catch (_) { return emptyState(); }
 }
@@ -121,31 +131,49 @@ function mirrorGlobal(root, st) {
     fs.mkdirSync(globalLiveDir(), { recursive: true });
     writeAtomic(globalLivePath(root), st);
     try { fs.unlinkSync(path.join(configDir(), 'promptimizer', LIVE_FILE)); } catch (_) { /* absente */ }
+    purgeGlobal(globalLivePath(root));
+  } catch (_) { /* indicatif */ }
+}
+// Purge globale : à chaque sauvegarde, les copies <slug>.json de plus de 7 jours (projets
+// abandonnés) disparaissent. Horloge RÉELLE (jamais le `now` injecté des tests) ; la copie qu'on
+// vient d'écrire est épargnée ; best-effort.
+function purgeGlobal(keep) {
+  try {
+    const dir = globalLiveDir();
+    const t = Date.now();
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.json')) continue;
+      const p = path.join(dir, f);
+      if (p === keep) continue;
+      try { if (t - fs.statSync(p).mtimeMs > GLOBAL_KEEP_MS) fs.unlinkSync(p); } catch (_) { /* course : ignoré */ }
+    }
   } catch (_) { /* indicatif */ }
 }
 
 // ── Plan complet : vague courante + fin de plan (lot #141) ────────────────────────────────
 // Ne s'applique qu'à un état SEMÉ (racine `wave` présente, cf. seedFromPlan) : un état sans plan
 // (start/done sans --live-seed) reste tel quel, la bande retombe alors sur son heuristique.
-// vague courante = plus petite vague des lots encore ouverts (pending/running) ; plus aucun lot
-// ouvert -> dernière vague + finished=true. Un lot `failed` est terminal (il ne bloque pas la fin).
+// vague courante = plus petite vague des lots encore ouverts (pending/running/reopened) ; plus aucun
+// lot ouvert -> dernière vague. `finished` ne dépend PLUS des lots (US#185) : il vaut true seulement
+// quand la phase explicite est `done` (`backlog.js epicmaster --phase done`) — la consolidation
+// (relecture, arbitrage, solde) tourne après le dernier lot clos et ne doit pas paraître terminée.
 function refreshProgress(st) {
   if (!st || !st.wave || typeof st.wave !== 'object') return;
   const total = Number(st.wave.total);
   if (!Number.isFinite(total) || total < 1) return;
   const lots = Object.values(st.lots).filter((l) => l && typeof l === 'object');
-  const open = lots.filter((l) => l.status === 'pending' || l.status === 'running');
+  const open = lots.filter((l) => l.status === 'pending' || l.status === 'running' || l.status === 'reopened');
   const waves = open.map((l) => Number(l.wave)).filter((n) => Number.isFinite(n) && n >= 1);
   if (open.length && waves.length) st.wave = { current: Math.min(total, Math.min(...waves)), total };
   else if (!open.length) st.wave = { current: total, total };
-  st.finished = open.length === 0 && lots.length > 0;
+  st.finished = (st.phase || 'waves') === 'done';
 }
 
 // ── Alimentation par la CLI (start / done / note) ─────────────────────────────────────────
-// `lot` = lot du backlog (id, title, note) ; `owner` = session_owner du lot AVANT clôture (doneLot
-// le vide) ; `extra.verdict` (done) = verdict verify de clôture : `failed` fait passer le lot en
-// `failed` (la bande l'affiche en rouge) ; ok / none / timeout / absent -> `done` (un timeout n'est
-// pas une preuve d'échec ni de réussite : on ne l'invente pas en rouge). N'écrit RIEN si l'owner
+// `lot` = lot du backlog (id, title, note) ; `owner` = session_owner du lot (lu avant clôture par la
+// CLI) ; `extra.verdict` (done) = verdict verify de clôture : `failed` fait passer le lot en `failed`
+// (la bande l'affiche en rouge) ; `timeout` en `reopened` (US#185 : pas une preuve de réussite, le lot
+// n'est jamais `done` — il reste à rejouer) ; ok / none / absent -> `done`. N'écrit RIEN si l'owner
 // n'est pas « master/lot-* » : un `start` hors session maître ne doit jamais créer de fichier live.
 function recordLot(root, kind, lot, owner, now, extra) {
   try {
@@ -162,10 +190,12 @@ function recordLot(root, kind, lot, owner, now, extra) {
     if (kind === 'start') {
       Object.assign(cur, { status: 'running', started_at: t, done_at: null });
       delete cur.verify; // relance d'un lot rouge : l'ancien verdict ne vaut plus
+      st.launch_queue = enqueueLaunch(st.launch_queue, lot.id); // rattachement FIFO des SubagentStart
     } else if (kind === 'done') {
       const verdict = extra && typeof extra.verdict === 'string' ? extra.verdict : null;
-      Object.assign(cur, { status: verdict === 'failed' ? 'failed' : 'done', done_at: t });
+      Object.assign(cur, { status: verdict === 'failed' ? 'failed' : verdict === 'timeout' ? 'reopened' : 'done', done_at: t });
       if (verdict) cur.verify = verdict;
+      if (Array.isArray(st.launch_queue)) st.launch_queue = st.launch_queue.filter((n) => n !== Number(lot.id));
       // Tokens RÉELS (lot #142, `done --tokens N`) : remplacent l'estimation du semis, marqués
       // `measured` — jamais déduits ; absent/invalide -> l'estimation reste telle quelle.
       const tk = extra && Number(extra.tokens);
@@ -186,6 +216,14 @@ function recordLot(root, kind, lot, owner, now, extra) {
     refreshProgress(st);
     return save(root, st, now);
   } catch (_) { return false; }
+}
+// File de lancement (US#185) : `start --id N` y pousse N ; SubagentStart consomme la tête. Un N déjà
+// en file (relance) est déplacé en queue, jamais dupliqué ; bornée à MAX_QUEUE.
+function enqueueLaunch(queue, id) {
+  const n = Number(id);
+  const q = (Array.isArray(queue) ? queue : []).filter((x) => x !== n);
+  if (Number.isFinite(n)) q.push(n);
+  return q.slice(-MAX_QUEUE);
 }
 const recordStart = (root, lot, owner, now) => recordLot(root, 'start', lot, owner, now);
 const recordDone = (root, lot, owner, now, verdict, tokens) => recordLot(root, 'done', lot, owner, now, { verdict, tokens });
@@ -209,10 +247,55 @@ function parseWaveLabels(spec) {
   return out;
 }
 
+// Sid de la session courante (état par session, lib/state) — heuristique « fichier le plus récent » ;
+// null si inconnu (projet sans socle PMZ) : le filtre session et le verrou se désarment alors.
+function currentSid(root) {
+  try { return require('./state').previousSessionId(root) || null; } catch (_) { return null; }
+}
+
+// Verrou (US#185) : un live de moins de STALE_MS, semé par une AUTRE session et portant au moins un
+// lot `running`, appartient à un maître vivant — un second --live-seed l'écraserait. Retourne le
+// master_session_id du détenteur, ou null (libre). Sid inconnu d'un côté : jamais de verrou.
+function lockHolder(root, sid, now) {
+  try {
+    const prev = load(root);
+    if (!prev.master_session_id || !sid || prev.master_session_id === String(sid)) return null;
+    const u = ts(prev.updated_at);
+    const t = now == null ? Date.now() : now;
+    if (u == null || t - u >= STALE_MS) return null;
+    const running = Object.values(prev.lots).some((l) => l && l.status === 'running');
+    return running ? prev.master_session_id : null;
+  } catch (_) { return null; }
+}
+// `selectLots` : les US `in_progress` tenues par « master/… » sont-elles celles d'un AUTRE maître ?
+// (le session_owner ne porte pas le sid : on le lit dans le live, cf. lockHolder).
+function foreignMasterHold(root, sid, now) {
+  const s = sid === undefined ? currentSid(root) : sid;
+  return !!lockHolder(root, s, now);
+}
+
+// Les clés d'alerte de concurrence sont `<seeded_at>:w<N>` / `<seeded_at>:x` : un nouveau semis
+// purge celles d'un ancien seeded_at, sinon la 2e epic ne serait jamais alertée.
+function purgeAlertKeys(root, seededAt) {
+  try {
+    const file = path.join(root, '.vibe-agent', ALERT_FILE);
+    const seen = readJson(file, null);
+    if (!seen || typeof seen !== 'object' || Array.isArray(seen)) return;
+    const keep = {};
+    for (const [k, v] of Object.entries(seen)) if (k.startsWith(seededAt + ':')) keep[k] = v;
+    if (Object.keys(keep).length !== Object.keys(seen).length) writeAtomic(file, keep);
+  } catch (_) { /* indicatif */ }
+}
+
 function seedFromPlan(root, plan, b, opts, now) {
   try {
     const o = opts || {};
     if (!root || !plan || !Array.isArray(plan.lots) || !plan.lots.length) return { ok: false, lots: 0, waves: 0, epic: null };
+    const sid = o.sessionId !== undefined ? o.sessionId : currentSid(root);
+    if (!o.force) {
+      const holder = lockHolder(root, sid, now);
+      if (holder) return { ok: false, locked: true, holder, lots: 0, waves: 0, epic: null };
+    }
     let baseTokens = 60000, estimate = null;
     try { baseTokens = require('./epicmaster').SUBAGENT_BASE_TOKENS || baseTokens; } catch (_) { /* plancher par défaut */ }
     try { estimate = require('./backlog').estimateCost; } catch (_) { /* pas d'estimation */ }
@@ -223,6 +306,9 @@ function seedFromPlan(root, plan, b, opts, now) {
     const st = emptyState();
     st.updated_at = t;
     st.seeded_at = t; // la bande d'une session n'adopte qu'un plan semé après son propre /epicmaster
+    if (sid) st.master_session_id = String(sid); // le hook SubagentStart ignore les autres sessions
+    st.phase = 'waves';
+    st.launch_queue = [];
     for (const l of plan.lots) {
       let tokens = baseTokens, basis = 'base';
       try {
@@ -259,28 +345,100 @@ function seedFromPlan(root, plan, b, opts, now) {
     st.to_decide = (plan.blocked || []).map((x) => ({ id: x.id, title: clipStr(x.title, MAX_STR), reason: clipStr(x.reason, MAX_NOTE) }));
     refreshProgress(st);
     const wrote = save(root, st, now);
+    if (wrote) purgeAlertKeys(root, t);
     return { ok: !!wrote, lots: plan.lots.length, waves: total, epic: st.epic };
   } catch (_) { return { ok: false, lots: 0, waves: 0, epic: null }; }
 }
 
+// ── Phase explicite de la session maître (US#185) — `backlog.js epicmaster --phase <p>` ──────────
+// waves (défaut au semis) → review → arbitrage → settle → done. `done` est le SEUL état où
+// `finished` vaut true. Sans plan semé : refus (rien d'écrit).
+function setPhase(root, phase, now) {
+  try {
+    if (!root) return { ok: false, reason: 'racine absente' };
+    if (!PHASES.includes(phase)) return { ok: false, reason: `phase invalide (« ${phase} ») — ${PHASES.join(' | ')}` };
+    const st = load(root);
+    if (!st.seeded_at) return { ok: false, reason: 'aucun état live semé (--live-seed d\'abord)' };
+    st.phase = phase;
+    refreshProgress(st);
+    return { ok: !!save(root, st, now), phase };
+  } catch (_) { return { ok: false, reason: 'échec' }; }
+}
+
+// `--live-add-lot --id N --wave "arbitrages"` : sème dans le plan une US née en cours de route (US
+// d'arbitrages). `lot` = lot du backlog ; la vague est identifiée par son libellé (créée au besoin,
+// numérotée après la dernière). Le lot arrive `pending`, jamais « semé » en running.
+function addLot(root, lot, label, now) {
+  try {
+    if (!root || !lot || lot.id == null) return { ok: false, reason: 'US absente' };
+    const st = load(root);
+    if (!st.seeded_at || !st.wave) return { ok: false, reason: 'aucun état live semé (--live-seed d\'abord)' };
+    const lab = clipStr(label || 'arbitrages', 80);
+    const plan = Array.isArray(st.wave_plan) ? st.wave_plan : [];
+    let w = plan.find((x) => x && x.label === lab);
+    if (!w) {
+      const top = Math.max(Number(st.wave.total) || 0, ...plan.map((x) => Number(x && x.index) || 0));
+      w = { index: top + 1, ids: [], parallel: false, label: lab };
+      plan.push(w);
+    }
+    if (!w.ids.includes(lot.id)) w.ids.push(lot.id);
+    w.parallel = w.ids.length > 1;
+    st.wave_plan = plan;
+    st.wave = { current: Number(st.wave.current) || 1, total: Math.max(Number(st.wave.total) || 1, w.index) };
+    const t = nowIso(now);
+    const key = String(lot.id);
+    const prev = st.lots[key] && typeof st.lots[key] === 'object' ? st.lots[key] : null;
+    if (prev) { prev.wave = w.index; prev.updated_at = t; } else {
+      st.lots[key] = {
+        id: lot.id, title: clipStr(lot.title, MAX_STR), status: 'pending', wave: w.index, scope: null,
+        model: lot.model_hint || null, effort: lot.effort_hint || null, tokens: 60000, tokens_basis: 'base',
+        depends_on: Array.isArray(lot.depends_on) ? lot.depends_on.slice() : [], started_at: null, done_at: null, updated_at: t,
+      };
+    }
+    refreshProgress(st);
+    return { ok: !!save(root, st, now), wave: w.index, label: lab };
+  } catch (_) { return { ok: false, reason: 'échec' }; }
+}
+
 // ── Alimentation par les hooks SubagentStart / SubagentStop ───────────────────────────────
-// N'écrit que si une session maître est en cours (fichier présent avec au moins un lot « running ») :
-// les sous-agents d'une session ordinaire ne doivent pas faire apparaître le fichier. Rattachement
-// au lot : seulement s'il n'y a qu'UN lot running sans agent actif — sinon l'agent reste non lié
-// (le hook ne reçoit ni prompt ni id de lot : jamais de rattachement inventé).
+// N'écrit que si une session maître est en cours (fichier présent avec au moins un lot « running »,
+// ou phase de consolidation) : les sous-agents d'une session ordinaire ne doivent pas faire
+// apparaître le fichier. Un événement d'une AUTRE session que celle du maître (`master_session_id`)
+// est ignoré. Rattachement au lot (US#185) : tête de `launch_queue` (poussée par `start --id N`, un
+// `start` par Agent, dans l'ordre) ; file vide -> repli : l'unique lot running sans agent actif ;
+// sinon l'agent reste non lié (jamais de rattachement inventé). Hors phase `waves`, les agents sont
+// ceux de la consolidation : tracés avec `lot: null` et `kind: <phase>`.
+function isForeignSession(st, input) {
+  return !!(st && st.master_session_id && input && input.session_id && String(input.session_id) !== st.master_session_id);
+}
 function recordSubagent(root, event, input, now) {
   try {
     if (!root || !input || !input.agent_id) return false;
     const id = clipStr(input.agent_id, MAX_STR);
     const st = load(root);
-    const running = Object.keys(st.lots).filter((k) => st.lots[k] && st.lots[k].status === 'running');
-    if (!running.length) return false;
+    if (isForeignSession(st, input)) return false;
     const t = nowIso(now);
     if (event === 'start') {
+      const running = Object.keys(st.lots).filter((k) => st.lots[k] && st.lots[k].status === 'running');
+      const phase = st.phase && st.phase !== 'waves' ? st.phase : null;
+      if (!running.length && !phase) return false;
+      const tn = now == null ? Date.now() : now;
+      const busy = (k) => Object.values(st.agents).some((a) => a && !a.stopped_at && a.lot === Number(k)
+        && !(ts(a.started_at) != null && tn - ts(a.started_at) > STALE_MS));
       let lotId = null;
-      const free = running.filter((k) => !Object.values(st.agents).some((a) => a && !a.stopped_at && a.lot === Number(k)));
-      if (free.length === 1) lotId = Number(free[0]);
+      const q = Array.isArray(st.launch_queue) ? st.launch_queue.slice() : [];
+      while (q.length && lotId == null) {
+        const n = q.shift();
+        const l = st.lots[String(n)];
+        if (l && l.status === 'running' && !busy(n)) lotId = n;
+      }
+      st.launch_queue = q;
+      if (lotId == null && !phase) {
+        const free = running.filter((k) => !busy(k));
+        if (free.length === 1) lotId = Number(free[0]);
+      }
       st.agents[id] = { id, type: clipStr(input.agent_type || '', 60) || null, started_at: t, stopped_at: null, lot: lotId };
+      if (lotId == null && phase) st.agents[id].kind = phase;
     } else if (event === 'stop') {
       const a = st.agents[id];
       if (!a || typeof a !== 'object') return false; // arrêt d'un agent jamais vu : on n'invente rien
@@ -293,7 +451,7 @@ function recordSubagent(root, event, input, now) {
 // ── Lecture / résumé ──────────────────────────────────────────────────────────────────────
 function summarize(st, now) {
   const t = now == null ? Date.now() : now;
-  const s = { running: [], stale: [], done: [], pending: [], failed: [], agents_active: [], agents_stopped: 0, updated_at: (st && st.updated_at) || null };
+  const s = { running: [], stale: [], done: [], pending: [], failed: [], reopened: [], agents_active: [], agents_stopped: 0, updated_at: (st && st.updated_at) || null };
   if (!st) return s;
   // Un plan non touché depuis plus de STALE_MS est présumé mort : ses `pending` / `failed` ne comptent plus.
   const u0 = ts(st.updated_at);
@@ -302,6 +460,7 @@ function summarize(st, now) {
     if (!l || typeof l !== 'object') continue;
     if (l.status === 'done') s.done.push(l);
     else if (l.status === 'failed') { if (planAlive) s.failed.push(l); }
+    else if (l.status === 'reopened') { if (planAlive) s.reopened.push(l); }
     else if (l.status === 'pending') { if (planAlive) s.pending.push(l); }
     else if (l.status === 'running') {
       const u = ts(l.updated_at);
@@ -309,10 +468,11 @@ function summarize(st, now) {
     }
   }
   const byId = (a, b) => a.id - b.id;
-  s.running.sort(byId); s.stale.sort(byId); s.done.sort(byId); s.pending.sort(byId); s.failed.sort(byId);
+  s.running.sort(byId); s.stale.sort(byId); s.done.sort(byId); s.pending.sort(byId); s.failed.sort(byId); s.reopened.sort(byId);
   if (st.epic) s.epic = st.epic;
   if (st.wave) s.wave = st.wave;
   if (typeof st.finished === 'boolean') s.finished = st.finished;
+  if (st.phase) s.phase = st.phase;
   for (const a of Object.values(st.agents || {})) {
     if (!a || typeof a !== 'object') continue;
     if (a.stopped_at) s.agents_stopped++;
@@ -337,7 +497,7 @@ const NO_STATE = 'Aucun état live (session maître non démarrée) — .vibe-ag
 
 function isEmptySum(sum) {
   return !sum.running.length && !sum.stale.length && !sum.done.length && !sum.agents_active.length
-    && !(sum.pending || []).length && !(sum.failed || []).length;
+    && !(sum.pending || []).length && !(sum.failed || []).length && !(sum.reopened || []).length;
 }
 
 function renderCompact(sum) {
@@ -347,6 +507,7 @@ function renderCompact(sum) {
   if (sum.done.length) bits.push(`${sum.done.length} fait${sum.done.length > 1 ? 's' : ''}`);
   if ((sum.pending || []).length) bits.push(`${sum.pending.length} en attente`);
   if ((sum.failed || []).length) bits.push(`${sum.failed.length} verify rouge (${sum.failed.map((l) => '#' + l.id).join(', ')})`);
+  if ((sum.reopened || []).length) bits.push(`${sum.reopened.length} rouvert${sum.reopened.length > 1 ? 's' : ''} (verify en délai dépassé : ${sum.reopened.map((l) => '#' + l.id).join(', ')})`);
   if (sum.stale.length) bits.push(`${sum.stale.length} périmé${sum.stale.length > 1 ? 's' : ''} (${sum.stale.map((l) => '#' + l.id).join(', ')})`);
   bits.push(`${sum.agents_active.length} sous-agent${sum.agents_active.length > 1 ? 's' : ''} actif${sum.agents_active.length > 1 ? 's' : ''}`);
   return 'Epicmaster live : ' + bits.join(' · ');
@@ -361,7 +522,8 @@ function renderDetailed(sum, now) {
     if (l.status === 'pending') {
       const dep = Array.isArray(l.depends_on) && l.depends_on.length ? ` · attend ${l.depends_on.map((d) => '#' + d).join(', ')}` : '';
       s += `${l.wave ? ` · vague ${l.wave}` : ''}${dep}`;
-    } else if (l.status === 'failed') s += ` · verify rouge il y a ${ago(l.done_at || l.updated_at, now)}`;
+    } else if (l.status === 'reopened') s += ` · rouverte (verify : délai dépassé) il y a ${ago(l.done_at || l.updated_at, now)}`;
+    else if (l.status === 'failed') s += ` · verify rouge il y a ${ago(l.done_at || l.updated_at, now)}`;
     else if (l.status === 'done') s += ` · fait il y a ${ago(l.done_at || l.updated_at, now)}`;
     else s += ` · depuis ${ago(l.started_at, now)}${ag ? ` · ${ag} sous-agent${ag > 1 ? 's' : ''}` : ''}`;
     if (l.note) s += `\n      note : ${l.note}`;
@@ -371,12 +533,13 @@ function renderDetailed(sum, now) {
   if (sum.running.length) { L.push('En cours :'); sum.running.forEach((l) => L.push(lotLine('▶', l, ctx))); }
   if (sum.stale.length) { L.push(`Périmés (aucune mise à jour depuis plus de ${STALE_MS / 3600000} h — session morte ?) :`); sum.stale.forEach((l) => L.push(lotLine('⚠', l, ctx))); }
   if ((sum.failed || []).length) { L.push('Verify rouge :'); sum.failed.forEach((l) => L.push(lotLine('✗', l, ctx))); }
+  if ((sum.reopened || []).length) { L.push('Rouvertes (verify non terminée dans le délai) :'); sum.reopened.forEach((l) => L.push(lotLine('↺', l, ctx))); }
   if ((sum.pending || []).length) { L.push('En attente :'); sum.pending.forEach((l) => L.push(lotLine('⧗', l, ctx))); }
   if (sum.done.length) { L.push('Faits :'); sum.done.forEach((l) => L.push(lotLine('✔', l, ctx))); }
   if (sum.agents_active.length) {
     L.push('Sous-agents actifs :');
     for (const a of sum.agents_active) {
-      L.push(`  ⚙ ${a.type || 'agent'} ${String(a.id).slice(0, 12)} · depuis ${ago(a.started_at, now)}${a.lot != null ? ` · US#${a.lot}` : ' · US non rattachée'}`);
+      L.push(`  ⚙ ${a.type || 'agent'} ${String(a.id).slice(0, 12)} · depuis ${ago(a.started_at, now)}${a.lot != null ? ` · US#${a.lot}` : (a.kind ? ` · ${a.kind}` : ' · US non rattachée')}`);
     }
   }
   return L.join('\n');
@@ -411,5 +574,6 @@ function statusSegment(root, now) {
 
 module.exports = {
   LIVE_FILE, globalLivePath, globalLiveDir, liveSlug, OWNER_RE, STALE_MS, NO_STATE, isMasterOwner, livePath, load, summarize, isActive,
+  ALERT_FILE, PHASES, isForeignSession, foreignMasterHold, currentSid, setPhase, addLot,
   recordStart, recordDone, recordNote, recordSubagent, seedFromPlan, refreshProgress, renderCompact, renderDetailed, renderLive, statusSegment,
 };
