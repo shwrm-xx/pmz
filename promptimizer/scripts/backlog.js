@@ -1083,6 +1083,19 @@ function main() {
     return out(json ? JSON.stringify(rows.map(({ last_ms, ...r }) => r), null, 2) : backlog.renderSessions(rows));
   }
 
+  if (cmd === 'archive') { // US#189 : archive --repair [--dry-run] (idempotent, non destructif)
+    if (!process.argv.includes('--repair')) return out('Usage : backlog.js archive --repair [--dry-run]');
+    const r = require('../lib/archive').repair(root, { dryRun: process.argv.includes('--dry-run') });
+    return out(`archive --repair${r.dryRun ? ' (dry-run)' : ''} : verify ${r.verify} · headers ${r.headers} · fiches ${r.fiches} · fiches_sans_raw ${r.fiches_sans_raw.length ? r.fiches_sans_raw.join(',') : 0}${r.ok ? '' : ' · ÉCHEC'}`);
+  }
+
+  if (cmd === 'doctor') { // US#189 : doctor --state [--fix] (fichiers d'état figés du projet)
+    if (!process.argv.includes('--state')) return out('Usage : backlog.js doctor --state [--fix]');
+    const args = [path.join(__dirname, '..', 'install', 'doctor.js'), '--state', '--root', root].concat(process.argv.includes('--fix') ? ['--fix'] : []);
+    const r = require('child_process').spawnSync(process.execPath, args, { encoding: 'utf8' });
+    return out(((r.stdout || '') + (r.stderr || '')).trim());
+  }
+
   if (cmd === 'reintegrate') {
     return reintegrate(root, json, process.argv.includes('--execute'), flag('into'), {
       gate: flag('gate'), finalGate: flag('final-gate'), allowNoGate: process.argv.includes('--allow-no-gate'),
@@ -1097,7 +1110,7 @@ function main() {
     return;
   }
 
-  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | close-wave | fleet <join|ready|leave|show> | reintegrate | reconcile | epic | verify | spec | trigram | export.`);
+  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | close-wave | fleet <join|ready|leave|show> | sessions | archive --repair | doctor --state | reintegrate | reconcile | epic | verify | spec | trigram | export.`);
 }
 
 if (require.main === module) {

@@ -9,6 +9,93 @@ const cdir = require('../lib/claude-dir');
 const { readVersion, compareSemver } = require('../lib/version');
 const { readLineSync } = require('./lib-io');
 
+// ── `doctor --state` (US#189) : fichiers d'état figés d'un PROJET gouverné ────────────────────
+// Appelé par `backlog.js doctor --state [--fix]` (et `/doctor`). Fail-open : ne lève jamais,
+// exit 0 sauf rouge (état illisible / correction échouée). Sans --fix, ne modifie RIEN.
+function stateCheck(root, opts) {
+  const o = opts || {};
+  const now = o.now != null ? o.now : Date.now();
+  const vd = path.join(root, '.vibe-agent');
+  const items = []; // { level:'orange'|'rouge', msg, fix: () => void|string }
+  const rj = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) { return undefined; } };
+  const gitq = (args) => { try { return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (_) { return null; } };
+  const days = (ms) => Math.floor(ms / 86400000);
+
+  // 1. fleet.json vide ou plus vieux que 7 j.
+  const fleetF = path.join(vd, 'fleet.json');
+  if (fs.existsSync(fleetF)) {
+    const f = rj(fleetF);
+    if (f === undefined) items.push({ level: 'rouge', msg: 'fleet.json illisible (JSON invalide)', fix: () => fs.rmSync(fleetF, { force: true }) });
+    else {
+      const t = Date.parse((f && f.updated_at) || '') || fs.statSync(fleetF).mtimeMs;
+      const empty = !f || !Array.isArray(f.lots) || f.lots.length === 0;
+      const age = days(now - t);
+      if (empty || age > 7) items.push({ level: 'orange', msg: `fleet.json figé (${empty ? 'vide' : 'lots'}, ${age} j)`, fix: () => fs.rmSync(fleetF, { force: true }) });
+    }
+  }
+  // 2. alerte de concurrence dont la clé n'appartient pas au semis live courant.
+  const alertF = path.join(vd, 'epicmaster-concurrency-alert.json');
+  if (fs.existsSync(alertF)) {
+    const a = rj(alertF);
+    const live = rj(path.join(vd, 'epicmaster-live.json'));
+    const seeded = live && typeof live.seeded_at === 'string' ? live.seeded_at : null;
+    const keys = a && typeof a === 'object' && !Array.isArray(a) ? Object.keys(a) : [];
+    const stale = keys.filter((k) => !seeded || !k.startsWith(seeded + ':'));
+    if (a === undefined || stale.length) {
+      items.push({ level: 'orange', msg: `alerte de concurrence périmée (seeded_at ≠ live, ${stale.length || 'JSON invalide'})`, fix: () => {
+        const keep = {}; for (const k of keys) if (!stale.includes(k)) keep[k] = a[k];
+        if (Object.keys(keep).length) fs.writeFileSync(alertF, JSON.stringify(keep, null, 2) + '\n'); else fs.rmSync(alertF, { force: true });
+      } });
+    }
+  }
+  // 3. consignes-sous-agent.md pointant hors dépôt.
+  const consF = path.join(vd, 'consignes-sous-agent.md');
+  if (fs.existsSync(consF)) {
+    let txt = ''; try { txt = fs.readFileSync(consF, 'utf8'); } catch (_) { /* ignoré */ }
+    const m = txt.match(/D[ée]p[ôo]t\s*:\s*`?(\/[^\s`,;)]+?)[.`]?(?:[\s,;)]|$)/);
+    const rp = (x) => { try { return fs.realpathSync(x); } catch (_) { return path.resolve(x); } };
+    if (m && rp(m[1]) !== rp(root)) items.push({ level: 'orange', msg: `consignes-sous-agent.md pointe hors dépôt (${m[1]})`, fix: () => fs.rmSync(consF, { force: true }) });
+  }
+  // 4. .claude/agents/*-lot-* d'une epic close (aucune US ouverte au backlog).
+  const agDir = path.join(root, '.claude', 'agents');
+  let agents = []; try { agents = fs.readdirSync(agDir).filter((n) => /-lot-[^/]*\.md$/.test(n)); } catch (_) { /* aucun */ }
+  if (agents.length) {
+    const bl = rj(path.join(vd, 'backlog.json'));
+    const lots = bl && Array.isArray(bl.lots) ? bl.lots : null;
+    const open = lots ? lots.filter((l) => l && l.status !== 'done' && l.status !== 'dropped').length : 0;
+    if (lots && open === 0) items.push({ level: 'orange', msg: `.claude/agents d'une epic close (${agents.join(', ')})`, fix: () => agents.forEach((n) => fs.rmSync(path.join(agDir, n), { force: true })) });
+  }
+  // 5. lot-counter.json / handoff.md versionnés alors que .gitignore les exclut.
+  for (const n of ['lot-counter.json', 'handoff.md']) {
+    const rel = path.join('.vibe-agent', n);
+    const tracked = (gitq(['ls-files', '--', rel]) || '').trim();
+    if (tracked && gitq(['check-ignore', '-q', '--no-index', '--', rel]) !== null) {
+      items.push({ level: 'orange', msg: `${rel} versionné contre .gitignore`, fix: () => { if (gitq(['rm', '--cached', '-q', '--', rel]) === null) throw new Error('git rm --cached a échoué'); } });
+    }
+  }
+
+  const lines = [];
+  let level = items.some((i) => i.level === 'rouge') ? 'rouge' : items.length ? 'orange' : 'vert';
+  for (const i of items) lines.push(`  [${i.level}] ${i.msg}`);
+  if (o.fix && items.length) {
+    let failed = 0;
+    for (const i of items) { try { i.fix(); lines.push(`  corrigé : ${i.msg}`); } catch (e) { failed += 1; lines.push(`  ÉCHEC correction : ${i.msg} (${e.message})`); } }
+    level = failed ? 'rouge' : 'vert';
+  }
+  return { level, items: items.map((i) => ({ level: i.level, msg: i.msg })), lines };
+}
+if (require.main === module && process.argv.slice(2).includes('--state')) {
+  try {
+    const a = process.argv.slice(2);
+    const ri = a.indexOf('--root');
+    const r = stateCheck(path.resolve(ri !== -1 && a[ri + 1] ? a[ri + 1] : process.cwd()), { fix: a.includes('--fix') });
+    process.stdout.write(`doctor --state : ${r.level.toUpperCase()}\n` + (r.lines.length ? r.lines.join('\n') + '\n' : ''));
+    if (r.level === 'orange' && !a.includes('--fix')) process.stdout.write('  → relancer avec --fix pour purger (git rm --cached / suppression, après ce rapport).\n');
+  } catch (_) { /* fail-open */ }
+  process.exit(0);
+}
+module.exports = { stateCheck };
+
 const DEST = cdir.claudeDir();
 const SETTINGS = cdir.settingsPath();
 

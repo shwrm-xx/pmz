@@ -410,8 +410,9 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   scanne ces fichiers avec la **même** méthode que `turnstats` (offset persisté **par fichier** dans
   `<sha1(sid)>-subagents.json` ; `parseUsage`/`scanRange` sont réutilisés, pas dupliqués) et rend le
   delta de sortie apparu depuis le Stop précédent — corpus **disjoint** du transcript parent, donc
-  aucun double comptage. Rattrapage **à chaque Stop** (pas de hook `SubagentStop` : un sous-agent en
-  tâche de fond peut finir hors tour, et il y a toujours un Stop après). Deux bornes de prudence :
+  aucun double comptage. Rattrapage **à chaque Stop** (en plus du hook `SubagentStop` → `hooks/subagent-live.js`,
+  qui ne tient que l'état live : un sous-agent en tâche de fond peut finir hors tour, et il y a
+  toujours un Stop après pour le coût). Deux bornes de prudence :
   fichier **rétréci** → offset recalé **sans rien compter** (une sur-imputation est plus grave qu'un
   trou) ; au plus `MAX_FILES_PER_TURN` fichiers par Stop (les plus récents d'abord), les autres
   gardant leur offset. La part déléguée est **ventilée** dans `cost_subagent_tokens` (comprise dans
@@ -795,7 +796,7 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   `MAX_PARALLEL_DEFAULT` 4 / `--max-parallel` ≤ 8, capacité de la session)) → `contextBudget`
   (borne = min(zone rouge résolue par `occupancy.resolveRedZone` — rules.yaml honoré —, seuil
   « session fraîche » `BUCKETS[1]` = 300k, même seuil que le verdict de `/close-batch` #109) ;
-  capacité = (borne − socle 60k) / ~6k par US déléguée (brief + rapport ≤ 250 mots + clôture)) →
+  capacité = (borne − socle 60k) / ~4k par US déléguée (`MASTER_COST_PER_LOT` : brief + rapport ≤ 250 mots + clôture ; sonnet)) →
   `splitSessions` (sessions maîtres successives si le plan dépasse) ; `masterModel` = opus dès
   qu'une US le préconise, sinon le modèle majoritaire, effort `medium` (le maître orchestre, il ne
   raisonne pas sur le code). Un lot `fable` ne vote pas : Fable n'est jamais **proposé** par PMZ,
@@ -850,6 +851,21 @@ par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. 
   (append-only, tagué `promptimizer/hooks/`, idempotent, retiré par `--remove`) ; le canal plugin
   les câble via `hooks/hooks.json`. Retrait : `uninstall.js` (hooks + `commands/epicmaster.md`
   + `~/.claude/promptimizer/` incl. mods).
+- **Fiabilité des sous-sessions (epic US#184-#189, v2.18.0)** : (1) **état par session** — `lib/state.js`
+  écrit `.vibe-agent/session-state/<sid>.json` (un fichier par `session_id`, repli de lecture
+  sur l'ancien `session-state.json`) ; (2) **live maître** `epicmaster-live.json` : champs `phase`
+  (`waves|review|arbitrage|settle|done`), `master_session_id`, `launch_queue` — les US démarrées
+  par `start` sont rattachées aux `SubagentStart` en **FIFO**, et un événement d'une autre session
+  que le maître est ignoré ; (3) **verrou maître** : un second `/epicmaster` dans un projet dont le
+  maître tourne encore (`lockHolder`) ne prend pas les US `in_progress` du premier ; (4) hook
+  `SubagentStop` (`subagent-live.js`) + alerte de concurrence dédoublonnée par `seeded_at` ;
+  (5) **archive exacte** (`lib/archive.js` : verify réel, un seul en-tête, `repair`) ;
+  (6) **surface** `backlog.js sessions` (session × rôle × epic × US × état), statusline par session,
+  notifications opt-in. **Diagnostic** : `backlog.js doctor --state [--fix]` (`install/doctor.js`,
+  `stateCheck`) détecte `fleet.json` vide/> 7 j, alerte de concurrence dont la clé ≠ `seeded_at`
+  live, `consignes-sous-agent.md` pointant hors dépôt, `.claude/agents/*-lot-*` d'une epic close,
+  `lot-counter.json`/`handoff.md` versionnés contre `.gitignore` ; sortie vert/orange/rouge, rien
+  modifié sans `--fix` (suppression / `git rm --cached` après le rapport).
 - **Chargement automatique de la bande epicmaster** (lot #139, fin de l'opt-in `--plugin-dir`) :
   Claude Code charge chaque chemin de `CLAUDE_CODE_PLUGIN_DIRS` comme un `--plugin-dir`, lue depuis
   l'environnement du process ou le bloc `env` de `~/.claude/settings.json` (jamais les settings
