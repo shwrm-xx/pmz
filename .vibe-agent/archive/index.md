@@ -186,5 +186,6 @@
 #0181 | 2026-11-04 | 265562f | epic:Avis de mise à jour | verify:inconnu | fiche:oui | Module update-check
 #0182 | 2026-11-04 | b1ef31e | epic:Avis de mise à jour | verify:inconnu | fiche:oui | Avis : session, statusline, doctor
 #0183 | 2026-11-04 | 1d6f8d1 | epic:Avis de mise à jour | verify:inconnu | fiche:oui | Doc + release v2.17.0
+#0184 | 2026-11-06 | 95d94dc | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Identité de session : rôle maître, relais, state par session
 
 # Archive PMZ — index des lots clos
