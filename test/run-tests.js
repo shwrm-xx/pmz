@@ -231,7 +231,7 @@ function pmzEntry(s2, ev) {
   return (s2.hooks[ev] || []).find((e) => (e.hooks || []).some((h) => h.command.includes('promptimizer/hooks/')));
 }
 ok(pmzEntry(s, 'SessionStart').matcher === 'startup|resume|clear|compact', 'matcher SessionStart couvre clear et compact');
-ok(pmzEntry(s, 'PostToolUse').matcher === 'Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session', 'matcher PostToolUse couvre TodoWrite + Bash');
+ok(pmzEntry(s, 'PostToolUse').matcher === 'Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session|Skill|mcp__ccd_session_mgmt__set_session_title', 'matcher PostToolUse couvre TodoWrite + Bash');
 ok(pmzEntry(s, 'PreCompact') && pmzEntry(s, 'PreCompact').matcher === 'manual|auto', 'PreCompact enregistré (manual|auto)');
 
 // D3ter. Anti-régression : les tool_names réellement gérés par pre-tool-use.js (Bash + le
@@ -6498,8 +6498,9 @@ section('fleet/handoff — handoff par lot, purge de vague, CLI fleet, rapport d
   }
   // Deux runs successifs -> deux rapports distincts (pas d'écrasement le même jour).
   runNode(BKLG, ['reintegrate', '--cwd', grepo, '--execute']);
-  const reports = fs.readdirSync(path.join(grepo, '.vibe-agent', 'logs')).filter((f) => /^reintegrate-/.test(f));
+  const reports = fs.readdirSync(path.join(grepo, '.vibe-agent', 'logs')).filter((f) => /^\d{8}-\d{4}-(US\d+|sans)-[A-Za-z0-9]{6}-[a-z0-9]{4}\.md$/.test(f));
   ok(reports.length >= 2, 'R99-d : un rerun n\'écrase pas le rapport précédent');
+  ok(reports.length && /^# Session /.test(fs.readFileSync(path.join(grepo, '.vibe-agent', 'logs', reports[0]), 'utf8')), 'US190-2 : rapport reintegrate nommé date-US-sid6, en-tête « # Session »');
   // Un REFUS (rien de tenté) n'écrit aucun rapport : pas de bruit dans .vibe-agent/logs.
   const nrepo = path.join(SANDBOX, 'repo-r99-noreport');
   fs.mkdirSync(nrepo, { recursive: true });

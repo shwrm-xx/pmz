@@ -193,6 +193,21 @@ for (const f of ['epicmaster.md', 'pickymaster.md']) {
   ok(/--live-add-lot\s+--id <id> --wave "arbitrages"/.test(t) && /--force/.test(t), `${f} : prescrit --live-add-lot et --force`);
 }
 
+// US#190 : sid maître = session de rôle master (pas l'état le plus récent)
+{
+  const repo = mkRepo('repo-master-sid', 1);
+  const state = require(path.join(PKG, 'lib', 'state.js'));
+  const roles = require(path.join(PKG, 'lib', 'roles.js'));
+  state.markPlanSession(repo, 'MASTERAAAA1');
+  const sleepMs = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  sleepMs(30);
+  state.markPlanSession(repo, 'OTHERBBBBB2');
+  roles.setRole(repo, 'MASTERAAAA1', { role: 'master' });
+  ok(live.currentSid(repo) === 'MASTERAAAA1', 'US190-3 : currentSid préfère la session master');
+  cli(['epicmaster', '--cwd', repo, '--live-seed', '--epic', 'E']);
+  ok(rd(repo).master_session_id === 'MASTERAAAA1', 'US190-3 : --live-seed sans --session sème le sid master');
+}
+
 try { fs.rmSync(SANDBOX, { recursive: true, force: true }); } catch (_) { /* nettoyage best-effort */ }
 console.log(`\n${pass} ok, ${failures.length} échec(s)`);
 process.exit(failures.length ? 1 : 0);

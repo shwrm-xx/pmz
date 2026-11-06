@@ -615,7 +615,7 @@ function epicmaster(root, json) {
   // --live-seed (lot #141) : écrit le plan complet dans le fichier live (la bande l'affiche dès le
   // lancement, avant tout `start`). N'écrit QUE ce fichier — aucun lot démarré, aucun handoff.
   if (process.argv.includes('--live-seed')) {
-    const sid = flag('session') || previousSessionId(root); // le hook SubagentStart ignore les autres sessions
+    const sid = flag('session') || require('../lib/roles').latestMasterSid(root) || previousSessionId(root); // le hook SubagentStart ignore les autres sessions
     const r = require('../lib/epicmaster-live').seedFromPlan(root, plan, b, { epic: opts.epic, waveLabels: flag('wave-labels'), sessionId: sid, force: process.argv.includes('--force') });
     if (r.locked) {
       out(`Refusé : un autre maître (session ${String(r.holder).slice(0, 8)}…) tient un live de moins de 6 h avec une US en cours — le semer l'écraserait. `

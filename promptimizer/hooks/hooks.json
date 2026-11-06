@@ -25,7 +25,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session",
+        "matcher": "Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session|Skill|mcp__ccd_session_mgmt__set_session_title",
         "hooks": [
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/pmz-hook\" \"${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.js\"", "timeout": 5 }
         ]

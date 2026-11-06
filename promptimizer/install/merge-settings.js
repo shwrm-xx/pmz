@@ -125,7 +125,7 @@ const PMZ_HOOKS = {
   // ExitPlanMode|EnterPlanMode (lot #130) : aucun verdict rendu sur ces outils — seule trace de
   // « cette session fait de la conception », pour la titrer « [XXX · Plan] <epic> ».
   PreToolUse: [{ matcher: 'Bash|Edit|Write|MultiEdit|ExitPlanMode|EnterPlanMode', hooks: [cmd('pre-tool-use.js', T.default)] }],
-  PostToolUse: [{ matcher: 'Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session', hooks: [cmd('post-tool-use.js', T.default)] }],
+  PostToolUse: [{ matcher: 'Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session|Skill|mcp__ccd_session_mgmt__set_session_title', hooks: [cmd('post-tool-use.js', T.default)] }],
   Stop: [{ hooks: [cmd('stop.js', T.default)] }],
   PreCompact: [{ matcher: 'manual|auto', hooks: [cmd('pre-compact.js', T.default)] }],
   // Bande epicmaster (lot #136/#138) : trace live des sous-agents (.vibe-agent/epicmaster-live.json).

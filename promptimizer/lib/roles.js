@@ -115,16 +115,42 @@ function launchesChainSession(toolInput) {
 
 // start_session RÉEL : la réponse porte un id de session « local_… » (une simple proposition
 // own_initiative / offer n'en a pas).
-function startedForReal(toolResponse) {
-  try {
-    const txt = typeof toolResponse === 'string' ? toolResponse : JSON.stringify(toolResponse || '');
-    return /\blocal_[A-Za-z0-9][A-Za-z0-9-]{5,}/.test(txt);
-  } catch (_) {
+// Strict (US#190) : `local_…` n'est reconnu que comme VALEUR d'un champ d'id de session
+// (session_id / sessionId / id), jamais dans un texte libre (ex. un chemin dans une proposition).
+const SID_VAL = /^local_[A-Za-z0-9][A-Za-z0-9-]{5,}$/;
+const SID_KEYS = new Set(['session_id', 'sessionId', 'id']);
+function hasSidField(v, depth) {
+  if (depth > 6 || v == null) return false;
+  if (typeof v === 'string') {
+    const t = v.trim();
+    if (t[0] === '{' || t[0] === '[') { try { return hasSidField(JSON.parse(t), depth + 1); } catch (_) { return false; } }
     return false;
   }
+  if (Array.isArray(v)) return v.some((x) => hasSidField(x, depth + 1));
+  if (typeof v === 'object') {
+    for (const [k, x] of Object.entries(v)) {
+      if (SID_KEYS.has(k) && typeof x === 'string' && SID_VAL.test(x)) return true;
+      if (hasSidField(x, depth + 1)) return true;
+    }
+  }
+  return false;
+}
+function startedForReal(toolResponse) {
+  try { return hasSidField(toolResponse, 0); } catch (_) { return false; }
+}
+
+// Sid de la session de rôle `master` la plus récente (champ `at`), ou null.
+function latestMasterSid(root) {
+  try {
+    let best = null, at = -1;
+    for (const [sid, e] of Object.entries(readAll(root))) {
+      if (e && e.role === 'master' && (e.at || 0) > at) { best = sid; at = e.at || 0; }
+    }
+    return best;
+  } catch (_) { return null; }
 }
 
 module.exports = {
   rolesFile, getRole, setRole, isRelay, clearRelay, isSideSessionsEvent, isMasterInvocation,
-  isMasterSkillName, launchesChainSession, startedForReal, RELAY_TTL_MS,
+  isMasterSkillName, launchesChainSession, startedForReal, latestMasterSid, RELAY_TTL_MS,
 };

@@ -68,7 +68,7 @@ function main() {
   if (PLAN_TOOLS.has(input.tool_name)) {
     try {
       const planRoot = gitRoot(input.cwd || process.cwd());
-      if (planRoot) markPlanSession(planRoot);
+      if (planRoot) markPlanSession(planRoot, input.session_id);
     } catch (_) { /* fail-open : la trace est un bonus, jamais un blocage */ }
   }
   // Capture du plan validé (US#178) : .vibe-agent/plan.md, consommé par /pmz:scope --plan.
