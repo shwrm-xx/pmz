@@ -2,6 +2,10 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-06 — US#189 US#189 — Docs et doctor --state
+
+- backlog.js doctor --state et archive --repair câblés.
+
 ## 2026-11-06 — Release v2.18.0 — Fiabilité sous-sessions (US#189)
 
 - backlog.js doctor --state [--fix] : fleet figé, alerte au mauvais seeded_at, consignes hors dépôt, agents d'epic close, fichiers versionnés contre .gitignore (vert/orange/rouge).
