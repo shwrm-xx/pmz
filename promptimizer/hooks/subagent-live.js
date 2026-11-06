@@ -4,6 +4,7 @@
 // `backlog.js epicmaster --live` et la statusline sachent combien de sous-agents tournent pendant une
 // session maître. Silencieux et NON BLOQUANT : aucune sortie, toujours exit 0. N'écrit que si une
 // session maître est en cours (lib/epicmaster-live.js) — sans elle, aucun fichier n'est créé.
+// US#185 — filtre session : l'événement d'une autre session que celle du maître est ignoré.
 // US#155 — alerte de concurrence : à l'arrêt d'un sous-agent, si SON intervalle n'a chevauché
 // aucun autre sous-agent alors que sa vague compte >= 2 US, le maître a lancé en série. On émet
 // alors UN `systemMessage` (non bloquant, une fois par vague) ; sinon toujours silencieux.
@@ -21,7 +22,7 @@ const live = require('../lib/epicmaster-live');
 const path = require('path');
 const { readJson, writeAtomic } = require('../lib/fsjson');
 
-const ALERT_FILE = 'epicmaster-concurrency-alert.json';
+const ALERT_FILE = live.ALERT_FILE;
 
 function t(iso) { const n = Date.parse(iso); return Number.isFinite(n) ? n : null; }
 
@@ -30,7 +31,7 @@ function concurrencyAlert(root, input) {
   const st = live.load(root);
   if (Number(st.max_parallel) === 1) return ''; // plafond volontaire à 1 : la série est voulue
   const a = st.agents && st.agents[String(input.agent_id || '')];
-  if (!a || !a.stopped_at) return '';
+  if (!a || !a.stopped_at || a.kind) return ''; // agent de consolidation (review/arbitrage/settle) : pas une vague
   const a0 = t(a.started_at), a1 = t(a.stopped_at);
   if (a0 == null || a1 == null) return '';
   const lots = Object.values(st.lots || {}).filter((l) => l && typeof l === 'object');
@@ -44,7 +45,9 @@ function concurrencyAlert(root, input) {
     return b0 != null && b0 < a1 && (b1 == null || b1 > a0);
   });
   if (overlapped) return '';
-  const key = wave ? 'w' + wave : 'x';
+  // Clé liée à l'epic courante (`seeded_at`) : l'alerte déjà émise pour une epic précédente ne
+  // masque pas la suivante (le semis purge les clés des anciens seeded_at).
+  const key = `${st.seeded_at || ''}:${wave ? 'w' + wave : 'x'}`;
   const file = path.join(root, '.vibe-agent', ALERT_FILE);
   const seen = readJson(file, {});
   if (!seen || typeof seen !== 'object' || seen[key]) return '';
@@ -61,6 +64,9 @@ function main() {
   if (!event) return;
   const root = gitRoot(input.cwd || process.cwd());
   if (!root) return;
+  // Un sous-agent d'une AUTRE session que celle du maître (master_session_id, posé au semis) ne
+  // doit ni entrer dans le live ni déclencher l'alerte de concurrence.
+  if (live.isForeignSession(live.load(root), input)) return;
   live.recordSubagent(root, event, input);
   if (event === 'stop') {
     let msg = '';

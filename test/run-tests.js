@@ -9970,7 +9970,9 @@ section('Plan complet dans le fichier live — epicmaster --live-seed + vague/fi
   runNode(BKLG, ['start', '--cwd', repoSd, '--id', '3', '--owner', 'master/lot-3']);
   runNode(BKLG, ['done', '--cwd', repoSd, '--id', '3', '--commit', 'ccc3333', '--no-verify']);
   st = readLive();
-  ok(st.lots['3'].status === 'done' && st.finished === true && st.wave.current === 2 && st.wave.total === 2, 'SD-3 : dernier lot clos -> finished:true, vague 2/2');
+  ok(st.lots['3'].status === 'done' && st.finished === false && st.wave.current === 2 && st.wave.total === 2, 'SD-3 : dernier lot clos -> vague 2/2, finished reste faux (US#185 : consolidation à venir)');
+  runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--phase', 'done']);
+  ok(readLive().finished === true, 'SD-3 : --phase done -> finished:true (US#185)');
 
   // SD-4. Verdict failed -> lot failed (couleur danger côté bande) ; start relance -> running.
   runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live-seed', '--epic', 'Autre']);
@@ -9979,7 +9981,9 @@ section('Plan complet dans le fichier live — epicmaster --live-seed + vague/fi
   runNode(BKLG, ['done', '--cwd', repoSd, '--id', '4', '--commit', 'ddd4444', '--verify-verdict', 'failed']);
   st = readLive();
   ok(st.lots['4'].status === 'failed' && st.lots['4'].verify === 'failed' && st.lots['4'].done_at, 'SD-4 : done --verify-verdict failed -> lot failed (verify tracé)');
-  ok(st.finished === true, 'SD-4 : un lot failed est terminal (n\'empêche pas la fin du plan)');
+  ok(st.finished === false, 'SD-4 : un lot failed est terminal, mais finished attend la phase done (US#185)');
+  runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--phase', 'done']);
+  ok(readLive().finished === true, 'SD-4 : un lot failed n\'empêche pas la fin du plan (phase done)');
   ok(/1 verify rouge \(#4\)/.test(runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live']).out) && /Verify rouge :[\s\S]*✗ #4/.test(runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--live', '--detailed']).out), 'SD-4 : --live signale le lot rouge');
   {
     const liveTs = path.join(PKG, 'mods', 'epicmaster-band', 'hooks', 'live.ts');
@@ -9989,10 +9993,11 @@ section('Plan complet dans le fichier live — epicmaster --live-seed + vague/fi
     ok(view === null || (view.failed.length === 1 && view.failed[0].id === '4' && view.finished === true), 'SD-4 : live.ts lit le lot failed et la fin de plan');
   }
   runNode(BKLG, ['reopen', '--cwd', repoSd, '--id', '4', '--note', 'correctif']);
+  runNode(BKLG, ['epicmaster', '--cwd', repoSd, '--phase', 'waves']);
   runNode(BKLG, ['start', '--cwd', repoSd, '--id', '4', '--owner', 'master/lot-4']);
   st = readLive();
   ok(st.lots['4'].status === 'running' && !st.lots['4'].verify && st.lots['4'].done_at === null && st.finished === false, 'SD-4 : relance d\'un lot rouge -> running, ancien verdict effacé, plan rouvert');
-  ok(live.recordDone(repoSd, { id: 4, title: 'x' }, 'master/lot-4', undefined, 'timeout') && readLive().lots['4'].status === 'done', 'SD-4 : verdict timeout -> done (ni rouge ni preuve inventée)');
+  ok(live.recordDone(repoSd, { id: 4, title: 'x' }, 'master/lot-4', undefined, 'timeout') && readLive().lots['4'].status === 'reopened', 'SD-4 : verdict timeout -> reopened (US#185 : jamais done, pas rouge non plus)');
 
   // SD-5. Fail-open / non-régression : états anciens (sans plan), seed invalide, pending périmés.
   ok(live.seedFromPlan(null, { lots: [{ id: 1 }] }, {}).ok === false && live.seedFromPlan(repoSd, { lots: [] }, {}).ok === false && live.seedFromPlan(repoSd, null, null).ok === false, 'SD-5 : seedFromPlan sans root / plan vide / plan nul -> ok:false, pas de throw');

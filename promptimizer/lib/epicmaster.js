@@ -86,6 +86,11 @@ function selectLots(b, opts) {
     if (o.epic && l.epic !== o.epic) { excluded.push({ lot: l, reason: `hors epic « ${o.epic} »` }); continue; }
     if (only.size && !only.has(l.id)) { excluded.push({ lot: l, reason: 'hors --only' }); continue; }
     if (skip.has(l.id)) { excluded.push({ lot: l, reason: 'décoché' }); continue; }
+    // US#185 : une US `in_progress` tenue par « master/… » alors qu'un AUTRE maître est vivant
+    // (opts.foreignMaster, cf. planMaster) n'est pas à reprendre — elle tourne dans l'autre session.
+    if (o.foreignMaster && l.status === 'in_progress' && typeof l.session_owner === 'string' && l.session_owner.startsWith('master/')) {
+      excluded.push({ lot: l, reason: 'tenue par une autre session maître (en cours)' }); continue;
+    }
     selected.push(l);
   }
   selected.sort((a, c) => a.id - c.id);
@@ -212,9 +217,12 @@ function slim(l) {
 }
 
 // PLAN COMPLET — l'objet que la CLI rend en --json et que les rendus ci-dessous consomment.
-// opts : { epic, only, skip, maxParallel, masterModel, masterEffort }.
+// opts : { epic, only, skip, maxParallel, masterModel, masterEffort, sid, foreignMaster }.
 function planMaster(root, b, opts) {
-  const o = opts || {};
+  const o = Object.assign({}, opts || {});
+  if (o.foreignMaster == null) { // US#185 : un autre maître vivant tient-il des US « master/… » ?
+    try { o.foreignMaster = require('./epicmaster-live').foreignMasterHold(root, o.sid); } catch (_) { o.foreignMaster = false; }
+  }
   const sel = selectLots(b, o);
   const mw = planMasterWaves(b, sel.selected);
   const launchable = mw.waves.flat().sort((a, c) => a.id - c.id); // liste de confirmation : ordre d'id
