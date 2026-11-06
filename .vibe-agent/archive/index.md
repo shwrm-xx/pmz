@@ -192,5 +192,6 @@
 #0187 | 2026-11-06 | a22fcdb | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Archive et CHANGELOG exacts + archive --repair
 #0188 | 2026-11-06 | 9b3eb23 | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Surface où se passe quoi : sessions, statusline, bande, logs, notifs
 #0189 | 2026-11-06 | de6a65d | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Docs, doctor --state, assainissement cocina+ecpv3, release v2.18.0
+#0190 | 2026-11-06 | 724e79a | epic:Fiabilité sous-sessions | verify:inconnu | fiche:non | Arbitrages — Fiabilité sous-sessions
 
 # Archive PMZ — index des lots clos
