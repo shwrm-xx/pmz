@@ -40,3 +40,11 @@ afin que les correctifs d'identité de session (#184) et de surface (#188) fonct
 
 - Release, tag et publication (faits par le maître après cette US).
 - Toute autre évolution de code PMZ : nouvelle US.
+
+## Preuve de clôture
+
+`node test/run-tests.js` : 2582 OK, 0 échec (relais 43 OK, live 48 OK).
+
+## Notes
+
+Format réel de la réponse `start_session` non observé : à confirmer au prochain lancement de carte maître.
