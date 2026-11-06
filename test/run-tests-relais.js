@@ -45,7 +45,7 @@ ok(/· Plan\]/.test(ctx(r)), 'Plan : titre « [XXX · Plan] » en mode plan');
 ok(roles.getRole(repo, 'P').role === 'plan', 'Plan : rôle persisté');
 r = hook('user-prompt-submit.js', { session_id: 'P', prompt: EVT, permission_mode: 'plan' });
 ok(!r.json || r.json.decision !== 'block', 'Plan non relais : événement non filtré');
-r = hook('post-tool-use.js', { session_id: 'P', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Scope — X', prompt: '/pmz:scope --plan /tmp/p.md' }, tool_response: {} });
+r = hook('post-tool-use.js', { session_id: 'P', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Scope — X', prompt: '/pmz:scope --plan /tmp/p.md' }, tool_response: { content: [{ type: 'text', text: 'Started local_288cdc04-ce28-4c32-b0d9-4fbc7a4546e4' }] } });
 ok(r.code === 0 && !r.json, 'post-tool-use start_session : silencieux');
 ok(roles.isRelay(repo, 'P'), 'Plan : relais après lancement de la Scope');
 
@@ -65,7 +65,7 @@ ok(r.code === 0 && (!r.json || r.json.decision !== 'block'), 'Plan relais : prom
 ok(!/· HS\]/.test(ctx(r)), 'Plan relais hors mode plan : pas retitrée « HS »');
 
 // --- Scope lance la session maître : relais ; la maître, elle, reçoit ses événements ---
-hook('post-tool-use.js', { session_id: 'S', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Session maître — X', prompt: 'Invoque le skill pmz:epicmaster.' } });
+hook('post-tool-use.js', { session_id: 'S', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Session maître — X', prompt: 'Invoque le skill pmz:epicmaster.' }, tool_response: 'ok local_eaf8672a-8516' });
 r = hook('user-prompt-submit.js', { session_id: 'S', prompt: EVT });
 ok(r.json && r.json.decision === 'block', 'Scope relais : événement de la maître écarté');
 hook('user-prompt-submit.js', { session_id: 'M', prompt: '/pmz:epicmaster' });
@@ -74,6 +74,53 @@ r = hook('user-prompt-submit.js', { session_id: 'M', prompt: EVT });
 ok(!r.json || r.json.decision !== 'block', 'Maître non relais : porte les événements');
 r = hook('user-prompt-submit.js', { session_id: 'M', prompt: 'suite' });
 ok(!/Titre de CETTE session/.test(ctx(r)), 'Maître : se titre elle-même (rôle survit à l\'état partagé)');
+
+// --- US#184 ---
+const initiated = (o) => hook('post-tool-use.js', Object.assign({ tool_name: 'mcp__ccd_session__start_session' }, o));
+// Critère 1 : prompt de carte -> maître, pas de titre HS
+for (const p of ['Invoque le skill `pmz:epicmaster`', 'invoque le skill pmz:pickymaster']) {
+  r = hook('user-prompt-submit.js', { session_id: 'C1', prompt: p });
+  ok(roles.getRole(repo, 'C1').role === 'master' && !/HS\]/.test(ctx(r)), 'US184-1 : prompt de carte -> master sans titre HS (' + p.slice(-18) + ')');
+}
+ok(!roles.isMasterInvocation('Corrige le skill pmz:scope'), 'US184-1 : prompt ordinaire non maître');
+// repli Skill (PostToolUse)
+hook('post-tool-use.js', { session_id: 'C1b', tool_name: 'Skill', tool_input: { skill: 'pmz:epicmaster' } });
+ok(roles.getRole(repo, 'C1b').role === 'master', 'US184-1 : repli appel Skill -> master');
+// Critère 2 : relay seulement sur démarrage réel, levé après clôture / 7 j
+initiated({ session_id: 'R1', tool_input: { title: 'Session maître — Y', prompt: 'Invoque le skill pmz:epicmaster.', initiation: 'own_initiative' }, tool_response: { status: 'proposed', task_id: 'task_ab12cd34' } });
+ok(!roles.isRelay(repo, 'R1'), 'US184-2 : proposition own_initiative -> pas de relay');
+initiated({ session_id: 'R1', tool_input: { title: 'Session maître — Y', prompt: 'Invoque le skill pmz:epicmaster.' }, tool_response: { session_id: 'local_288cdc04-ce28' } });
+ok(roles.isRelay(repo, 'R1'), 'US184-2 : démarrage réel -> relay');
+hook('post-tool-use.js', { session_id: 'R1', tool_name: 'Bash', tool_input: { command: 'node scripts/close-batch.js' }, tool_response: { stdout: '' } });
+ok(!roles.isRelay(repo, 'R1'), 'US184-2 : relay levé après clôture');
+ok(!roles.launchesChainSession({ title: 'Corriger', prompt: 'voir la session maître de hier' }), 'US184-2 : plus de match sur chaîne libre');
+{
+  const f = roles.rolesFile(repo); const all = JSON.parse(fs.readFileSync(f, 'utf8'));
+  all.R1 = { relay: true, relay_at: Date.now() - 8 * 24 * 3600 * 1000, at: Date.now() };
+  fs.writeFileSync(f, JSON.stringify(all));
+  ok(roles.isRelay(repo, 'R1') === false, 'US184-2 : relay_at > 7 j -> isRelay faux');
+}
+// Critères 3 et 4 : state par sid, élagage
+{
+  const stLib = require(path.join(PKG, 'lib', 'state.js'));
+  const A = Object.assign({}, stLib.DEFAULT_STATE, { session_id: 'A', self_title: 'titre A' });
+  stLib.saveState(repo, 'A', A);
+  stLib.saveState(repo, 'B', Object.assign({}, stLib.DEFAULT_STATE, { session_id: 'B', self_title: 'titre B' }));
+  const fa = JSON.parse(fs.readFileSync(path.join(repo, '.vibe-agent', 'session-state', 'A.json'), 'utf8'));
+  ok(fa.self_title === 'titre A' && stLib.loadState(repo, 'A').self_title === 'titre A' && stLib.loadState(repo, 'B').self_title === 'titre B', 'US184-3 : state de A intact après save de B');
+  const dir = path.join(repo, '.vibe-agent', 'session-state');
+  for (let i = 0; i < 51; i++) fs.writeFileSync(path.join(dir, `old${i}.json`), '{}');
+  stLib.saveState(repo, 'Z', Object.assign({}, stLib.DEFAULT_STATE, { session_id: 'Z' }));
+  ok(fs.readdirSync(dir).filter((f) => f.endsWith('.json')).length === 50 && fs.existsSync(path.join(dir, 'Z.json')), 'US184-4 : élagage à 50 fichiers');
+  // migration : ancien fichier unique lu en repli, non supprimé
+  fs.writeFileSync(path.join(repo, '.vibe-agent', 'session-state.json'), JSON.stringify({ session_id: 'LEG', self_title: 'ancien' }));
+  ok(stLib.loadState(repo, 'LEG').self_title === 'ancien' && fs.existsSync(path.join(repo, '.vibe-agent', 'session-state.json')), 'US184-3 : repli sur l\'ancien fichier unique');
+  ok(stLib.loadState(repo, 'AUTRE').self_title === null, 'US184-3 : ancien fichier d\'une autre session ignoré');
+}
+// Critère 5 : set_session_title -> title + epic
+fs.writeFileSync(path.join(repo, '.vibe-agent', 'epic'), 'Fiabilité\n');
+hook('post-tool-use.js', { session_id: 'T1', tool_name: 'mcp__ccd_session_mgmt__set_session_title', tool_input: { session_id: 'self', title: '[XXX · EP#1–#2] Fiabilité' } });
+ok(roles.getRole(repo, 'T1').title === '[XXX · EP#1–#2] Fiabilité' && roles.getRole(repo, 'T1').epic === 'Fiabilité', 'US184-5 : set_session_title -> title + epic dans session-roles');
 
 // --- Fail-open ---
 fs.writeFileSync(roles.rolesFile(repo), '{pas du json');

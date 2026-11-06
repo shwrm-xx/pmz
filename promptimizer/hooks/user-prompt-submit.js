@@ -18,7 +18,7 @@ const { injectContext, passThrough, blockPrompt } = require('../lib/output');
 const roles = require('../lib/roles');
 const { gitRoot, isFullyInitialized } = require('../lib/project');
 const { autoInitGitAndBootstrap } = require('../lib/bootstrap');
-const { loadSessionState, saveSessionState } = require('../lib/state');
+const { loadState, saveState } = require('../lib/state');
 const { loadBacklog, currentLot, progress } = require('../lib/backlog');
 const {
   MSG_LARGE, MSG_INIT_BEFORE_CODE, autoInitMessage, largeWithPlanMessage, occupancyPromptMessage,
@@ -78,7 +78,8 @@ function main() {
     }
   } catch (_) { /* fail-open : le prompt passe */ }
 
-  const st = loadSessionState(root, sid);
+  const st = loadState(root, sid);
+  st.session_id = sid;
 
   // Session de CONCEPTION (lot #130) : le mode plan de Claude Code est porté par le champ
   // commun `permission_mode` du payload hook. Marqué ici — l'état est déjà réécrit en fin de
@@ -103,7 +104,8 @@ function main() {
   // Injecté au 1er prompt, puis seulement quand le titre change (lot démarré, scope posé) — jamais à
   // chaque tour. Nomenclature non posée : question une seule fois par session. Session maître
   // (/epicmaster) : elle se titre elle-même, on se tait.
-  const isMasterPrompt = /^\s*\/(pmz:)?(epicmaster|pickymaster)\b/.test(prompt);
+  // Reconnaît aussi le prompt de carte « Invoque le skill `pmz:epicmaster` » (US#184).
+  const isMasterPrompt = roles.isMasterInvocation(prompt);
   if (isMasterPrompt) st.master_session = true; // seule exclue : la session maître se titre elle-même
   try {
     if (isMasterPrompt) roles.setRole(root, sid, { role: 'master' });
@@ -127,6 +129,7 @@ function main() {
       } else if (t.title !== st.self_title) {
         if (nomenclature) st.prompt_reminders.nomenclature = true;
         st.self_title = t.title;
+        try { roles.setRole(root, sid, { title: t.title, epic: lotLib.readEpicRaw(root) || null }); } catch (_) { /* fail-open */ }
         parts.push(selfTitleMessage(t.title, { compose: t.compose, nomenclature }));
       }
     }
@@ -217,7 +220,7 @@ function main() {
     /* fail-open : pas d'injection de budget ce tour */
   }
 
-  saveSessionState(root, st);
+  saveState(root, sid, st);
   if (parts.length) return injectContext('UserPromptSubmit', parts.join('\n\n'));
   return passThrough();
 }

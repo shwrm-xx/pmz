@@ -1,6 +1,8 @@
 'use strict';
-// État de session keyé par session_id, dans .vibe-agent/session-state.json.
-// Écriture atomique, fail-silent. No-op si le projet n'est pas initialisé.
+// État de session : UN FICHIER PAR session_id, .vibe-agent/session-state/<sid>.json (US#184) —
+// plus d'écrasement entre sessions vivantes. Sans sid : _default.json. Élagage à 50 fichiers (mtime).
+// Repli de lecture sur l'ancien fichier unique session-state.json (migration silencieuse, jamais
+// supprimé). Écriture atomique, fail-silent. No-op si le projet n'est pas initialisé.
 const fs = require('fs');
 const path = require('path');
 const { vibeDir, isInitialized } = require('./project');
@@ -22,80 +24,140 @@ const DEFAULT_STATE = {
   // SUIVANTE (previousSessionMeta) pour la titrer « [XXX · Plan] <epic> ».
 };
 
-function stateFile(root) {
+const MAX_STATE_FILES = 50;
+
+function legacyFile(root) {
   return path.join(vibeDir(root), 'session-state.json');
 }
 
-function loadSessionState(root, sessionId) {
-  if (!isInitialized(root)) {
-    return Object.assign({}, DEFAULT_STATE, { session_id: sessionId || null });
-  }
-  let st;
+function stateDir(root) {
+  return path.join(vibeDir(root), 'session-state');
+}
+
+function safeName(sid) {
+  const n = String(sid || '').replace(/[^A-Za-z0-9_-]/g, '_');
+  return n || '_default';
+}
+
+function fileForSid(root, sid) {
+  return path.join(stateDir(root), `${safeName(sid)}.json`);
+}
+
+function readObj(file) {
   try {
-    st = JSON.parse(fs.readFileSync(stateFile(root), 'utf8'));
+    const o = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return o && typeof o === 'object' && !Array.isArray(o) ? o : null;
   } catch (_) {
-    st = null;
+    return null;
   }
-  if (!st || typeof st !== 'object') st = {};
-  // Nouvelle session => flags remis à zéro.
-  if (sessionId && st.session_id && st.session_id !== sessionId) {
-    return Object.assign({}, DEFAULT_STATE, { session_id: sessionId });
+}
+
+// Fichier d'état le plus récemment écrit (mtime), ou null. Sert UNIQUEMENT aux appels sans sid
+// (CLI / hooks hors périmètre) ; les hooks de session passent toujours leur sid.
+function newestStateFile(root) {
+  try {
+    const dir = stateDir(root);
+    let best = null;
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.json')) continue;
+      const m = fs.statSync(path.join(dir, f)).mtimeMs;
+      if (!best || m > best.m) best = { file: path.join(dir, f), m };
+    }
+    return best && best.file;
+  } catch (_) {
+    return null;
+  }
+}
+
+function loadState(root, sid) {
+  if (!isInitialized(root)) {
+    return Object.assign({}, DEFAULT_STATE, { session_id: sid || null });
+  }
+  let st = readObj(fileForSid(root, sid));
+  if (!st) {
+    // Migration silencieuse : ancien fichier unique, valable seulement s'il décrit CETTE session.
+    const old = readObj(legacyFile(root));
+    st = old && (!sid || !old.session_id || old.session_id === sid) ? old : {};
   }
   const merged = Object.assign({}, DEFAULT_STATE, st);
-  if (sessionId) merged.session_id = sessionId;
+  if (sid) merged.session_id = sid;
   return merged;
 }
 
+function pruneStates(root, keepFile) {
+  try {
+    const dir = stateDir(root);
+    const all = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => {
+      const full = path.join(dir, f);
+      return { full, m: fs.statSync(full).mtimeMs };
+    });
+    if (all.length <= MAX_STATE_FILES) return;
+    all.sort((a, b) => b.m - a.m);
+    let kept = 0;
+    for (const e of all) {
+      if (e.full === keepFile || kept < MAX_STATE_FILES) { kept++; continue; }
+      try { fs.unlinkSync(e.full); } catch (_) { /* fail-silent */ }
+    }
+  } catch (_) { /* fail-silent */ }
+}
+
+function saveState(root, sid, state) {
+  if (!isInitialized(root)) return false;
+  try { fs.mkdirSync(stateDir(root), { recursive: true }); } catch (_) { return false; }
+  const file = fileForSid(root, sid);
+  const ok = writeAtomic(file, state);
+  if (ok) pruneStates(root, file);
+  return ok;
+}
+
+// Alias historiques : sid = celui de l'état (loadSessionState) ou state.session_id (save).
+function loadSessionState(root, sessionId) {
+  return loadState(root, sessionId);
+}
+
 function saveSessionState(root, state) {
-  if (!isInitialized(root)) return false;
-  return writeAtomic(stateFile(root), state);
+  return saveState(root, state && state.session_id, state);
 }
 
-// Lit le session_id BRUT persisté, SANS reset ni écriture (contrairement à
-// loadSessionState, qui remet les flags à zéro dès qu'un session_id différent lui est
-// passé). Sert à retrouver l'id de la session précédente avant que session-start.js
-// n'écrase le fichier avec celui de la session courante — cf. lib/lot.js:suggestedTitle,
-// qui doit savoir quelle session a clos le dernier lot.
-function previousSessionId(root) {
-  return previousSessionMeta(root).id;
-}
-
-// Ce que la session PRÉCÉDENTE a laissé dans son état, lu BRUT (même contrat que
-// previousSessionId : aucun reset, aucune écriture) — le fichier d'état contient encore
-// celui de la session précédente jusqu'à ce que session-start.js l'écrase. Sert à
-// suggestedTitle (lib/lot.js) : `id` pour l'attribution du lot clos, `plan` pour titrer
-// une session de conception « [XXX · Plan] <epic> » (lot #130).
-function previousSessionMeta(root) {
+// Meta de la session demandée (`sid`) lue BRUTE (aucun reset, aucune écriture). Sans sid : le
+// fichier le plus récent (compat des appelants CLI qui ignorent le sid — cf. Dette US#184), puis
+// l'ancien fichier unique. Sert à suggestedTitle (lib/lot.js) : `id` pour l'attribution du lot
+// clos, `plan` pour titrer une session de conception « [XXX · Plan] <epic> » (lot #130).
+function previousSessionMeta(root, sid) {
   if (!isInitialized(root)) return { id: null, plan: false };
-  try {
-    const st = JSON.parse(fs.readFileSync(stateFile(root), 'utf8'));
-    if (!st || typeof st !== 'object') return { id: null, plan: false };
-    return { id: st.session_id || null, plan: st.plan_session === true };
-  } catch (_) {
-    return { id: null, plan: false };
+  let st = null;
+  if (sid) st = readObj(fileForSid(root, sid)) || { session_id: sid };
+  else {
+    const nf = newestStateFile(root);
+    st = (nf && readObj(nf)) || readObj(legacyFile(root));
   }
+  if (!st) return { id: null, plan: false };
+  return { id: st.session_id || null, plan: st.plan_session === true };
 }
 
-// Marque la session COURANTE comme session de conception (lot #130). Écriture BRUTE et
-// idempotente : on ne passe pas par loadSessionState (qui remettrait les flags à zéro si on
-// lui donnait un autre session_id) — le reste de l'état, y compris session_id, est préservé
-// tel quel. Appelable depuis un hook comme depuis la CLI (qui ne connaît pas le session_id).
-// Fail-silent : renvoie false sans rien casser si le projet n'est pas initialisé.
-function markPlanSession(root) {
+function previousSessionId(root, sid) {
+  return previousSessionMeta(root, sid).id;
+}
+
+// Marque une session comme session de conception (lot #130). Écriture BRUTE et idempotente.
+// `sid` fourni : son fichier ; sinon (CLI/hook sans sid) le fichier le plus récent, à défaut _default.
+function markPlanSession(root, sid) {
   if (!isInitialized(root)) return false;
-  let st;
-  try {
-    st = JSON.parse(fs.readFileSync(stateFile(root), 'utf8'));
-  } catch (_) {
-    st = null;
+  const file = sid ? fileForSid(root, sid) : (newestStateFile(root) || fileForSid(root, null));
+  let st = readObj(file);
+  if (!st) {
+    const old = !sid && !newestStateFile(root) ? readObj(legacyFile(root)) : null;
+    st = old || (sid ? { session_id: sid } : {});
   }
-  if (!st || typeof st !== 'object') st = {};
   if (st.plan_session === true) return true; // déjà marquée : aucune réécriture
   st.plan_session = true;
-  return writeAtomic(stateFile(root), st);
+  try { fs.mkdirSync(stateDir(root), { recursive: true }); } catch (_) { return false; }
+  const ok = writeAtomic(file, st);
+  if (ok) pruneStates(root, file);
+  return ok;
 }
 
 module.exports = {
-  loadSessionState, saveSessionState, previousSessionId, previousSessionMeta,
-  markPlanSession, DEFAULT_STATE,
+  loadState, saveState, loadSessionState, saveSessionState, previousSessionId, previousSessionMeta,
+  markPlanSession, DEFAULT_STATE, MAX_STATE_FILES,
 };
