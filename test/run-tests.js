@@ -1817,7 +1817,7 @@ section('backlog — champ epic optionnel du lot (lot #28)');
   // `epic --set` de P1 a marqué ce repo comme session de conception (lot #130) : la marque
   // est un état de SESSION, remis à zéro au démarrage suivant. Ici on la retire pour tester
   // la nomenclature du lot en cours (le titre « [XXX · Plan] … » a sa propre section B130).
-  try { fs.rmSync(path.join(repo, '.vibe-agent', 'session-state.json'), { force: true }); } catch (_) {}
+  try { fs.rmSync(path.join(repo, '.vibe-agent', 'session-state.json'), { force: true }); fs.rmSync(path.join(repo, '.vibe-agent', 'session-state'), { recursive: true, force: true }); } catch (_) {}
   const planLot = backlogLib.addLot(repo, 'Lot E1 — Namespace plugin pmz', null, 'opus', 'Diffusion pmz — marketplace GitHub publique');
   backlogLib.startLot(repo, planLot.id);
   ok(lot.suggestedTitle(repo) === `[${trgN} · US#${planLot.id}] Diffusion pmz · Namespace plugin pmz`,
@@ -4201,7 +4201,7 @@ section('Coût réel par lot (agrégation cost_tokens + alerte ~300k, lot #43)')
   runHook('stop.js', { session_id: sidC, cwd: repo, transcript_path: tC });
   const bDone = backlogLib.loadBacklog(repo);
   ok(bDone.lots[0].status === 'done' && bDone.lots[0].cost_tokens === 265000, 'e2e : clôture -> cost_tokens conservé (265k)');
-  const stAfter = JSON.parse(fs.readFileSync(path.join(repo, '.vibe-agent', 'session-state.json'), 'utf8'));
+  const stAfter = JSON.parse(fs.readFileSync(path.join(repo, '.vibe-agent', 'session-state', `${sidC}.json`), 'utf8'));
   ok(stAfter.cost_reminded_for_batch === false, 'e2e : tree propre -> alerte de coût réarmée pour le prochain lot');
 
   // S5. fail-open : stop.js ne casse jamais même si le lot n'existe pas / pas de transcript.
@@ -10671,6 +10671,11 @@ for (const [title, file] of [
   ['US#181 — module update-check', 'run-tests-update-check.js'],
   ['US#182 — avis session/statusline/doctor', 'run-tests-update-notice.js'],
   ['Chaîne Plan → Scope → maître : sessions relais', 'run-tests-relais.js'],
+  ['US#185 — fichier live juste', 'run-tests-live.js'],
+  ['US#186 — Stop et handoff neutres', 'run-tests-stop.js'],
+  ['US#187 — archive exacte et --repair', 'run-tests-archive.js'],
+  ['US#188 — sessions, statusline, bande, logs', 'run-tests-sessions.js'],
+  ['US#189 — doctor --state', 'run-tests-doctor-state.js'],
 ]) {
   section(`${title} (test/${file})`);
   const r = spawnSync(process.execPath, [path.join(__dirname, file)], { encoding: 'utf8' });

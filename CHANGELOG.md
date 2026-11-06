@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-06 — Release v2.18.0 — Fiabilité sous-sessions (US#189)
+
+- backlog.js doctor --state [--fix] : fleet figé, alerte au mauvais seeded_at, consignes hors dépôt, agents d'epic close, fichiers versionnés contre .gitignore (vert/orange/rouge).
+- backlog.js archive --repair [--dry-run] câblé sur lib/archive.repair.
+- Docs alignées : hook SubagentStop, 4k/sonnet, phase, état par session, verrou maître, FIFO.
+- Suites live, stop, archive, sessions et doctor-state enregistrées dans test/run-tests.js ; 3 tests périmés par #184 corrigés.
+- Assainissement de cocina et ecpv3 (commits locaux dédiés, non poussés).
+
 ## 2026-11-06 — US#188 US#188 — Surface « où se passe quoi »
 
 - backlog.js sessions [--json] : une ligne par session (rôle, epic, US, état, vivante < 6 h).

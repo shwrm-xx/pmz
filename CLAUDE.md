@@ -51,6 +51,8 @@ ne jamais toucher au `~/.claude` réel sans demande explicite.
 **Tests** : `node test/run-tests.js` (zéro-dépendance, bac à sable auto, exit 0 si tout passe) —
 couvre fail-open, verdicts `pre-tool-use`, occupation, `merge-settings`, bootstrap. À lancer
 avant tout commit touchant `lib/`, `hooks/` ou `install/`.
+État d'un projet gouverné : `node promptimizer/scripts/backlog.js doctor --state [--fix]` (fleet
+figé, alerte périmée, consignes hors dépôt, fichiers versionnés contre `.gitignore`).
 
 ## Release (chaque version et sous-version)
 

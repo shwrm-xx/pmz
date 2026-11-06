@@ -384,6 +384,12 @@ confirmés » sont des Défauts corrigés dans l'US d'arbitrages. Mesure : `add 
 ouverte pour un bug d'une US close ; `show --quality` donne par modèle et modèle · effort les closes,
 réouvertures, régressions et le taux ; `export` porte la colonne `regression_of`.
 
+**Fiabilité des sous-sessions** (US#184-#189) : `backlog.js sessions [--json]` liste session × rôle ×
+epic × US × état ; `backlog.js archive --repair [--dry-run]` répare l'archive (verify inconnu, en-têtes
+doublés, fiches `[object Object]`) ; `backlog.js doctor --state [--fix]` (aussi via `/pmz:doctor`)
+signale les fichiers d'état figés d'un projet (fleet périmé, alerte au mauvais `seeded_at`,
+consignes hors dépôt, agents d'une epic close, fichiers versionnés contre `.gitignore`) et les purge avec `--fix`.
+
 **Bande epicmaster** (US#136-#138) : pendant la session maître, une bande live affiche les
 sous-agents en vol / terminés (`EM ▶n ✔n ⚙n` dans la statusline ; `backlog.js epicmaster --live`
 en CLI). Le mod `promptimizer/mods/epicmaster-band/` (panneau Claude Code) est déployé par

@@ -30,7 +30,7 @@ ok(/\/pickymaster/.test(rd(path.join(PKG, 'install', 'install.js'))), 'install.j
 ok(/\*\*pickymaster\*\*/.test(spawnSync(process.execPath, [path.join(PKG, 'scripts', 'help.js')], { encoding: 'utf8' }).stdout), '/help : pickymaster listée');
 
 // Reconnaissance maître : le hook ne titre pas une session /pickymaster (comme /epicmaster).
-const ups = rd(path.join(PKG, 'hooks', 'user-prompt-submit.js'));
+const ups = rd(path.join(PKG, 'lib', 'roles.js')); // détection déplacée par US#184 (hook -> lib/roles.js)
 ok(/\(epicmaster\|pickymaster\)/.test(ups), 'user-prompt-submit : /pickymaster reconnue comme session maître');
 
 // Build plugin : commande portée, chemins réécrits.
