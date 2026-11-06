@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 190,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-11-06T13:16:50.367Z",
+  "updated_at": "2026-11-06T13:22:20.199Z",
   "lots": [
     {
       "id": 1,
@@ -5683,23 +5683,23 @@
       "id": 187,
       "title": "Archive et CHANGELOG exacts + archive --repair",
       "scope": "fait quand : index verify resynchronisé par setClosedVerify, aucune fiche [object Object], titre CHANGELOG non doublé, un seul en-tête d'index, close-wave écrit les fiches, backlog.js archive --repair répare un dépôt figé — test/run-tests-archive.js et test/run-tests-close-wave.js verts",
-      "status": "todo",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Fiabilité sous-sessions",
       "verify": "node test/run-tests-archive.js && node test/run-tests-close-wave.js",
       "spec": "docs/us/US-187/spec.md",
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
-      "cost_tokens": 0,
-      "cost_turns": 0,
-      "cost_subagent_tokens": 0,
-      "closed_avg_cost_per_turn": null,
-      "started_at": null,
-      "lot_number": null,
+      "closed_commit": "a22fcdb",
+      "closed_at": "2026-11-06T13:22:20.149Z",
+      "closed_session_id": "07ee6640-afaa-4b63-93ba-55a466dcbc51",
+      "closed_occupancy": 185912,
+      "closed_verify": "ok",
+      "cost_tokens": 19338,
+      "cost_turns": 3,
+      "cost_subagent_tokens": 15527,
+      "closed_avg_cost_per_turn": 6446,
+      "started_at": "2026-11-06T13:16:50.684Z",
+      "lot_number": 691,
       "note": null,
       "session_touches": 0,
       "perimeter": [
@@ -5711,7 +5711,7 @@
       "depends_on": [
         185
       ],
-      "session_owner": null,
+      "session_owner": "master/lot-187",
       "regression_of": null
     },
     {
