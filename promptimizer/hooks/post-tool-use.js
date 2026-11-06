@@ -49,14 +49,45 @@ function main() {
     if (root) writeTodoSnapshot(root, input.tool_input && input.tool_input.todos, input.session_id || null);
     return passThrough();
   }
-  // start_session (retour utilisateur 2026-11-04) : la session qui lance (ou propose) la Scope ou
+  // start_session (retour utilisateur 2026-11-04) : la session qui a RÉELLEMENT lancé la Scope ou
   // la session maître devient RELAIS — ses <side-sessions-event> seront écartés au prompt.
+  // US#184 : pas de relais sur une simple proposition (own_initiative / offer) — il faut un id
+  // de session « local_… » dans la réponse.
   if (tool === 'mcp__ccd_session__start_session') {
     const root = gitRoot(input.cwd || process.cwd());
     const sid = input.session_id || null;
     try {
-      if (root && sid && require('../lib/roles').launchesChainSession(input.tool_input)) {
-        require('../lib/roles').setRole(root, sid, { relay: true });
+      const R = require('../lib/roles');
+      if (root && sid && R.launchesChainSession(input.tool_input) && R.startedForReal(input.tool_response)) {
+        R.setRole(root, sid, { relay: true });
+      }
+    } catch (_) { /* fail-open */ }
+    return passThrough();
+  }
+  // Skill pmz:epicmaster / pickymaster : repli de détection du rôle maître (le prompt de carte
+  // peut ne pas matcher) — rôle persisté, aucun titre « HS » ensuite.
+  if (tool === 'Skill') {
+    const root = gitRoot(input.cwd || process.cwd());
+    const sid = input.session_id || null;
+    try {
+      const R = require('../lib/roles');
+      if (root && sid && R.isMasterSkillName(input.tool_input && input.tool_input.skill)) {
+        R.setRole(root, sid, { role: 'master' });
+        const S = require('../lib/state');
+        const st = S.loadState(root, sid);
+        if (!st.master_session) { st.master_session = true; S.saveState(root, sid, st); }
+      }
+    } catch (_) { /* fail-open */ }
+    return passThrough();
+  }
+  // set_session_title : le titre et l'epic de la session sont consignés dans session-roles.json.
+  if (/(^|__)set_session_title$/.test(String(tool || ''))) {
+    const root = gitRoot(input.cwd || process.cwd());
+    try {
+      const ti = input.tool_input && typeof input.tool_input === 'object' ? input.tool_input : {};
+      const target = !ti.session_id || ti.session_id === 'self' ? (input.session_id || null) : String(ti.session_id);
+      if (root && target && ti.title) {
+        require('../lib/roles').setRole(root, target, { title: String(ti.title).slice(0, 200), epic: require('../lib/lot').readEpicRaw(root) || null });
       }
     } catch (_) { /* fail-open */ }
     return passThrough();
@@ -66,6 +97,13 @@ function main() {
   // → sortie brute intacte. tool_response porte {stdout,stderr,interrupted,isImage,…} pour Bash.
   if (tool === 'Bash') {
     const root = gitRoot(input.cwd || process.cwd());
+    // Clôture d'US/lot (close-batch, backlog done) : la session lève son relais (US#184).
+    try {
+      const cmd = String((input.tool_input && input.tool_input.command) || '');
+      if (root && input.session_id && /\b(close-batch(\.js)?|backlog(\.js)?\s+done)\b/.test(cmd)) {
+        require('../lib/roles').clearRelay(root, input.session_id);
+      }
+    } catch (_) { /* fail-open */ }
     const res = reduceBashOutput({
       toolResponse: input.tool_response,
       command: input.tool_input && input.tool_input.command,

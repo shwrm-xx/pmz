@@ -204,7 +204,8 @@ function deduceTitle(root) {
   return deduceFromChangelog(root) || deduceFromGit(root);
 }
 
-function suggestedTitle(root) {
+// `sid` : session décrite (passée par l'appelant, US#184) ; absent => repli historique (état le plus récent).
+function suggestedTitle(root, sid) {
   const trigram = trigramLib.readTrigram(root);
   const libre = `[${trigram} · ${HS_TAG}]`;
   try {
@@ -220,7 +221,7 @@ function suggestedTitle(root) {
       // vrai démarrage de session, cf. hooks/session-start.js) car c'est le seul point de
       // passage qui décrit la session précédente à la session suivante.
       const T = (l, touches) => titleForLot(trigram, l, touches);
-      const prev = previousSessionMeta(root);
+      const prev = previousSessionMeta(root, sid || null);
       const prevSid = prev.id;
       // Chemin PRIMAIRE : le lot que la session PRÉCÉDENTE a réellement clos (attribution
       // par closed_session_id, posé par stop.js). Fiable, indépendant des horodatages sales,
@@ -335,4 +336,4 @@ function nomenclatureSet(root) {
   try { return fs.existsSync(trigramLib.trigramFile(root)); } catch (_) { return true; }
 }
 
-module.exports = { readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, titleForMasterSession, idRanges, currentSessionTitle, uninitSessionTitle, nomenclatureSet, MAX_EPIC };
+module.exports = { readEpicRaw, readEpic, writeEpic, getLotCounter, incrementLot, suggestedTitle, titleForMasterSession, idRanges, currentSessionTitle, uninitSessionTitle, nomenclatureSet, MAX_EPIC };
