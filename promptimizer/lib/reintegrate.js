@@ -402,15 +402,16 @@ function writeReintegrateReport(root, res, opts) {
   try {
     if (!root || !res) return null;
     const now = new Date();
-    const stamp = now.toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const of = require('./output-fallback');
+    const lctx = of.logContext(root, (opts && opts.sessionId) || null, now.getTime());
     const dir = path.join(root, '.vibe-agent', 'logs');
     fs.mkdirSync(dir, { recursive: true });
-    const file = path.join(dir, `reintegrate-${stamp}-${process.pid.toString(36)}.md`);
+    const file = path.join(dir, of.logName(lctx, 'md'));
     const body = reintegrateReport(res, Object.assign({
       date: now.toISOString().slice(0, 10),
       stamp: `${now.toISOString().slice(0, 16).replace('T', ' ')} UTC`,
     }, opts || {}));
-    const ok = writeAtomicText(file, body + '\n');
+    const ok = writeAtomicText(file, `${of.logHeader(lctx)}\n\n${body}\n`);
     if (ok) { try { require('./output-fallback').purgeLogs(root); } catch (_) { /* fail-open */ } }
     return ok ? path.relative(root, file) : null;
   } catch (_) {

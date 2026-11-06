@@ -45,7 +45,7 @@ ok(/· Plan\]/.test(ctx(r)), 'Plan : titre « [XXX · Plan] » en mode plan');
 ok(roles.getRole(repo, 'P').role === 'plan', 'Plan : rôle persisté');
 r = hook('user-prompt-submit.js', { session_id: 'P', prompt: EVT, permission_mode: 'plan' });
 ok(!r.json || r.json.decision !== 'block', 'Plan non relais : événement non filtré');
-r = hook('post-tool-use.js', { session_id: 'P', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Scope — X', prompt: '/pmz:scope --plan /tmp/p.md' }, tool_response: { content: [{ type: 'text', text: 'Started local_288cdc04-ce28-4c32-b0d9-4fbc7a4546e4' }] } });
+r = hook('post-tool-use.js', { session_id: 'P', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Scope — X', prompt: '/pmz:scope --plan /tmp/p.md' }, tool_response: { content: [{ type: 'text', text: JSON.stringify({ session_id: 'local_288cdc04-ce28-4c32-b0d9-4fbc7a4546e4' }) }] } });
 ok(r.code === 0 && !r.json, 'post-tool-use start_session : silencieux');
 ok(roles.isRelay(repo, 'P'), 'Plan : relais après lancement de la Scope');
 
@@ -65,7 +65,7 @@ ok(r.code === 0 && (!r.json || r.json.decision !== 'block'), 'Plan relais : prom
 ok(!/· HS\]/.test(ctx(r)), 'Plan relais hors mode plan : pas retitrée « HS »');
 
 // --- Scope lance la session maître : relais ; la maître, elle, reçoit ses événements ---
-hook('post-tool-use.js', { session_id: 'S', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Session maître — X', prompt: 'Invoque le skill pmz:epicmaster.' }, tool_response: 'ok local_eaf8672a-8516' });
+hook('post-tool-use.js', { session_id: 'S', tool_name: 'mcp__ccd_session__start_session', tool_input: { title: 'Session maître — X', prompt: 'Invoque le skill pmz:epicmaster.' }, tool_response: { session_id: 'local_eaf8672a-8516' } });
 r = hook('user-prompt-submit.js', { session_id: 'S', prompt: EVT });
 ok(r.json && r.json.decision === 'block', 'Scope relais : événement de la maître écarté');
 hook('user-prompt-submit.js', { session_id: 'M', prompt: '/pmz:epicmaster' });
@@ -128,6 +128,21 @@ r = hook('user-prompt-submit.js', { session_id: 'P', prompt: EVT });
 ok(r.code === 0 && (!r.json || r.json.decision !== 'block'), 'roles illisible : fail-open, rien bloqué');
 r = hook('post-tool-use.js', { session_id: 'P', tool_name: 'mcp__ccd_session__start_session', tool_input: 'nimporte' });
 ok(r.code === 0, 'post-tool-use start_session entrée invalide : exit 0');
+
+// --- US#190 : startedForReal strict, master le plus récent, hooks.json ---
+ok(!roles.startedForReal({ status: 'proposed', task_id: 'task_ab1', note: 'voir /tmp/local_288cdc04-ce28/x' }), 'US190-5 : local_ hors champ d\'id -> pas un démarrage réel');
+ok(!roles.startedForReal('proposé, cf local_288cdc04-ce28'), 'US190-5 : texte libre -> faux');
+ok(roles.startedForReal({ content: [{ type: 'text', text: '{"session_id":"local_288cdc04-ce28"}' }] }), 'US190-5 : champ session_id dans un texte JSON -> vrai');
+roles.setRole(repo, 'M-old', { role: 'master' });
+roles.setRole(repo, 'M-new', { role: 'master' });
+roles.setRole(repo, 'PL', { role: 'plan' });
+ok(roles.latestMasterSid(repo) === 'M-new' || roles.latestMasterSid(repo) === 'M-old', 'US190-3 : latestMasterSid ignore les rôles non master');
+ok(roles.latestMasterSid(path.join(TMP, 'absent')) === null, 'US190-3 : latestMasterSid fail-open (null)');
+const hj = JSON.parse(fs.readFileSync(path.join(HOOKS, 'hooks.json'), 'utf8'));
+const pm = hj.hooks.PostToolUse[0].matcher.split('|');
+ok(pm.includes('Skill') && pm.includes('mcp__ccd_session_mgmt__set_session_title'), 'US190-1 : hooks.json PostToolUse couvre Skill + set_session_title');
+ok(/Skill\|mcp__ccd_session_mgmt__set_session_title/.test(fs.readFileSync(path.join(PKG, 'install', 'merge-settings.js'), 'utf8')), 'US190-1 : merge-settings couvre Skill + set_session_title');
+ok(/markPlanSession\(planRoot, input\.session_id\)/.test(fs.readFileSync(path.join(HOOKS, 'pre-tool-use.js'), 'utf8')), 'US190-4 : markPlanSession reçoit le sid');
 
 try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (_) {}
 console.log(`relais : ${pass} OK · ${failures.length} échec(s)`);

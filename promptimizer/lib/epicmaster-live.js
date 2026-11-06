@@ -258,7 +258,7 @@ function parseWaveLabels(spec) {
 // Sid de la session courante (état par session, lib/state) — heuristique « fichier le plus récent » ;
 // null si inconnu (projet sans socle PMZ) : le filtre session et le verrou se désarment alors.
 function currentSid(root) {
-  try { return require('./state').previousSessionId(root) || null; } catch (_) { return null; }
+  try { return require('./roles').latestMasterSid(root) || require('./state').previousSessionId(root) || null; } catch (_) { return null; }
 }
 
 // Verrou (US#185) : un live de moins de STALE_MS, semé par une AUTRE session et portant au moins un
