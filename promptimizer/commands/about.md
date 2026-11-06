@@ -10,3 +10,7 @@ Exécute : `node ~/.claude/promptimizer/scripts/about.js`
 Restitue tel quel : version installée, état du bridge RTK (si affiché), epic du projet,
 progression et US en cours (ou prochaine US). N'invente aucun chiffre si le script les
 annonce absents/inconnus.
+
+Pour savoir « où se passe quoi » entre plusieurs sessions ouvertes sur le dépôt, propose aussi :
+`node ~/.claude/promptimizer/scripts/backlog.js sessions` (une ligne par session : rôle, epic, US,
+état, dernier événement ; `--json` pour la sortie machine).

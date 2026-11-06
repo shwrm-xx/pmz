@@ -521,7 +521,7 @@ function epicmaster(root, json) {
   // --live [--detailed] (lot #136) : état LIVE de la session maître (.vibe-agent/epicmaster-live.json),
   // lecture seule — ne calcule ni plan ni handoff. Compact par défaut ; --detailed : une ligne par lot/agent.
   if (process.argv.includes('--live')) {
-    const r = require('../lib/epicmaster-live').renderLive(root, { detailed: process.argv.includes('--detailed') });
+    const r = require('../lib/epicmaster-live').renderLive(root, { detailed: process.argv.includes('--detailed'), sessions: process.argv.includes('--sessions') });
     return out(json ? JSON.stringify(r.summary, null, 2) : r.text);
   }
   // --phase <p> (US#185) : phase explicite de la session maître ; `done` seule pose finished.
@@ -1078,6 +1078,10 @@ function main() {
   if (cmd === 'close-wave') return closeWave(root, json);
 
   if (cmd === 'fleet') return fleetCmd(root, sub, json);
+  if (cmd === 'sessions') { // US#188 : session × rôle × epic × US × état
+    const rows = backlog.sessionsRows(root);
+    return out(json ? JSON.stringify(rows.map(({ last_ms, ...r }) => r), null, 2) : backlog.renderSessions(rows));
+  }
 
   if (cmd === 'reintegrate') {
     return reintegrate(root, json, process.argv.includes('--execute'), flag('into'), {

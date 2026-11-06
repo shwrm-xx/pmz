@@ -42,7 +42,15 @@ export type LiveWave = {
   startedAt: number | null
 }
 
+// Phase de consolidation du maître (US#185/#188) : `waves` (défaut) ou review|arbitrage|settle|done.
+export type LivePhase = 'waves' | 'review' | 'arbitrage' | 'settle' | 'done'
+const PHASES: LivePhase[] = ['waves', 'review', 'arbitrage', 'settle', 'done']
+// Sous-agent actif : US rattachée (`lot`) ou phase de consolidation (`kind`), et son type.
+export type LiveAgent = { type: string; lot: string | null; kind: string }
+
 export type LiveView = {
+  phase: LivePhase | null
+  agents: LiveAgent[]
   epic: string
   wave: { current: number; total: number } | null
   lots: LiveLot[]
@@ -197,11 +205,18 @@ export function parseLive(text: unknown, now: number): LiveView | null {
     const running = count('running'), pending = count('pending'), interrupted = count('interrupted')
     const failed = lots.filter((l) => l.status === 'failed')
     const explicit = typeof raw.finished === 'boolean' ? raw.finished : null
-    const finished = explicit ?? (running === 0 && pending === 0 && interrupted === 0)
+    const phase = typeof raw.phase === 'string' && (PHASES as string[]).includes(raw.phase) ? (raw.phase as LivePhase) : null
+    // Une phase de consolidation en cours (relecture, arbitrage, solde) n'est JAMAIS « terminé ».
+    const finished = phase && phase !== 'done' ? false : explicit ?? (phase === 'done' ? true : running === 0 && pending === 0 && interrupted === 0)
+    const liveAgents: LiveAgent[] = agents
+      .filter((a) => !a.stopped_at)
+      .map((a) => ({ type: str(a.type, 40), lot: a.lot === undefined || a.lot === null ? null : str(a.lot, 20), kind: str(a.kind, 20) }))
     const td = raw.to_decide ?? raw.a_trancher
     const toDecide = Array.isArray(td) ? td.length : num(td) ?? 0
     const epicRaw = isRec(raw.epic) ? raw.epic.title : raw.epic
     return {
+      phase,
+      agents: liveAgents,
       epic: str(epicRaw, 60) || 'epicmaster',
       wave: readWave(raw),
       lots,
@@ -213,7 +228,7 @@ export function parseLive(text: unknown, now: number): LiveView | null {
       finished,
       toDecide,
       waves: readWaves(raw, lots),
-      signature: `${str(raw.updated_at, 40)}|${lots.map((l) => l.id + l.status[0]).join(',')}`,
+      signature: `${str(raw.updated_at, 40)}|${phase ?? ''}|${lots.map((l) => l.id + l.status[0]).join(',')}`,
     }
   } catch (_) {
     return null
@@ -303,4 +318,102 @@ export function planMarkdown(v: LiveView, now: number): string {
   L.push('')
   L.push('_Durées et tokens : estimation indicative._')
   return L.join('\n')
+}
+
+// ── Surface « où se passe quoi » (US#188) ───────────────────────────────────────────────────
+const PHASE_LABEL: Record<string, string> = { review: 'relecture', arbitrage: 'arbitrage', settle: 'solde' }
+
+// Libellé de la phase de consolidation (« relecture » / « arbitrage » / « solde »), '' sinon.
+export function phaseLabel(v: LiveView): string {
+  return v.phase ? PHASE_LABEL[v.phase] ?? '' : ''
+}
+
+// Une ligne par sous-agent actif : « ⚙ #N type » (US rattachée) ou « ⚙ phase type » (consolidation).
+export function agentLine(a: LiveAgent): string {
+  const where = a.lot !== null ? `#${a.lot}` : a.kind ? (PHASE_LABEL[a.kind] ?? a.kind) : 'non rattaché'
+  return `⚙ ${where} ${a.type || 'agent'}`.trim()
+}
+
+// Vagues D3 (fleet.json) : « D3 · 2 US en vol (#7 en cours, #8 prêt) » ; null si aucune vague active.
+export const FLEET_PATH = '.vibe-agent/fleet.json'
+export type FleetView = { waveId: string; lots: { id: string; state: string }[] }
+export function parseFleet(text: unknown): FleetView | null {
+  try {
+    if (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT) return null
+    const raw: unknown = JSON.parse(text)
+    if (!isRec(raw) || !Array.isArray(raw.lots)) return null
+    const lots = raw.lots.filter(isRec).filter((l) => num(l.id) !== null)
+      .map((l) => ({ id: str(l.id, 20), state: str(l.state, 20) || 'en cours' }))
+    return lots.length ? { waveId: str(raw.wave_id, 40), lots } : null
+  } catch (_) {
+    return null
+  }
+}
+export function fleetLabel(f: FleetView): string {
+  return `D3 · ${f.lots.length} US en vol (${f.lots.map((l) => `#${l.id} ${l.state}`).join(', ')})`
+}
+
+// Tête de bande en texte : « ◆ epic · vague 1/2 · relecture » (testable sans rendu).
+export function bandHead(v: LiveView): string {
+  const ph = phaseLabel(v)
+  return `◆ ${v.epic}${v.wave ? ` · vague ${v.wave.current}/${v.wave.total}` : ''}${ph ? ` · ${ph}` : ''} `
+}
+
+// Tableau « sessions » (bouton Sessions) : mêmes colonnes que `backlog.js sessions`, calculé ici
+// depuis session-roles.json + live + fleet.json (la bande n'exécute aucun script).
+export const ROLES_PATH = '.vibe-agent/session-roles.json'
+export function sessionsText(rolesText: unknown, liveText: unknown, fleetText: unknown, now: number): string {
+  type Row = { sid6: string; title: string; role: string; epic: string; us: string[]; state: string; last: number | null }
+  const rows = new Map<string, Row>()
+  const row = (sid: string): Row => {
+    let r = rows.get(sid)
+    if (!r) { r = { sid6: sid.replace(/[^A-Za-z0-9]/g, '').slice(0, 6), title: '', role: '-', epic: '', us: [], state: '-', last: null }; rows.set(sid, r) }
+    return r
+  }
+  const bump = (r: Row, t: number | null) => { if (t !== null && (r.last === null || t > r.last)) r.last = t }
+  try {
+    const roles: unknown = JSON.parse(String(rolesText))
+    if (isRec(roles)) for (const [sid, e] of Object.entries(roles)) {
+      if (!isRec(e)) continue
+      const r = row(sid)
+      r.title = str(e.title, 60); r.role = str(e.role, 12) || '-'; r.epic = str(e.epic, 40); bump(r, num(e.at))
+    }
+  } catch (_) { /* absent */ }
+  try {
+    const raw: unknown = JSON.parse(String(liveText))
+    if (isRec(raw) && typeof raw.master_session_id === 'string') {
+      const r = row(raw.master_session_id)
+      r.role = 'master'
+      if (!r.epic) r.epic = str(isRec(raw.epic) ? raw.epic.title : raw.epic, 40)
+      const lots = isRec(raw.lots) ? Object.values(raw.lots).filter(isRec) : []
+      const running = lots.filter((l) => l.status === 'running').map((l) => num(l.id)).filter((n): n is number => n !== null).sort((a, b) => a - b)
+      r.us.push(...running.map((n) => `US#${n}`))
+      const ag = (isRec(raw.agents) ? Object.values(raw.agents).filter(isRec) : []).filter((a) => !a.stopped_at).length
+      r.state = `${typeof raw.phase === 'string' ? raw.phase : 'waves'}${running.length ? ` · ${running.length} en cours` : ''}${ag ? ` · ${ag} agent${ag > 1 ? 's' : ''}` : ''}`
+      bump(r, time(raw.updated_at))
+    }
+  } catch (_) { /* absent */ }
+  try {
+    const raw: unknown = JSON.parse(String(fleetText))
+    if (isRec(raw) && Array.isArray(raw.lots)) for (const l of raw.lots) {
+      if (!isRec(l) || typeof l.session_owner !== 'string' || num(l.id) === null) continue
+      const r = row(l.session_owner)
+      if (r.role === '-') r.role = 'fille'
+      if (!r.us.includes(`US#${l.id}`)) r.us.push(`US#${l.id}`)
+      r.state = `D3 ${str(l.state, 20) || 'en cours'}`
+      bump(r, time(raw.updated_at))
+    }
+  } catch (_) { /* absent */ }
+  if (!rows.size) return 'Aucune session connue.'
+  const date = (t: number | null) => {
+    if (t === null) return '—'
+    const d = new Date(t), p = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+  }
+  const lines = ['titre | rôle | sid6 | vivante | epic | US | état | dernier événement']
+  for (const r of [...rows.values()].sort((a, b) => (b.last ?? 0) - (a.last ?? 0))) {
+    const alive = r.last === null ? '?' : now - r.last < STALE_MS ? 'oui' : 'non'
+    lines.push([r.title || '—', r.role, r.sid6, alive, r.epic || '—', r.us.join(',') || '—', r.state, date(r.last)].join(' | '))
+  }
+  return lines.join('\n')
 }

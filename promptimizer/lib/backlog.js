@@ -840,6 +840,97 @@ function costLotFor(b, sid) {
   return inProg.find((l) => l.session_owner === sid) || null;
 }
 
+// PUR (US#188). US « en cours » propre à UNE session : en maître, l'in_progress dont session_owner
+// est « master/… » ; sinon celle dont session_owner === sid. null si aucune (l'appelant retombe sur
+// currentLot/nextLot — comportement historique, inchangé hors session identifiée).
+function lotOwnedBy(b, sid, isMaster) {
+  const inProg = ((b && Array.isArray(b.lots)) ? b.lots : []).filter((l) => l.status === 'in_progress');
+  if (isMaster) return inProg.find((l) => /^master\//.test(String(l.session_owner || ''))) || null;
+  if (!sid) return null;
+  return inProg.find((l) => l.session_owner === sid) || null;
+}
+
+// ── Vue « sessions » (US#188) : `backlog.js sessions [--json]` ────────────────────────────────
+// Une ligne par session connue : session-roles.json (titre, rôle, epic) + live (maître, agents,
+// phase) + fleet.json (filles D3) + backlog.session_owner. « vivante » = événement < 6 h (oui/non),
+// « ? » si aucun horodatage. Lecture seule, fail-open (vue vide).
+const SESSION_ALIVE_MS = 6 * 3600 * 1000;
+function fmtDate(t) {
+  if (!Number.isFinite(t)) return '—';
+  const d = new Date(t);
+  const p2 = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
+function sessionsRows(root, now) {
+  const t = now == null ? Date.now() : now;
+  const rows = new Map();
+  const row = (sid) => {
+    if (!rows.has(sid)) rows.set(sid, { sid, sid6: String(sid).replace(/[^A-Za-z0-9]/g, '').slice(0, 6), title: '', role: '-', epic: '', us: [], state: '-', last: null });
+    return rows.get(sid);
+  };
+  const bump = (r, ms) => { if (Number.isFinite(ms) && (r.last == null || ms > r.last)) r.last = ms; };
+  try {
+    const roles = require('./roles');
+    const all = JSON.parse(require('fs').readFileSync(roles.rolesFile(root), 'utf8'));
+    for (const [sid, e] of Object.entries(all && typeof all === 'object' ? all : {})) {
+      if (!e || typeof e !== 'object') continue;
+      const r = row(sid);
+      r.title = e.title || ''; r.role = e.role || '-'; r.epic = e.epic || '';
+      bump(r, Number(e.at));
+    }
+  } catch (_) { /* pas de session-roles.json */ }
+  try {
+    const live = require('./epicmaster-live');
+    const st = live.load(root);
+    if (st.master_session_id) {
+      const r = row(st.master_session_id);
+      r.role = 'master';
+      if (!r.epic && st.epic) r.epic = st.epic;
+      const lots = Object.values(st.lots || {}).filter((l) => l && typeof l === 'object');
+      const running = lots.filter((l) => l.status === 'running').map((l) => l.id).sort((a, c) => a - c);
+      for (const id of running) r.us.push(id);
+      const agents = live.summarize(st, t).agents_active.length;
+      r.state = `${st.phase || 'waves'}${running.length ? ` · ${running.length} en cours` : ''}${agents ? ` · ${agents} agent${agents > 1 ? 's' : ''}` : ''}`;
+      bump(r, Date.parse(st.updated_at));
+    }
+  } catch (_) { /* pas de live */ }
+  try {
+    const f = require('./fleet').loadFleet(root);
+    if (f.active) {
+      for (const l of f.lots) {
+        const r = row(l.session_owner);
+        if (r.role === '-') r.role = 'fille';
+        if (!r.us.includes(l.id)) r.us.push(l.id);
+        r.state = `D3 ${l.state}`;
+        bump(r, Date.parse(f.updated_at));
+      }
+    }
+  } catch (_) { /* pas de fleet */ }
+  try {
+    const b = loadBacklog(root);
+    for (const l of b.lots) {
+      if (l.status !== 'in_progress' || !l.session_owner) continue;
+      const owner = String(l.session_owner);
+      const targets = /^master\//.test(owner) ? [...rows.values()].filter((r) => r.role === 'master') : (rows.has(owner) ? [rows.get(owner)] : []);
+      for (const r of targets) {
+        if (!r.us.includes(l.id)) r.us.push(l.id);
+        if (r.state === '-') r.state = 'en cours';
+      }
+    }
+  } catch (_) { /* backlog illisible */ }
+  return [...rows.values()].map((r) => ({
+    title: r.title || '—', role: r.role, sid6: r.sid6, alive: r.last == null ? '?' : (t - r.last < SESSION_ALIVE_MS ? 'oui' : 'non'),
+    epic: r.epic || '—', us: r.us.length ? r.us.map((n) => `US#${n}`).join(',') : '—', state: r.state,
+    last: r.last == null ? null : fmtDate(r.last), last_ms: r.last,
+  })).sort((a, c) => (c.last_ms || 0) - (a.last_ms || 0));
+}
+function renderSessions(rows) {
+  if (!rows.length) return 'Aucune session connue (ni session-roles.json, ni live maître, ni fleet.json actif).';
+  return ['titre | rôle | sid6 | vivante | epic | US | état | dernier événement']
+    .concat(rows.map((r) => [r.title, r.role, r.sid6, r.alive, r.epic, r.us, r.state, r.last || '—'].join(' | ')))
+    .join('\n');
+}
+
 // PUR. Dépendances d'un lot qui BLOQUENT encore son démarrage : ids de lots PRÉSENTS au statut
 // todo/in_progress. Sémantique alignée sur planWaves : `done`, `dropped` ou id inconnu = dépendance
 // SATISFAITE (tolérance hors-plan) — sinon un depends_on pointant un lot abandonné gèlerait le plan
@@ -1223,7 +1314,7 @@ module.exports = {
   backlogFile, loadBacklog, saveBacklog, addLot, setVerify, setClosedVerify, setPerimeter, setDepends, setSpec,
   specPathFor, renderSpecTemplate, createSpecFile, checkSpecStructure, SPEC_REQUIRED_SECTIONS, SPEC_V2_MARKER, SPEC_DIR, LOT_KINDS,
   startLot, doneLot, dropLot, noteLot, reopenLot,
-  touchLot, addCost, currentLot, costLotFor, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, progress, summaryLines, reconcile,
+  touchLot, addCost, currentLot, costLotFor, lotOwnedBy, sessionsRows, renderSessions, nextLot, blockedByOf, lastDoneLot, lotClosedBySession, progress, summaryLines, reconcile,
   epicBilan, estimateCost, canCoexist, pairwiseCoexist, planWaves, waveBranch,
   todoSnapshotFile, writeTodoSnapshot, readTodoSnapshot, modelEffortTag, costlyChoiceWarning,
   exportCsv, exportMarkdown, qualityStats, orphanArgs, overflowFields, isTruncated, VALUE_FLAGS, BOOL_FLAGS,

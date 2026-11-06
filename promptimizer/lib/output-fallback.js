@@ -118,17 +118,51 @@ function purgeLogs(root, max) {
   }
 }
 
-// Écrit la sortie complète (stdout + stderr) sous .vibe-agent/logs/<id>.log. Renvoie le chemin
+// Nom de log « où se passe quoi » (US#188) : <YYYYMMDD-HHMM>-<US<id>|sans>-<sid6>-<rnd4>.<ext>.
+// `ctx` = { sid, usId, now } ; sid absent -> « xxxxxx ». Pur (rnd4 injectable pour les tests).
+function sid6Of(sid) {
+  const s = String(sid || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 6);
+  return s || 'xxxxxx';
+}
+function logName(ctx, ext, rnd) {
+  const c = ctx || {};
+  const d = new Date(c.now == null ? Date.now() : c.now);
+  const p2 = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}`;
+  const us = c.usId != null && c.usId !== '' ? `US${c.usId}` : 'sans';
+  const r = rnd || Math.random().toString(36).slice(2, 6).padEnd(4, '0');
+  return `${stamp}-${us}-${sid6Of(c.sid)}-${r}.${ext || 'log'}`;
+}
+// Première ligne : « # Session <sid6> · <titre> · US#N » (titre/US inconnus : « — »).
+function logHeader(ctx) {
+  const c = ctx || {};
+  return `# Session ${sid6Of(c.sid)} · ${c.title || '—'} · US#${c.usId != null && c.usId !== '' ? c.usId : '—'}`;
+}
+// Contexte de session d'un log : sid (fourni, sinon heuristique « état le plus récent »), titre
+// (session-roles.json), US tenue (session_owner = sid, ou unique US en cours). Fail-open : {}.
+function logContext(root, sid, now) {
+  const ctx = { now };
+  try {
+    ctx.sid = sid || require('./state').previousSessionId(root) || null;
+  } catch (_) { ctx.sid = sid || null; }
+  try { ctx.title = require('./roles').getRole(root, ctx.sid).title || null; } catch (_) { /* fail-open */ }
+  try {
+    const b = require('./backlog');
+    const lot = b.costLotFor(b.loadBacklog(root), ctx.sid);
+    if (lot) ctx.usId = lot.id;
+  } catch (_) { /* fail-open */ }
+  return ctx;
+}
+
+// Écrit la sortie complète (stdout + stderr) sous .vibe-agent/logs/<nom>.log. Renvoie le chemin
 // RELATIF au repo (pour affichage) ou null si l'écriture échoue. best-effort, jamais throw.
-function writeFullLog(root, command, stdout, stderr) {
+function writeFullLog(root, command, stdout, stderr, ctx) {
   try {
     const dir = path.join(root, '.vibe-agent', 'logs');
     fs.mkdirSync(dir, { recursive: true });
-    let hash = 5381;
-    for (let i = 0; i < command.length; i++) hash = ((hash * 33) ^ command.charCodeAt(i)) >>> 0;
-    const id = `${Date.now().toString(36)}-${hash.toString(36)}`;
-    const file = path.join(dir, `${id}.log`);
-    const body = `# Commande : ${command}\n\n## stdout\n${stdout}\n${stderr ? `\n## stderr\n${stderr}\n` : ''}`;
+    const c = ctx || logContext(root, null, Date.now());
+    const file = path.join(dir, logName(c, 'log'));
+    const body = `${logHeader(c)}\n# Commande : ${command}\n\n## stdout\n${stdout}\n${stderr ? `\n## stderr\n${stderr}\n` : ''}`;
     fs.writeFileSync(file, body);
     try { purgeLogs(root); } catch (_) { /* fail-open : la purge ne doit jamais invalider l'écriture */ }
     return path.relative(root, file);
@@ -173,7 +207,7 @@ function reduceBashOutput(opts) {
   if (kept.length >= rawCount * 0.9) return null;
 
   const command = typeof o.command === 'string' ? o.command : '';
-  const logPath = writeFullLog(root, command, stdout, tr.stderr);
+  const logPath = writeFullLog(root, command, stdout, tr.stderr, logContext(root, o.sessionId, Date.now()));
   if (!logPath) return null; // stockage impossible → on ne réduit pas (cf. supra)
 
   const errCount = countErrors(rawLines);
@@ -193,4 +227,4 @@ function reduceBashOutput(opts) {
   return { updatedToolOutput, summary: header, logPath };
 }
 
-module.exports = { reduceBashOutput, dedupeConsecutive, keepSalient, countErrors, purgeLogs };
+module.exports = { reduceBashOutput, dedupeConsecutive, keepSalient, countErrors, purgeLogs, writeFullLog, logName, logHeader, logContext, sid6Of };

@@ -40,6 +40,11 @@ function clipStr(s, n) { s = s == null ? '' : String(s); return s.length > n ? s
 function nowIso(now) { return new Date(now == null ? Date.now() : now).toISOString(); }
 function ts(iso) { const t = Date.parse(iso); return Number.isFinite(t) ? t : null; }
 
+// Notifications opt-in (US#188) : jamais bloquantes (notify.js est lui-même fail-open et muet sans PMZ_NOTIFY=1).
+function notifyEvent(fn, arg) {
+  try { require('./notify')[fn](arg); } catch (_) { /* fail-open */ }
+}
+
 function isMasterOwner(owner) { return typeof owner === 'string' && OWNER_RE.test(owner); }
 function livePath(root) { return path.join(root, '.vibe-agent', LIVE_FILE); }
 
@@ -214,7 +219,10 @@ function recordLot(root, kind, lot, owner, now, extra) {
     } else return false;
     st.lots[key] = cur;
     refreshProgress(st);
-    return save(root, st, now);
+    const saved = save(root, st, now);
+    if (saved && kind === 'done' && cur.status === 'failed') notifyEvent('notifyVerifyRed', cur);
+    if (saved && kind === 'note' && extra && extra.decide) notifyEvent('notifyToDecide', { id: lot.id, title: lot.title, reason: lot.note });
+    return saved;
   } catch (_) { return false; }
 }
 // File de lancement (US#185) : `start --id N` y pousse N ; SubagentStart consomme la tête. Un N déjà
@@ -359,9 +367,12 @@ function setPhase(root, phase, now) {
     if (!PHASES.includes(phase)) return { ok: false, reason: `phase invalide (« ${phase} ») — ${PHASES.join(' | ')}` };
     const st = load(root);
     if (!st.seeded_at) return { ok: false, reason: 'aucun état live semé (--live-seed d\'abord)' };
+    const was = st.phase;
     st.phase = phase;
     refreshProgress(st);
-    return { ok: !!save(root, st, now), phase };
+    const ok = !!save(root, st, now);
+    if (ok && phase === 'done' && was !== 'done') notifyEvent('notifyMasterDone', st.epic);
+    return { ok, phase };
   } catch (_) { return { ok: false, reason: 'échec' }; }
 }
 
@@ -442,7 +453,10 @@ function recordSubagent(root, event, input, now) {
     } else if (event === 'stop') {
       const a = st.agents[id];
       if (!a || typeof a !== 'object') return false; // arrêt d'un agent jamais vu : on n'invente rien
+      const wasRunning = !a.stopped_at;
       a.stopped_at = t;
+      if (wasRunning && save(root, st, now)) { notifyEvent('notifyAgentDone', a); return true; }
+      return false;
     } else return false;
     return save(root, st, now);
   } catch (_) { return false; }
@@ -549,6 +563,11 @@ function renderDetailed(sum, now) {
 function renderLive(root, opts) {
   try {
     const o = opts || {};
+    if (o.sessions) { // `--live --sessions` (US#188) : une ligne par session connue
+      const b = require('./backlog');
+      const rows = b.sessionsRows(root, o.now);
+      return { text: b.renderSessions(rows), summary: rows.map(({ last_ms, ...r }) => r) };
+    }
     const st = load(root);
     const sum = summarize(st, o.now);
     sum._agents = st.agents;
@@ -560,9 +579,19 @@ function renderLive(root, opts) {
 
 // Segment statusline (« EM ▶2 ✔1 ⚙3 »). '' si rien d'actif : un maître terminé / un projet sans
 // session maître ne laisse aucun bruit dans la barre. Lecture d'un seul petit fichier.
-function statusSegment(root, now) {
+// `sid` (US#188) : session qui affiche la barre — « EM » seulement si c'est la maître (sid du live
+// ou rôle `master` dans session-roles.json) ; une session fille / ordinaire n'a pas de segment.
+// `sid` absent : comportement historique (segment du projet).
+function isMasterSession(root, st, sid) {
+  if (!sid) return true;
+  if (st && st.master_session_id) return st.master_session_id === String(sid);
+  try { return require('./roles').getRole(root, sid).role === 'master'; } catch (_) { return false; }
+}
+function statusSegment(root, now, sid) {
   try {
-    const sum = summarize(load(root), now);
+    const st = load(root);
+    if (!isMasterSession(root, st, sid)) return '';
+    const sum = summarize(st, now);
     if (!isActive(sum)) return '';
     const parts = ['EM'];
     if (sum.running.length) parts.push(`▶${sum.running.length}`);
@@ -575,5 +604,5 @@ function statusSegment(root, now) {
 module.exports = {
   LIVE_FILE, globalLivePath, globalLiveDir, liveSlug, OWNER_RE, STALE_MS, NO_STATE, isMasterOwner, livePath, load, summarize, isActive,
   ALERT_FILE, PHASES, isForeignSession, foreignMasterHold, currentSid, setPhase, addLot,
-  recordStart, recordDone, recordNote, recordSubagent, seedFromPlan, refreshProgress, renderCompact, renderDetailed, renderLive, statusSegment,
+  recordStart, recordDone, recordNote, recordSubagent, seedFromPlan, refreshProgress, renderCompact, renderDetailed, renderLive, statusSegment, isMasterSession,
 };
