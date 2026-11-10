@@ -47,4 +47,4 @@ afin que l'email MH ne soit plus exposé publiquement.
 
 ## Preuve de clôture
 
-- `git fetch -f origin 'refs/tags/*:refs/tags/*' && ! git log origin/main origin/plugin-release --tags --format=%ae%ce | grep -qi malakoff`
+- `git fetch -f origin '+refs/tags/*:refs/rt/*' && ! git log origin/main origin/plugin-release --glob=refs/rt --format=%ae%ce | grep -qi malakoff` — fetch dans `refs/rt/*`, ne touche jamais les tags locaux ; taggers vérifiés sur le clone frais (contrat étape 5).
