@@ -194,3 +194,4 @@
 #0189 | 2026-11-06 | de818b5 | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Docs, doctor --state, assainissement cocina+ecpv3, release v2.18.0
 #0190 | 2026-11-06 | 4e54090 | epic:Fiabilité sous-sessions | verify:inconnu | fiche:non | Arbitrages — Fiabilité sous-sessions
 #0191 | 2026-11-10 | 02041e2 | epic:Purge email MH | verify:OK | fiche:oui | Réécriture locale historique + remap des SHA
+#0192 | 2026-11-10 | da96f26 | epic:Purge email MH | verify:OK | fiche:non | Publication de l'historique réécrit (force-push)
