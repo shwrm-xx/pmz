@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-10 — US#191 Purge email MH : réécriture locale de l'historique
+
+- Historique local réécrit : email MH remplacé par le noreply GitHub (auteur/committer, 453 commits).
+- 13 tags annotés recréés (messages et dates conservés).
+- SHA remappés dans backlog.json et archive/index.md.
+- Sauvegarde miroir + table de correspondance hors dépôt.
+- Aucun push (US#192).
+
 ## 2026-11-06 — US#189 US#189 — Docs et doctor --state
 
 - backlog.js doctor --state et archive --repair câblés.

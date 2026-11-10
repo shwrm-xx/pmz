@@ -193,3 +193,4 @@
 #0188 | 2026-11-06 | 7f82c0d | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Surface où se passe quoi : sessions, statusline, bande, logs, notifs
 #0189 | 2026-11-06 | de818b5 | epic:Fiabilité sous-sessions | verify:inconnu | fiche:oui | Docs, doctor --state, assainissement cocina+ecpv3, release v2.18.0
 #0190 | 2026-11-06 | 4e54090 | epic:Fiabilité sous-sessions | verify:inconnu | fiche:non | Arbitrages — Fiabilité sous-sessions
+#0191 | 2026-11-10 | 02041e2 | epic:Purge email MH | verify:OK | fiche:oui | Réécriture locale historique + remap des SHA
