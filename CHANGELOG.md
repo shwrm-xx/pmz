@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-10 — US#192 Historique publié
+
+- Historique réécrit force-poussé : `main`, 13 tags `v2.12.2` à `v2.18.0` et `plugin-release` régénérée depuis `v2.18.0`.
+- Contrôle sur clone frais : aucune occurrence de l'email MH (auteurs, committers, taggers).
+
 ## 2026-11-10 — US#191 Purge email MH : réécriture locale de l'historique
 
 - Historique local réécrit : email MH remplacé par le noreply GitHub (auteur/committer, 453 commits).
