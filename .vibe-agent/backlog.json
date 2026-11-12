@@ -2,7 +2,7 @@
   "version": 1,
   "next_id": 195,
   "created_at": "2026-07-10T19:22:52+02:00",
-  "updated_at": "2026-11-12T12:34:29.642Z",
+  "updated_at": "2026-11-12T12:38:28.960Z",
   "lots": [
     {
       "id": 1,
@@ -5923,24 +5923,24 @@
       "id": 194,
       "title": "Panne de hooks visible, titre Scope autonome, release v2.18.1",
       "scope": "fait quand : doctor passe rouge si un hook référencé par hooks.json est inexécutable ; backlog.js session-title --scope imprime [XXX · Scope] objet et scope.md s'en sert ; v2.18.1 publiée",
-      "status": "todo",
+      "status": "done",
       "model_hint": "sonnet",
       "effort_hint": "medium",
       "epic": "Hooks increvables",
       "verify": "node test/run-tests-doctor-state.js && node test/run-tests.js && grep -q '^2.18.1' promptimizer/VERSION",
       "spec": "docs/us/US-194/spec.md",
-      "closed_commit": null,
-      "closed_at": null,
-      "closed_session_id": null,
-      "closed_occupancy": null,
-      "closed_verify": null,
-      "cost_tokens": 0,
-      "cost_turns": 0,
-      "cost_subagent_tokens": 0,
-      "closed_avg_cost_per_turn": null,
-      "started_at": null,
-      "lot_number": null,
-      "note": null,
+      "closed_commit": "73c8627",
+      "closed_at": "2026-11-12T12:38:28.927Z",
+      "closed_session_id": "38a77669-c2ff-499a-b229-e092022e28a8",
+      "closed_occupancy": 195481,
+      "closed_verify": "ok",
+      "cost_tokens": 20066,
+      "cost_turns": 2,
+      "cost_subagent_tokens": 14382,
+      "closed_avg_cost_per_turn": 10033,
+      "started_at": "2026-11-12T12:34:32.284Z",
+      "lot_number": 702,
+      "note": "dette #193 : docs/PRIVACY.md (l.20-25,144) décrit encore bin/pmz-hook ; à corriger",
       "session_touches": 0,
       "perimeter": [
         "promptimizer/install/doctor.js",
@@ -5957,7 +5957,7 @@
       "depends_on": [
         193
       ],
-      "session_owner": null,
+      "session_owner": "master/lot-194",
       "regression_of": null
     }
   ]

@@ -196,3 +196,4 @@
 #0191 | 2026-11-10 | 02041e2 | epic:Purge email MH | verify:OK | fiche:oui | Réécriture locale historique + remap des SHA
 #0192 | 2026-11-10 | da96f26 | epic:Purge email MH | verify:OK | fiche:non | Publication de l'historique réécrit (force-push)
 #0193 | 2026-11-12 | 0f60d69 | epic:Hooks increvables | verify:OK | fiche:oui | Hooks sans lanceur : commande autonome
+#0194 | 2026-11-12 | 73c8627 | epic:Hooks increvables | verify:OK | fiche:oui | Panne de hooks visible, titre Scope autonome, release v2.18.1
