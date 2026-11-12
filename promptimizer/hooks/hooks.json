@@ -1,0 +1,99 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|ExitPlanMode|EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Edit|Write|TodoWrite|Bash|mcp__ccd_session__start_session|Skill|mcp__ccd_session_mgmt__set_session_title",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/stop.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-compact.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-live.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f \"$1\" ] || exit 0; for n in \"$(command -v node 2>/dev/null)\" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n \"$n\" ] && [ -x \"$n\" ] && exec \"$n\" \"$1\"; done; exit 0' pmz \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-live.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "modules": [
+    "./register.tsx"
+  ]
+}
