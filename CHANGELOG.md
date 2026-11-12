@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-12 — US#193 Hooks sans lanceur : commande autonome
+
+- hooks.json n'appelle plus bin/pmz-hook : résolution de node dans la commande sh -c
+- Un fichier annexe disparu du cache ne coupe plus les hooks (incident 2026-11-09, exit 127 pendant trois jours)
+- bin/pmz-hook reste livré et inchangé pour les anciens hooks.json en mémoire
+- Nouveau test run-tests-hooks-autonomes.js branché dans la suite principale
+- ARCHITECTURE.md mis à jour (Canal plugin)
+
 ## 2026-11-10 — US#192 Historique publié
 
 - Historique réécrit force-poussé : `main`, 13 tags `v2.12.2` à `v2.18.0` et `plugin-release` régénérée depuis `v2.18.0`.
