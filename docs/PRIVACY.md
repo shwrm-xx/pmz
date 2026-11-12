@@ -17,12 +17,13 @@ All eight events below are declared in `promptimizer/hooks/hooks.json` (SessionS
 UserPromptSubmit, PreToolUse, PostToolUse, Stop, PreCompact, SubagentStart, SubagentStop). How
 each hook is launched depends on the install channel:
 
-- **Plugin**: `sh "${CLAUDE_PLUGIN_ROOT}/bin/pmz-hook" "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`.
-  `bin/pmz-hook` finds `node` and runs the script.
+- **Plugin**: a self-contained `sh -c '…' pmz "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"` command in
+  `hooks.json`. It finds `node` itself and exits 0 if the script or `node` is missing; no launcher
+  file is involved.
 - **Manual install**: the command written to `settings.json` by
   `promptimizer/install/merge-settings.js` is `"<absolute path to node>" <config dir>/promptimizer/hooks/<script>.js`,
   where `<config dir>` is `~/.claude` (or `$CLAUDE_CONFIG_DIR`). The `node` path is resolved at
-  install time and `bin/pmz-hook` is not involved.
+  install time and no launcher is involved.
 
 Hooks receive the
 Claude Code hook JSON on stdin (session id, cwd, transcript path, tool input) and print JSON on
@@ -141,7 +142,7 @@ A hook must never break a session:
   (10 s for SessionStart, 5 s for the others, as set in `hooks.json`).
 - Invalid or missing stdin JSON, I/O errors and timeouts end in a silent `exit 0`. No hook ever
   uses `exit 2`.
-- If `node` cannot be found, `bin/pmz-hook` (plugin channel) exits 0 without output.
+- If `node` or the hook script cannot be found, the `hooks.json` command (plugin channel) exits 0 without output.
 - When in doubt, the decision is `allow`.
 
 ## Disabling PMZ

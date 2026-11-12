@@ -1,9 +1,16 @@
 ---
 description: Découpe une grosse demande en 2-5 US persistées (.vibe-agent/backlog.json)
-allowed-tools: Bash(node *), Bash(git *), ToolSearch, mcp__ccd_session__start_session, mcp__ccd_session_mgmt__set_session_permission_mode
+allowed-tools: Bash(node *), Bash(git *), ToolSearch, mcp__ccd_session__start_session, mcp__ccd_session_mgmt__set_session_permission_mode, mcp__ccd_session_mgmt__set_session_title
 ---
 
 Découpe la demande courante en un plan d'US persistant.
+
+**Première action (US#194), avant tout le reste : titrer la session sans dépendre d'un hook.**
+Lancer `node "${CLAUDE_PLUGIN_ROOT}/scripts/backlog.js" session-title --scope "<objet de la demande, 6 mots max>"`,
+puis renommer la session courante avec la 1re ligne imprimée (`[XXX · Scope] <objet>`) :
+`ToolSearch` `select:mcp__ccd_session_mgmt__set_session_title`, appel avec `session_id: "self"`.
+Si une 2ᵉ ligne est imprimée (`hooks PMZ hors service — lance /pmz:doctor`), la relayer telle quelle
+à l'utilisateur. Le hook `UserPromptSubmit` reste en place et produit le même titre quand il tourne.
 
 Rappel de découpe : **1 US = 1 session sous ~300k tokens, 1 commit, un critère « fait
 quand : … » vérifiable** — au-delà, redécouper plutôt que grossir une US.

@@ -1089,6 +1089,17 @@ function main() {
     return out(`archive --repair${r.dryRun ? ' (dry-run)' : ''} : verify ${r.verify} · headers ${r.headers} · fiches ${r.fiches} · fiches_sans_raw ${r.fiches_sans_raw.length ? r.fiches_sans_raw.join(',') : 0}${r.ok ? '' : ' · ÉCHEC'}`);
   }
 
+  if (cmd === 'session-title') { // US#194 : titre autonome (sans hook) — `session-title --scope "<objet>"`
+    const obj = String(flag('scope') || '').trim();
+    if (!obj) return out('Usage : backlog.js session-title --scope "<objet>"');
+    out(`[${trigram.readTrigram(root)} · Scope] ${obj.length > 50 ? obj.slice(0, 49) + '…' : obj}`);
+    try { // même contrôle que `doctor` (une seule implémentation) ; fail-open
+      const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, '..', 'install', 'doctor.js'), '--hooks', '--root', path.join(__dirname, '..')], { encoding: 'utf8', timeout: 20000 });
+      if (r && r.status === 1) out('hooks PMZ hors service — lance /pmz:doctor');
+    } catch (_) { /* fail-open */ }
+    return;
+  }
+
   if (cmd === 'doctor') { // US#189 : doctor --state [--fix] (fichiers d'état figés du projet)
     if (!process.argv.includes('--state')) return out('Usage : backlog.js doctor --state [--fix]');
     const args = [path.join(__dirname, '..', 'install', 'doctor.js'), '--state', '--root', root].concat(process.argv.includes('--fix') ? ['--fix'] : []);
@@ -1110,7 +1121,7 @@ function main() {
     return;
   }
 
-  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | close-wave | fleet <join|ready|leave|show> | sessions | archive --repair | doctor --state | reintegrate | reconcile | epic | verify | spec | trigram | export.`);
+  out(`Commande inconnue : ${cmd}. Commandes : show | add | start | done | drop | note | reopen | depends | next | parallelize | epicmaster | close-wave | fleet <join|ready|leave|show> | sessions | archive --repair | doctor --state | session-title --scope | reintegrate | reconcile | epic | verify | spec | trigram | export.`);
 }
 
 if (require.main === module) {

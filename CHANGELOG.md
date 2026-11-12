@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de ce dépôt. Format inspiré de Keep a Changelog.
 
+## 2026-11-12 — Release v2.18.1 — Hooks increvables (US#193, US#194)
+
+- US#193 : hooks.json autonome (commande sh -c sans bin/pmz-hook), détaillé dans l'entrée ci-dessous.
+- US#194 : `doctor` passe rouge (« hooks inexécutables ») si un hooks/<hook>.js référencé par hooks.json manque ou si la commande SessionStart rejouée avec `{}` ne sort pas en 0 ; le message nomme le chemin et la commande de réinstallation.
+- US#194 : `backlog.js session-title --scope "<objet>"` imprime `[XXX · Scope] <objet>` sans hook, plus une 2ᵉ ligne « hooks PMZ hors service — lance /pmz:doctor » si le contrôle échoue (exit 0).
+- `/pmz:scope` se titre en première action via cette commande ; le hook UserPromptSubmit reste en place.
+- docs/PRIVACY.md aligné sur le lancement autonome. Version 2.18.1 (VERSION + plugin.json).
+
 ## 2026-11-12 — US#193 Hooks sans lanceur : commande autonome
 
 - hooks.json n'appelle plus bin/pmz-hook : résolution de node dans la commande sh -c

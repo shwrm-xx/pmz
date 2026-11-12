@@ -94,7 +94,50 @@ if (require.main === module && process.argv.slice(2).includes('--state')) {
   } catch (_) { /* fail-open */ }
   process.exit(0);
 }
-module.exports = { stateCheck };
+// ── Contrôle « hooks inexécutables » (US#194) ──────────────────────────────────────────────────
+// Rouge si un fichier hooks/<hook>.js référencé par le hooks.json de `root` (racine du plugin)
+// manque, ou si la commande SessionStart, rejouée avec le payload `{}`, ne sort pas en 0. Les
+// commandes sont autonomes (sh -c, exit 0 si le fichier manque) : un fichier disparu du cache ne
+// se voit donc QUE par ce contrôle. Fail-open : jamais d'exception ; sans hooks.json -> ok.
+const REINSTALL_CMD = 'claude plugin marketplace update pmz-marketplace && claude plugin update pmz@pmz-marketplace, puis redémarrer';
+function hooksCheck(root) {
+  try {
+    const hj = path.join(root, 'hooks', 'hooks.json');
+    if (!fs.existsSync(hj)) return { ok: true, skipped: true, msg: 'hooks.json absent (rien à contrôler)' };
+    let data;
+    try { data = JSON.parse(fs.readFileSync(hj, 'utf8')); } catch (_) { return { ok: false, msg: `hooks inexécutables : ${hj} illisible — réinstaller : ${REINSTALL_CMD}` }; }
+    const cmds = [];
+    for (const groups of Object.values((data && data.hooks) || {})) {
+      for (const g of (Array.isArray(groups) ? groups : [])) for (const h of ((g && g.hooks) || [])) if (h && typeof h.command === 'string') cmds.push(h.command);
+    }
+    const missing = [];
+    for (const c of cmds) {
+      const re = /\$\{CLAUDE_PLUGIN_ROOT\}\/(hooks\/[\w.-]+\.js)/g;
+      let m;
+      while ((m = re.exec(c))) { const f = path.join(root, m[1]); if (!fs.existsSync(f) && !missing.includes(f)) missing.push(f); }
+    }
+    if (missing.length) return { ok: false, msg: `hooks inexécutables : fichier manquant ${missing.join(', ')} — réinstaller : ${REINSTALL_CMD}` };
+    const ss = (data.hooks && data.hooks.SessionStart) || [];
+    const sc = ss.length && ss[0].hooks && ss[0].hooks[0] && ss[0].hooks[0].command;
+    if (sc) {
+      const r = spawnSync(sc, { shell: true, input: '{}', cwd: require('os').tmpdir(), env: Object.assign({}, process.env, { CLAUDE_PLUGIN_ROOT: root }), stdio: ['pipe', 'ignore', 'ignore'], timeout: 10000 });
+      if (r.error || r.status !== 0) return { ok: false, msg: `hooks inexécutables : la commande SessionStart sort en ${r.error ? r.error.code || 'erreur' : r.status} — réinstaller : ${REINSTALL_CMD}` };
+    }
+    return { ok: true, msg: 'hooks exécutables' };
+  } catch (_) { return { ok: true, skipped: true, msg: 'contrôle impossible' }; }
+}
+if (require.main === module && process.argv.slice(2).includes('--hooks')) {
+  let ok = true;
+  try {
+    const a = process.argv.slice(2);
+    const ri = a.indexOf('--root');
+    const r = hooksCheck(path.resolve(ri !== -1 && a[ri + 1] ? a[ri + 1] : path.join(__dirname, '..')));
+    ok = r.ok;
+    process.stdout.write(`hooks : ${r.ok ? 'VERT' : 'ROUGE'} — ${r.msg}\n`);
+  } catch (_) { /* fail-open */ }
+  process.exit(ok ? 0 : 1);
+}
+module.exports = { stateCheck, hooksCheck };
 
 const DEST = cdir.claudeDir();
 const SETTINGS = cdir.settingsPath();
@@ -213,6 +256,9 @@ if (fs.existsSync(sessionStart)) {
   } catch (_) { /* ignore */ }
 }
 
+// Hooks inexécutables (US#194) : rouge. Contrôlé sur la racine du plugin (canal plugin seulement).
+const hooksChk = pluginActive && PLUGIN_ROOT ? hooksCheck(PLUGIN_ROOT) : { ok: true, skipped: true, msg: '' };
+
 // Projet courant
 let proj = 'non initialisé';
 const detect = path.join(PMZ, 'scripts', 'detect-project.js');
@@ -278,6 +324,7 @@ if (pluginProvides) {
   log('Skill globale : ' + skillOk);
 }
 log('Scripts exécutables : ' + scriptsOk);
+if (!hooksChk.skipped || !hooksChk.ok) log('Hooks exécutables : ' + (hooksChk.ok ? 'OK' : 'ROUGE — ' + hooksChk.msg));
 log('Mise à jour : ' + updateLine());
 log('Projet courant : ' + proj);
 log('');
@@ -297,7 +344,7 @@ if (versionDrift) {
 // résoudre). En plugin sain, hooks/skill sont fournis par le plugin : on n'exige PAS le
 // câblage manuel (c'était la cause du faux « rouge »). En manuel, comportement historique.
 let status = 'vert';
-if (setOk !== 'OK') status = 'rouge';
+if (setOk !== 'OK' || !hooksChk.ok) status = 'rouge';
 else if (doubleInstall) status = 'orange';
 else if (pluginActive) { if (scriptsOk !== 'OK' || double || versionDrift) status = 'orange'; }
 else if (hooksOk !== 'OK') status = 'rouge';

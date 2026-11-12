@@ -164,6 +164,8 @@ un éventuel sidecar de prise de relais) pour éviter le double-firing, puis aff
 d'install du plugin (`--purge` supprime aussi les fichiers PMZ legacy, conservés par défaut).
 `doctor.js` détecte et signale une double installation (plugin + canal manuel non retiré).
 
+`/pmz:doctor` passe **rouge** si un hook référencé par `hooks.json` est inexécutable (fichier manquant du cache, ou `SessionStart` en échec) ; `backlog.js session-title --scope "<objet>"` titre `/pmz:scope` sans hook et signale la panne (v2.18.1).
+
 **Canal manuel : legacy, gelé.** Les lanceurs `install.command`/`.sh`/`.ps1` (et
 `uninstall.*`/`pmz-doctor.*`) restent fonctionnels et maintenus a minima, mais le plugin est le
 canal recommandé pour toute nouvelle installation — plus d'updates/versioning natifs, plus de

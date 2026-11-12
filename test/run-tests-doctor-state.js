@@ -57,6 +57,27 @@ ok(!/\[orange\]/.test(run(C, ['doctor', '--state'])), 'cas 3 : second passage ve
 o = run(A, ['archive', '--repair', '--dry-run']);
 ok(/archive --repair \(dry-run\) : verify 0/.test(o), 'archive --repair --dry-run câblé');
 
+// US#194 — doctor « hooks inexécutables » + session-title --scope (plugin de test en bac à sable)
+const PKG = path.join(__dirname, '..', 'promptimizer');
+const mkPlugin = (name) => { const d = path.join(TMP, name); fs.cpSync(PKG, d, { recursive: true }); return d; };
+const doctorOut = (plugin) => { const r = spawnSync(process.execPath, [path.join(plugin, 'install', 'doctor.js'), '--no-pause'], { encoding: 'utf8', env: Object.assign({}, process.env, { CLAUDE_PLUGIN_ROOT: plugin, CLAUDE_CONFIG_DIR: path.join(TMP, 'cfg'), PMZ_NO_UPDATE_CHECK: '1' }) }); return (r.stdout || '') + (r.stderr || ''); };
+const P1 = mkPlugin('plugin-ok');
+o = doctorOut(P1);
+ok(/Hooks exécutables : OK/.test(o), 'doctor : plugin complet, contrôle hooks vert');
+const P2 = mkPlugin('plugin-cut');
+fs.rmSync(path.join(P2, 'hooks', 'stop.js'));
+o = doctorOut(P2);
+ok(/Statut : rouge/.test(o) && /fichier manquant .*stop\.js/.test(o) && /claude plugin update pmz@pmz-marketplace/.test(o), 'doctor : hook manquant -> rouge, chemin nommé, commande de réinstallation');
+const D = path.join(TMP, 'd'); fs.mkdirSync(D); sh(D, ['init', '-q']); 
+const runPlugin = (plugin, cwd, args) => { const r = spawnSync(process.execPath, [path.join(plugin, 'scripts', 'backlog.js')].concat(args), { cwd, encoding: 'utf8' }); return { out: (r.stdout || '').trim(), code: r.status }; };
+const trg = require('../promptimizer/lib/trigram');
+trg.writeTrigram(D, 'COC'); const tri = trg.readTrigram(D);
+ok(tri === 'COC', 'trigramme COC posé');
+let t = runPlugin(P1, D, ['session-title', '--scope', 'Réparer nommage']);
+ok(t.out === `[${tri} · Scope] Réparer nommage` && t.code === 0, 'session-title --scope : ligne [XXX · Scope] seule, exit 0');
+t = runPlugin(P2, D, ['session-title', '--scope', 'Réparer nommage']);
+ok(t.out === `[${tri} · Scope] Réparer nommage\nhooks PMZ hors service — lance /pmz:doctor` && t.code === 0, 'session-title --scope : plugin amputé -> 2e ligne, exit 0');
+
 try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (_) {}
 console.log(`doctor-state : ${pass} OK · ${failures.length} échec(s)`);
 process.exit(failures.length ? 1 : 0);

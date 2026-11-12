@@ -1669,6 +1669,14 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
 - **`bin/pmz-hook`** : toujours livré, inchangé, mais **plus référencé** par `hooks.json` (un poste
   qui garde un ancien `hooks.json` en mémoire continue de marcher). Test :
   `test/run-tests-hooks-autonomes.js` (plugin assemblé sans `bin/`).
+- **Panne de hooks visible (US#194, v2.18.1)** : comme la commande autonome sort en 0 quand le
+  fichier manque, la panne est silencieuse ; `doctor.js` exporte `hooksCheck(root)` (aussi
+  `doctor.js --hooks [--root <plugin>]`, exit 1 si rouge) : chaque `hooks/<x>.js` référencé par
+  `hooks.json` doit exister et la commande `SessionStart` rejouée avec `{}` doit sortir en 0 —
+  sinon statut **rouge** (message : chemin manquant + commande de réinstallation). `backlog.js
+  session-title --scope "<objet>"` (utilisé par `/pmz:scope` en première action, sans hook)
+  imprime `[XXX · Scope] <objet>` et, si ce contrôle échoue, « hooks PMZ hors service — lance
+  /pmz:doctor » (exit 0). Le hook UserPromptSubmit reste en place.
 - **Diagnostic** = `claude plugin details pmz` (natif). `doctor.js` reste l'outil du
   canal manuel (exclu du plugin) mais est **conscient du canal plugin** (lot E3) : lancé depuis
   le dépôt sur un poste en plugin, il détecte le plugin (env `CLAUDE_PLUGIN_ROOT`,
