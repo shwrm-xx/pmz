@@ -30,7 +30,7 @@ de `node` est figé à l'install (résolu vers un symlink stable, ex. `/opt/home
 pour éviter `exit 127` quand Claude Code lance les hooks via `sh -c` avec un PATH épuré (apps
 GUI macOS). Le `~` reste développé par le shell. Stdin = JSON ; sortie = JSON sur stdout, exit 0.
 En **mode plugin** (lot D2), le câblage vient de `hooks/hooks.json` et `node` est résolu au runtime
-par le wrapper `bin/pmz-hook` — voir « Canal plugin Claude Code » plus bas. Le contrat par hook
+par une commande `sh -c` autonome (US#193) — voir « Canal plugin Claude Code » plus bas. Le contrat par hook
 (events, stdin, sortie) ci-dessous est identique dans les deux canaux.
 
 | Hook | Event / matcher | Lit (stdin) | Émet | Rôle |
@@ -1657,13 +1657,18 @@ manifeste alignée sur `VERSION`, `marketplace.json` locale à **source string r
   à suivre) si l'une manque du dossier assemblé. À éditer consciemment quand on ajoute/retire une
   commande — une suppression accidentelle de la source la fait diverger et bloque le build avant
   tout redéploiement (anti-régression du cleanup `7533d72`, cf. CHANGELOG v1.1.3).
-- **Câblage des hooks** : `hooks/hooks.json` statique (6 hooks, mêmes matchers/timeouts que
-  `merge-settings.js`) remplace l'écriture dans `settings.json`. Commande =
-  `sh "${CLAUDE_PLUGIN_ROOT}/bin/pmz-hook" "${CLAUDE_PLUGIN_ROOT}/hooks/x.js"`.
-- **Wrapper `bin/pmz-hook`** : résout `node` **au runtime** (PATH puis emplacements usuels absents
-  du PATH GUI macOS) — remplace le `resolveNodeBin()` de `merge-settings.js`, inutilisable pour un
-  plugin distribué (chemin machine-spécifique). Invoqué via `sh` car le bit +x n'est pas préservé
-  en `.zip`. Fail-open : `node` introuvable → exit 0 silencieux.
+- **Câblage des hooks** : `hooks/hooks.json` statique (8 commandes, mêmes matchers/timeouts que
+  `merge-settings.js`) remplace l'écriture dans `settings.json`. US#193 : chaque commande est
+  **autonome** (aucun fichier annexe entre l'app et le hook) :
+  `sh -c '[ -f "$1" ] || exit 0; for n in "$(command -v node 2>/dev/null)" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do [ -n "$n" ] && [ -x "$n" ] && exec "$n" "$1"; done; exit 0' pmz "${CLAUDE_PLUGIN_ROOT}/hooks/x.js"`.
+  `node` est résolu **au runtime** (PATH puis emplacements usuels absents du PATH GUI macOS) —
+  remplace le `resolveNodeBin()` de `merge-settings.js`, inutilisable pour un plugin distribué
+  (chemin machine-spécifique). `sh -c` car le bit +x n'est pas préservé en `.zip`. Fail-open :
+  hook absent ou `node` introuvable → exit 0 silencieux. Cause : le 2026-11-09, `bin/pmz-hook` a
+  disparu du cache installé et tous les hooks sont sortis en 127 pendant trois jours.
+- **`bin/pmz-hook`** : toujours livré, inchangé, mais **plus référencé** par `hooks.json` (un poste
+  qui garde un ancien `hooks.json` en mémoire continue de marcher). Test :
+  `test/run-tests-hooks-autonomes.js` (plugin assemblé sans `bin/`).
 - **Diagnostic** = `claude plugin details pmz` (natif). `doctor.js` reste l'outil du
   canal manuel (exclu du plugin) mais est **conscient du canal plugin** (lot E3) : lancé depuis
   le dépôt sur un poste en plugin, il détecte le plugin (env `CLAUDE_PLUGIN_ROOT`,

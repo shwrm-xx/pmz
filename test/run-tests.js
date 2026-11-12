@@ -10677,6 +10677,7 @@ for (const [title, file] of [
   ['US#187 — archive exacte et --repair', 'run-tests-archive.js'],
   ['US#188 — sessions, statusline, bande, logs', 'run-tests-sessions.js'],
   ['US#189 — doctor --state', 'run-tests-doctor-state.js'],
+  ['US#193 — hooks sans lanceur', 'run-tests-hooks-autonomes.js'],
 ]) {
   section(`${title} (test/${file})`);
   const r = spawnSync(process.execPath, [path.join(__dirname, file)], { encoding: 'utf8' });
